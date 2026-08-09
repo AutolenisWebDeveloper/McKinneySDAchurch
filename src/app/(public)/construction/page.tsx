@@ -3,6 +3,7 @@ import { raisedPct, formatUsd, timelineLabel, phaseStatusLabel, campaignRollup, 
 import { subscribeBuilding, createPledge } from "./actions";
 import { PageHeader, Card, Callout, fieldClass, Honeypot } from "@/components/page-ui";
 import { Section, Container, Eyebrow } from "@/components/ui";
+import { BuildingPlans } from "@/components/BuildingPlans";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -31,7 +32,13 @@ export default async function Construction({ searchParams }: { searchParams: Pro
   if (!project) {
     return (
       <>
-        <PageHeader eyebrow="Our building project" title="A home of our own" lede="Details about our building project will be posted here soon." tone="denim" />
+        <PageHeader
+          eyebrow="Our building project"
+          title="A home of our own"
+          lede="We’re raising funds to build a permanent home for the McKinney SDA Church. Here is the vision — with more to come as the campaign takes shape."
+          tone="denim"
+        />
+        <BuildingPlans />
       </>
     );
   }
@@ -83,6 +90,9 @@ export default async function Construction({ searchParams }: { searchParams: Pro
           </div>
         </Container>
       </section>
+
+      {/* SITE & BUILDING PLANS (church-supplied drawings) */}
+      <BuildingPlans />
 
       {/* RENDERINGS */}
       {renderings.length ? (
