@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { formatUsd, raisedPct, campaignTotals, fundraiserTotals, rankFundraisers, confirmedTotal } from "@/lib/fundraising";
+import { formatUsd, campaignTotals, fundraiserTotals, rankFundraisers, confirmedTotal } from "@/lib/fundraising";
 import { DonateForm } from "@/components/DonateForm";
+import { Container } from "@/components/ui";
+import { Card, Callout } from "@/components/page-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -19,36 +21,61 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   const board = rankFundraisers(fundraiserTotals(c.donations, names)).slice(0, 10);
 
   return (
-    <div className="max-w-2xl space-y-10">
-      <div>
-        {c.coverImageUrl ? <img src={c.coverImageUrl} alt="" className="w-full rounded-xl mb-4 max-h-64 object-cover" /> : null}
-        <h1 className="text-2xl font-bold">{c.title}</h1>
-        {c.description ? <p className="mt-2 text-muted">{c.description}</p> : null}
-        <div className="mt-4"><div className="flex justify-between text-sm mb-1"><span className="font-medium">{formatUsd(totals.confirmed)} raised</span>{c.goal ? <span className="text-muted">Goal {formatUsd(c.goal)}</span> : null}</div>
-          <div className="h-4 rounded bg-black/10 dark:bg-white/10 overflow-hidden"><div className="h-full bg-sda-green" style={{ width: `${totals.pct}%` }} /></div>
-          <p className="text-xs text-muted mt-1">{totals.count} gifts{c.goal ? ` · ${totals.pct}% of goal` : ""}</p>
+    <Container size="narrow" className="py-12 sm:py-16">
+      {c.coverImageUrl ? <img src={c.coverImageUrl} alt={c.title} className="mb-6 max-h-72 w-full rounded-xl object-cover" /> : null}
+      <p className="eyebrow mb-3">Campaign</p>
+      <h1 className="text-display font-serif font-semibold text-fg">{c.title}</h1>
+      {c.description ? <p className="mt-4 text-lg leading-relaxed text-muted">{c.description}</p> : null}
+
+      <div className="card mt-8 p-6">
+        <div className="flex items-end justify-between">
+          <span className="text-3xl font-semibold text-denim-800 dark:text-denim-300">{formatUsd(totals.confirmed)}</span>
+          {c.goal ? <span className="text-sm text-muted">of {formatUsd(c.goal)} goal</span> : null}
         </div>
+        <div className="mt-3 h-3 overflow-hidden rounded-full bg-denim-100 dark:bg-white/10" role="progressbar" aria-valuenow={totals.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Campaign progress">
+          <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${Math.max(totals.pct, 2)}%` }} />
+        </div>
+        <p className="mt-2 text-sm text-muted">{totals.count} gift{totals.count === 1 ? "" : "s"}{c.goal ? ` · ${totals.pct}% of goal` : ""}</p>
       </div>
 
       {board.length ? (
-        <section><h2 className="text-xl font-semibold mb-3">🏆 Wall of Fame</h2>
-          <ol className="space-y-1">{board.map((b) => <li key={b.id} className="flex justify-between rounded border border-black/10 dark:border-white/10 px-3 py-2"><span>#{b.rank} {b.name}</span><span className="font-medium">{formatUsd(b.total)}</span></li>)}</ol>
+        <section className="mt-12">
+          <h2 className="text-title font-serif font-semibold text-fg">🏆 Wall of Fame</h2>
+          <ol className="mt-5 space-y-2">
+            {board.map((b) => (
+              <li key={b.id} className="flex items-center justify-between rounded-lg border border-line bg-surface px-4 py-3">
+                <span className="font-medium text-fg"><span className="text-muted">#{b.rank}</span> {b.name}</span>
+                <span className="font-semibold text-denim-800 dark:text-denim-300">{formatUsd(b.total)}</span>
+              </li>
+            ))}
+          </ol>
         </section>
       ) : null}
 
       {c.allowMemberFundraisers ? (
-        <section>
-          <div className="flex items-center justify-between mb-3"><h2 className="text-xl font-semibold">Member fundraisers</h2><Link href="/dashboard/fundraisers" className="text-sm underline">Start your own →</Link></div>
+        <section className="mt-12">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-title font-serif font-semibold text-fg">Member fundraisers</h2>
+            <Link href="/dashboard/fundraisers" className="text-sm font-semibold text-primary hover:text-primary-hover">Start your own →</Link>
+          </div>
           {c.fundraisers.length ? (
-            <ul className="space-y-2">{c.fundraisers.map((f) => <li key={f.id} className="rounded border border-black/10 dark:border-white/10 p-3 flex justify-between"><Link href={`/f/${f.slug}`} className="hover:underline">{f.title} <span className="text-muted text-sm">· {f.displayName}</span></Link><span className="text-sm text-muted">{formatUsd(confirmedTotal(f.donations))}</span></li>)}</ul>
-          ) : <p className="text-muted text-sm">Be the first to start a fundraiser for this campaign.</p>}
+            <ul className="space-y-2">
+              {c.fundraisers.map((f) => (
+                <li key={f.id} className="flex items-center justify-between rounded-lg border border-line bg-surface px-4 py-3">
+                  <Link href={`/f/${f.slug}`} className="font-medium text-fg hover:text-primary">{f.title} <span className="text-sm text-muted">· {f.displayName}</span></Link>
+                  <span className="text-sm text-muted">{formatUsd(confirmedTotal(f.donations))}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="text-sm text-muted">Be the first to start a fundraiser for this campaign.</p>}
         </section>
       ) : null}
 
-      <section><h2 className="text-xl font-semibold mb-3">Give to this campaign</h2>
-        {donated ? <p className="rounded bg-sda-green/10 text-sda-green px-3 py-2 mb-3">Thank you! Your gift has been recorded.</p> : null}
-        <DonateForm campaignId={c.id} backTo={`/fundraising/${c.slug}`} />
+      <section className="mt-12">
+        <h2 className="text-title font-serif font-semibold text-fg">Give to this campaign</h2>
+        {donated ? <div className="mt-4"><Callout tone="success">Thank you! Your gift has been recorded.</Callout></div> : null}
+        <div className="mt-6"><DonateForm campaignId={c.id} backTo={`/fundraising/${c.slug}`} /></div>
       </section>
-    </div>
+    </Container>
   );
 }

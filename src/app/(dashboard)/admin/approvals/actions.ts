@@ -54,5 +54,5 @@ async function review(kind: "announcement" | "event", formData: FormData) {
   revalidatePath("/"); // public feeds may change on approve/withdraw
 }
 
-export const reviewAnnouncement = (fd: FormData) => review("announcement", fd);
-export const reviewEvent = (fd: FormData) => review("event", fd);
+export async function reviewAnnouncement(fd: FormData) { return review("announcement", fd); }
+export async function reviewEvent(fd: FormData) { return review("event", fd); }

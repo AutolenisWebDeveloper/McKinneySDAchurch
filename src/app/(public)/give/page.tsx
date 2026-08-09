@@ -1,25 +1,96 @@
 import { prisma } from "@/lib/db";
 import { env } from "@/env";
+import { PageHeader, Card, Callout } from "@/components/page-ui";
+import { Section, Container } from "@/components/ui";
+
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Give — McKinney SDA Church" };
-const CATEGORIES = ["Tithe", "Local Church Budget", "Building Fund", "Pathfinder", "Evangelism"];
+export const metadata = {
+  title: "Give",
+  description: "Return tithe and give offerings securely through AdventistGiving.",
+};
+
+const EXT = "noopener noreferrer";
+const CATEGORIES = [
+  ["Tithe", "Supporting the worldwide mission of the church"],
+  ["Local Church Budget", "The day-to-day ministry of our congregation"],
+  ["Building Fund", "Helping us build a permanent home"],
+  ["Pathfinder", "Our club for children and youth"],
+  ["Evangelism", "Sharing the hope of Jesus with our community"],
+];
+
 export default async function Give() {
-  const upcoming = await prisma.offeringCalendarEntry.findMany({ where: { weekOf: { gte: new Date(Date.now() - 7 * 86400000) } }, orderBy: { weekOf: "asc" }, take: 8 });
+  const upcoming = await prisma.offeringCalendarEntry.findMany({
+    where: { weekOf: { gte: new Date(Date.now() - 7 * 86400000) } },
+    orderBy: { weekOf: "asc" },
+    take: 8,
+  });
+
   return (
-    <div className="max-w-2xl space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold mb-2">Give</h1>
-        <p className="text-muted">Returning tithe and giving offerings is an act of worship. Giving is handled securely by AdventistGiving — we never see or store your card details.</p>
-        {env.ADVENTIST_GIVING_URL ? (
-          <a href={env.ADVENTIST_GIVING_URL} target="_blank" rel="noopener noreferrer" className="inline-block mt-4 rounded bg-sda-gold text-sda-navy px-5 py-2 font-medium">Give with AdventistGiving</a>
-        ) : <p className="mt-4 text-muted">Online giving link coming soon.</p>}
-        <ul className="mt-4 flex flex-wrap gap-2 text-sm text-muted">{CATEGORIES.map((c) => <li key={c} className="rounded border border-black/20 dark:border-white/20 px-2 py-0.5">{c}</li>)}</ul>
-      </div>
-      {upcoming.length ? (
-        <section><h2 className="font-semibold mb-2">Offering calendar</h2>
-          <ul className="space-y-1 text-sm">{upcoming.map((o) => <li key={o.id}>{new Date(o.weekOf).toLocaleDateString("en-US")} — {o.offeringName}{o.isConferenceOffering ? " (Conference)" : ""}</li>)}</ul>
-        </section>
-      ) : null}
-    </div>
+    <>
+      <PageHeader
+        eyebrow="Giving"
+        title="Generosity is worship"
+        lede="Returning tithe and giving offerings is an act of gratitude to God. Giving is handled securely through AdventistGiving — we never see or store your card details."
+        actions={env.ADVENTIST_GIVING_URL ? (
+          <a href={env.ADVENTIST_GIVING_URL} target="_blank" rel={EXT} className="btn btn-accent">Give with AdventistGiving</a>
+        ) : undefined}
+      />
+
+      <Section>
+        <div className="grid gap-10 lg:grid-cols-3 lg:gap-16">
+          <div className="lg:col-span-2">
+            <p className="eyebrow mb-3">Where your gift goes</p>
+            <h2 className="text-title font-serif font-semibold text-fg">Ways to give</h2>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              {CATEGORIES.map(([name, desc]) => (
+                <div key={name} className="card p-5">
+                  <p className="font-serif text-lg font-semibold text-fg">{name}</p>
+                  <p className="mt-1 text-sm text-muted">{desc}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6">
+              <Callout tone="info">
+                Guests are always welcome, and giving is never expected of visitors.
+                If you’d like to give, thank you — every gift makes a difference.
+              </Callout>
+            </div>
+          </div>
+
+          <aside>
+            <Card>
+              <p className="eyebrow mb-4">Give online</p>
+              <p className="text-sm text-muted">
+                Fast, secure, and simple through the official AdventistGiving platform.
+              </p>
+              {env.ADVENTIST_GIVING_URL ? (
+                <a href={env.ADVENTIST_GIVING_URL} target="_blank" rel={EXT} className="btn btn-accent mt-5 w-full">
+                  Give now →
+                </a>
+              ) : (
+                <p className="mt-5 text-sm text-muted">Online giving link coming soon.</p>
+              )}
+            </Card>
+
+            {upcoming.length ? (
+              <div className="card mt-6 p-6">
+                <p className="eyebrow mb-3">Offering calendar</p>
+                <ul className="space-y-3 text-sm">
+                  {upcoming.map((o) => (
+                    <li key={o.id} className="flex justify-between gap-3 border-b border-line pb-3 last:border-0 last:pb-0">
+                      <span className="text-fg">
+                        {o.offeringName}
+                        {o.isConferenceOffering ? <span className="ml-1 text-xs text-muted">(Conference)</span> : null}
+                      </span>
+                      <span className="shrink-0 text-muted">{new Date(o.weekOf).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </aside>
+        </div>
+      </Section>
+    </>
   );
 }

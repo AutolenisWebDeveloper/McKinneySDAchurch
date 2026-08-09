@@ -11,21 +11,90 @@ generator client {
 }
 
 // ===== Enums =====
-enum Role { MEMBER MINISTRY_HEAD CLERK TREASURER ADMIN PASTOR }
-enum ApprovalStatus { PENDING APPROVED REJECTED WITHDRAWN }
-enum ContentVisibility { PUBLIC MEMBERS_ONLY }
-enum VisitorStatus { ACTIVE INACTIVE }
-enum SubscriptionStatus { SUBSCRIBED UNSUBSCRIBED }
-enum ConsentStatus { GRANTED REVOKED }
-enum SuppressionScope { GLOBAL MARKETING }
-enum SuppressionReason { USER_UNSUBSCRIBE HARD_BOUNCE SPAM_COMPLAINT ADMIN MINOR MISSING_CONSENT }
-enum EmailType { TRANSACTIONAL MARKETING }
-enum EmailStatus { QUEUED ACCEPTED DELIVERED DELAYED BOUNCED COMPLAINED FAILED SUPPRESSED UNSUBSCRIBED }
-enum DocumentVisibility { PUBLIC MEMBERS_ONLY ADMIN_ONLY }
-enum ScanStatus { PENDING CLEAN INFECTED FAILED }
-enum JobStatus { RUNNING COMPLETED FAILED }
-enum CareAlertStatus { OPEN ASSIGNED RESOLVED }
-enum InviteStatus { PENDING ACCEPTED REVOKED EXPIRED }
+enum Role {
+  MEMBER
+  MINISTRY_HEAD
+  CLERK
+  TREASURER
+  ADMIN
+  PASTOR
+}
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+enum ContentVisibility {
+  PUBLIC
+  MEMBERS_ONLY
+}
+enum VisitorStatus {
+  ACTIVE
+  INACTIVE
+}
+enum SubscriptionStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+}
+enum ConsentStatus {
+  GRANTED
+  REVOKED
+}
+enum SuppressionScope {
+  GLOBAL
+  MARKETING
+}
+enum SuppressionReason {
+  USER_UNSUBSCRIBE
+  HARD_BOUNCE
+  SPAM_COMPLAINT
+  ADMIN
+  MINOR
+  MISSING_CONSENT
+}
+enum EmailType {
+  TRANSACTIONAL
+  MARKETING
+}
+enum EmailStatus {
+  QUEUED
+  ACCEPTED
+  DELIVERED
+  DELAYED
+  BOUNCED
+  COMPLAINED
+  FAILED
+  SUPPRESSED
+  UNSUBSCRIBED
+}
+enum DocumentVisibility {
+  PUBLIC
+  MEMBERS_ONLY
+  ADMIN_ONLY
+}
+enum ScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  FAILED
+}
+enum JobStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+enum CareAlertStatus {
+  OPEN
+  ASSIGNED
+  RESOLVED
+}
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
 
 // ===== Identity & auth =====
 model User {
@@ -291,9 +360,24 @@ model ConstructionProject {
   photos        ProjectPhoto[]      @relation("ProjectPhotos")
 }
 
-enum PhaseStatus { PLANNED IN_PROGRESS COMPLETED ON_HOLD }
-enum PledgeStatus { PENDING CONFIRMED FULFILLED CANCELLED }
-enum PledgeFrequency { ONE_TIME MONTHLY QUARTERLY ANNUAL }
+enum PhaseStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+}
+enum PledgeStatus {
+  PENDING
+  CONFIRMED
+  FULFILLED
+  CANCELLED
+}
+enum PledgeFrequency {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
 
 model ConstructionPhase {
   id          String @id @default(cuid())
@@ -530,11 +614,35 @@ model Attendance {
 }
 
 // ===== Membership pathway/status, transfers & reference library =====
-enum MembershipStatus { ACTIVE MISSING REMOVED TRANSFERRED_OUT DECEASED }  // mirrors eAdventist (§2A)
-enum JoinPathway { BAPTISM PROFESSION_OF_FAITH TRANSFER }
-enum TransferDirection { INCOMING OUTGOING }
-enum TransferStatus { SUBMITTED IN_REVIEW HANDED_TO_EADVENTIST COMPLETED DECLINED WITHDRAWN }
-enum ReferenceType { FUNDAMENTAL_BELIEF CHURCH_MANUAL }
+// mirrors eAdventist (§2A)
+enum MembershipStatus {
+  ACTIVE
+  MISSING
+  REMOVED
+  TRANSFERRED_OUT
+  DECEASED
+}
+enum JoinPathway {
+  BAPTISM
+  PROFESSION_OF_FAITH
+  TRANSFER
+}
+enum TransferDirection {
+  INCOMING
+  OUTGOING
+}
+enum TransferStatus {
+  SUBMITTED
+  IN_REVIEW
+  HANDED_TO_EADVENTIST
+  COMPLETED
+  DECLINED
+  WITHDRAWN
+}
+enum ReferenceType {
+  FUNDAMENTAL_BELIEF
+  CHURCH_MANUAL
+}
 
 model MembershipTransfer {
   id            String @id @default(cuid())
@@ -583,8 +691,18 @@ model ReferenceDocument {
 }
 
 // ===== Safeguarding: volunteer screening + media consent (§14D) =====
-enum ScreeningStatus { NONE PENDING CLEARED EXPIRED FAILED }
-enum MediaScope { PHOTO VIDEO SOCIAL }
+enum ScreeningStatus {
+  NONE
+  PENDING
+  CLEARED
+  EXPIRED
+  FAILED
+}
+enum MediaScope {
+  PHOTO
+  VIDEO
+  SOCIAL
+}
 
 model VolunteerScreening {
   id              String @id @default(cuid())
@@ -616,7 +734,15 @@ model MediaConsent {
 }
 
 // ===== Sabbath School (§14E) =====
-enum SSDivision { ADULT YOUTH EARLITEEN JUNIOR PRIMARY KINDERGARTEN BEGINNER }
+enum SSDivision {
+  ADULT
+  YOUTH
+  EARLITEEN
+  JUNIOR
+  PRIMARY
+  KINDERGARTEN
+  BEGINNER
+}
 
 model SabbathSchoolClass {
   id             String @id @default(cuid())
@@ -664,8 +790,20 @@ model OrderOfServiceItem {
 }
 
 // ===== Officers, board & minutes (§14G) =====
-enum OfficerRole { ELDER DEACON DEACONESS CLERK TREASURER SS_SUPERINTENDENT MINISTRY_LEADER OTHER }
-enum MeetingType { BOARD BUSINESS }
+enum OfficerRole {
+  ELDER
+  DEACON
+  DEACONESS
+  CLERK
+  TREASURER
+  SS_SUPERINTENDENT
+  MINISTRY_LEADER
+  OTHER
+}
+enum MeetingType {
+  BOARD
+  BUSINESS
+}
 
 model ChurchOffice {
   id         String @id @default(cuid())
@@ -696,7 +834,13 @@ model BoardMeeting {
 }
 
 // ===== Ordinances & membership pathways (§14H) =====
-enum BaptismStatus { REQUESTED IN_CLASS SCHEDULED COMPLETED WITHDRAWN }
+enum BaptismStatus {
+  REQUESTED
+  IN_CLASS
+  SCHEDULED
+  COMPLETED
+  WITHDRAWN
+}
 
 model BaptismCandidate {
   id           String @id @default(cuid())
@@ -726,7 +870,11 @@ model OfferingCalendarEntry {
 }
 
 // ===== Youth clubs (Pathfinders / Adventurers / AY) (§14J) =====
-enum YouthClub { PATHFINDERS ADVENTURERS AY }
+enum YouthClub {
+  PATHFINDERS
+  ADVENTURERS
+  AY
+}
 
 model YouthClubRegistration {
   id            String @id @default(cuid())
@@ -761,9 +909,22 @@ model AuditLog {
 }
 
 // ===== Peer-to-peer fundraising =====
-enum CampaignStatus { DRAFT ACTIVE PAUSED COMPLETED }
-enum DonationStatus { PENDING CONFIRMED CANCELLED }
-enum DonationKind { PLEDGE GIVEN }   // PLEDGE = commitment; GIVEN = reported as given via AdventistGiving (no card data here)
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+enum DonationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+// PLEDGE = commitment; GIVEN = reported as given via AdventistGiving (no card data here)
+enum DonationKind {
+  PLEDGE
+  GIVEN
+}
 
 model FundraisingCampaign {
   id                    String @id @default(cuid())

@@ -1,30 +1,48 @@
 import Link from "next/link";
 import { getManualRoots } from "@/lib/reference";
+import { PageHeader } from "@/components/page-ui";
+import { Section } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Church Manual — McKinney SDA Church" };
+export const metadata = {
+  title: "Church Manual",
+  description: "Reference the Seventh-day Adventist Church Manual.",
+};
 
 export default async function ChurchManualPage() {
   const roots = await getManualRoots();
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Church Manual</h1>
-      {roots.length ? (
-        <ul className="space-y-4">
-          {roots.map((ch) => (
-            <li key={ch.id}>
-              <Link href={`/reference/${ch.slug}`} className="font-semibold hover:underline">{ch.title}</Link>
-              {ch.children.length ? (
-                <ul className="mt-1 ml-4 space-y-1">
-                  {ch.children.map((s) => (
-                    <li key={s.id}><Link href={`/reference/${s.slug}`} className="text-muted hover:underline">{s.title}</Link></li>
-                  ))}
-                </ul>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      ) : <p className="text-muted">Church Manual content has not been published yet.</p>}
-    </div>
+    <>
+      <PageHeader
+        eyebrow="Reference"
+        title="Church Manual"
+        lede="The Seventh-day Adventist Church Manual describes how our congregations are organized and governed, drawn from Scripture and the shared practice of the world church."
+      />
+      <Section>
+        {roots.length ? (
+          <ul className="grid gap-5 md:grid-cols-2">
+            {roots.map((ch) => (
+              <li key={ch.id} className="card p-6">
+                <Link href={`/reference/${ch.slug}`} className="font-serif text-lg font-semibold text-fg hover:text-primary">{ch.title}</Link>
+                {ch.children.length ? (
+                  <ul className="mt-3 space-y-1.5 border-t border-line pt-3">
+                    {ch.children.map((s) => (
+                      <li key={s.id}>
+                        <Link href={`/reference/${s.slug}`} className="text-sm text-muted transition-colors hover:text-primary">{s.title}</Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="card p-8 text-center">
+            <p className="font-serif text-lg font-semibold text-fg">Manual content is being prepared</p>
+            <p className="mx-auto mt-1.5 max-w-md text-sm text-muted">Church Manual sections will be published here soon.</p>
+          </div>
+        )}
+      </Section>
+    </>
   );
 }
