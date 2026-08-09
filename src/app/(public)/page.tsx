@@ -197,16 +197,17 @@ export default async function Home() {
         </div>
       </Section>
 
-      {/* ================= BUILDING CAMPAIGN (pale denim band) ================= */}
-      <section className="bg-tint">
-        <Container className="py-16 sm:py-24">
+      {/* ================= BUILDING CAMPAIGN (deep navy band) ================= */}
+      <section className="relative overflow-hidden bg-hero-denim text-white">
+        <div className="glow-denim absolute inset-0" aria-hidden="true" />
+        <Container className="relative py-16 sm:py-24">
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
             <div>
-              <Eyebrow className="mb-4">Our building project</Eyebrow>
-              <h2 className="text-display font-serif font-semibold text-fg">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-denim-300">Our building project</p>
+              <h2 className="text-display font-serif font-semibold text-white">
                 A home of our own
               </h2>
-              <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
+              <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/75">
                 For now we gather in a borrowed space — and we’re grateful for it.
                 But God has given us a vision: a permanent home where our church
                 family can worship, teach our children, and welcome our neighbors
@@ -214,32 +215,32 @@ export default async function Home() {
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/construction" className="btn btn-primary">See the vision</Link>
+                <Link href="/construction" className="btn btn-white">See the vision</Link>
                 {giveUrl && (
                   <a href={giveUrl} target="_blank" rel={EXT} className="btn btn-accent">Give to the building</a>
                 )}
               </div>
             </div>
 
-            {/* Progress card — white on the pale band */}
-            <div className="card p-8">
+            {/* Progress card — glass panel on the navy band */}
+            <div className="rounded-2xl border border-white/12 bg-white/5 p-8 shadow-lg backdrop-blur-sm">
               {project ? (
                 <>
-                  <p className="font-serif text-xl text-fg">{project.title}</p>
+                  <p className="font-serif text-xl text-white">{project.title}</p>
                   <div className="mt-6">
                     <div className="flex items-end justify-between">
-                      <span className="text-3xl font-semibold text-denim-800 dark:text-denim-300">{formatUsd(project.currentRaised)}</span>
-                      <span className="text-sm text-muted">of {formatUsd(project.totalGoal)} goal</span>
+                      <span className="text-3xl font-semibold text-white">{formatUsd(project.currentRaised)}</span>
+                      <span className="text-sm text-white/60">of {formatUsd(project.totalGoal)} goal</span>
                     </div>
-                    <div className="mt-3 h-3 overflow-hidden rounded-full bg-denim-100 dark:bg-white/10" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Building fund progress">
-                      <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${Math.max(pct, 2)}%` }} />
+                    <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/15" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Building fund progress">
+                      <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.max(pct, 2)}%` }} />
                     </div>
-                    <p className="mt-2 text-sm text-muted">{pct}% raised toward our goal</p>
+                    <p className="mt-2 text-sm text-white/70">{pct}% raised toward our goal</p>
                   </div>
                   {project.targetCompletion && (
-                    <p className="mt-6 border-t border-line pt-5 text-sm text-muted">
+                    <p className="mt-6 border-t border-white/15 pt-5 text-sm text-white/70">
                       Target completion:{" "}
-                      <span className="font-medium text-fg">
+                      <span className="font-medium text-white">
                         {new Date(project.targetCompletion).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
                       </span>
                     </p>
@@ -247,17 +248,17 @@ export default async function Home() {
                 </>
               ) : (
                 <>
-                  <p className="font-serif text-xl text-fg">The campaign is taking shape</p>
-                  <p className="mt-4 text-muted">
+                  <p className="font-serif text-xl text-white">The campaign is taking shape</p>
+                  <p className="mt-4 text-white/75">
                     We’re prayerfully preparing to build. Follow the journey, and
                     be part of the story from the very first brick.
                   </p>
                   <div className="mt-6 flex flex-wrap gap-2">
                     {["Worship center", "Classrooms", "Fellowship hall", "A place to serve"].map((f) => (
-                      <span key={f} className="chip">{f}</span>
+                      <span key={f} className="inline-flex items-center rounded-full border border-white/20 px-3 py-1 text-sm text-white/85">{f}</span>
                     ))}
                   </div>
-                  <Link href="/construction" className="mt-6 inline-flex text-sm font-semibold text-primary hover:text-primary-hover">
+                  <Link href="/construction" className="mt-6 inline-flex text-sm font-semibold text-denim-300 hover:text-white">
                     Learn more about the project →
                   </Link>
                 </>

@@ -10,39 +10,48 @@
    ========================================================================= */
 
 :root {
-  /* --- Brand scale: Denim. Anchor = PMS 302 (#004F71 = denim-800). --- */
-  --denim-50: 244 249 252;   /* #F4F9FC — barely-there tint */
-  --denim-100: 231 241 247;  /* #E7F1F7 — pale section tint */
-  --denim-200: 205 226 237;  /* derived */
-  --denim-300: 127 180 208;  /* #7FB4D0 — hairlines/accents on dark */
-  --denim-400: 78 145 178;   /* derived */
-  --denim-500: 33 121 160;   /* derived */
-  --denim-600: 21 103 143;   /* #15678F — buttons, links, active states */
-  --denim-700: 11 84 120;    /* derived hover */
-  --denim-800: 0 79 113;     /* #004F71 — PMS 302, brand anchor / logo lockup */
-  --denim-900: 4 56 79;      /* derived */
-  --denim-950: 7 42 60;      /* #072A3C — deep hero/footer base */
+  /* --- Brand blue scale: Navy → Teal. Anchor = Deep SDA Navy #003B5C (denim-800).
+     Token name kept as `denim` for continuity across the codebase. --- */
+  --denim-50: 246 249 250;   /* #F6F9FA — very light cool background */
+  --denim-100: 222 233 239;  /* #DEE9EF — pale blue section tint */
+  --denim-200: 175 198 210;  /* #AFC6D2 — muted blue-gray */
+  --denim-300: 111 190 199;  /* #6FBEC7 — light teal accent on dark */
+  --denim-400: 0 163 173;    /* #00A3AD — bright teal (glow/highlights) */
+  --denim-500: 0 139 149;    /* #008B95 — SDA teal */
+  --denim-600: 0 106 132;    /* #006A84 — solid mid-blue (badges, white text AA) */
+  --denim-700: 0 84 108;     /* #00546C — hover */
+  --denim-800: 0 59 92;      /* #003B5C — Deep SDA Navy, brand anchor */
+  --denim-900: 3 47 73;      /* #032F49 — derived */
+  --denim-950: 6 33 51;      /* #062133 — deep hero/footer base */
 
-  /* --- Neutrals & accent --- */
-  --canvas: 251 250 248;     /* #FBFAF8 — warm off-white page background */
-  --ink: 19 33 43;           /* #13212B — primary text */
-  --slate: 85 96 105;        /* #556069 — secondary text */
-  --gold: 198 161 91;        /* #C6A15B — giving / thermometer accent ONLY */
+  /* --- Accents --- */
+  --teal: 0 139 149;         /* #008B95 — primary accent */
+  --bright-teal: 0 163 173;  /* #00A3AD — secondary accent / highlights */
+  --orange: 216 96 24;       /* #D86018 — campaign emphasis, financial highlights */
+  --orange-strong: 181 80 15;/* #B5500F — orange button fill (white text passes AA) */
+  --gold: 242 180 65;        /* #F2B441 — premium / milestone accent */
+
+  /* --- Neutrals --- */
+  --canvas: 246 249 250;     /* #F6F9FA — very light cool page background */
+  --ink: 19 42 58;           /* #132A3A — deep navy-ink headings */
+  --slate: 83 99 110;        /* #53636E — body copy */
+  --slate-2: 120 144 156;    /* #78909C — secondary text */
 
   /* --- Semantic tokens (light) --- */
   --bg: var(--canvas);
   --surface: 255 255 255;
   --surface-2: var(--denim-50);
-  --tint: var(--denim-100);         /* pale denim section band */
+  --tint: 233 240 244;              /* #E9F0F4 — pale blue section band */
   --fg: var(--ink);
   --muted: var(--slate);
-  --line: 226 231 235;              /* cool hairline */
-  --line-strong: 208 217 223;
-  --primary: var(--denim-600);
-  --primary-hover: var(--denim-700);
+  --line: 214 225 231;              /* #D6E1E7 — light blue-gray hairline */
+  --line-strong: 175 198 210;       /* #AFC6D2 — muted blue-gray */
+  --primary: 0 122 133;             /* #007A85 — teal, AA-safe interactive text/links */
+  --primary-hover: 0 96 105;        /* #006069 */
   --on-primary: 255 255 255;
-  --accent: var(--gold);
-  --ring: var(--denim-600);
+  --accent: var(--orange);          /* giving / campaign emphasis */
+  --accent-strong: var(--orange-strong);
+  --ring: 0 122 133;
 
   --radius: 0.75rem;
   --radius-lg: 1.25rem;
@@ -55,19 +64,20 @@
 }
 
 .dark {
-  --bg: var(--denim-950);           /* deep denim night */
-  --surface: 13 52 70;
-  --surface-2: 10 44 60;
-  --tint: 10 49 69;                 /* dark denim band */
+  --bg: var(--denim-950);           /* deep navy night */
+  --surface: 10 40 58;              /* #0A283A */
+  --surface-2: 8 34 50;
+  --tint: 9 44 64;                  /* dark navy band */
   --fg: 236 241 244;
-  --muted: 157 177 189;
-  --line: 28 70 92;
-  --line-strong: 42 91 116;
-  --primary: var(--denim-300);
-  --primary-hover: 169 207 227;
-  --on-primary: var(--denim-950);
-  --accent: 216 185 120;
-  --ring: var(--denim-300);
+  --muted: 165 183 194;
+  --line: 27 62 84;
+  --line-strong: 42 84 108;
+  --primary: 79 191 200;            /* #4FBFC8 — light teal links on dark */
+  --primary-hover: 120 210 217;
+  --on-primary: var(--denim-950);   /* dark text on the light-teal focus/skip surface */
+  --accent: 233 128 58;             /* #E9803A — brighter orange on dark */
+  --accent-strong: 216 96 24;       /* #D86018 */
+  --ring: 79 191 200;
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-md: 0 6px 20px -6px rgb(0 0 0 / 0.5);
   --shadow-lg: 0 28px 56px -18px rgb(0 0 0 / 0.6);
@@ -152,11 +162,15 @@ h1, h2, h3, h4 { font-family: var(--font-serif); font-weight: 600; line-height: 
   transition: transform .2s cubic-bezier(.2,.7,.2,1), background-color .2s, box-shadow .2s, color .2s;
   border: 1px solid transparent; white-space: nowrap; }
 .btn:active { transform: translateY(1px) scale(0.99); }
-.btn-primary { background: rgb(var(--primary)); color: rgb(var(--on-primary)); box-shadow: var(--shadow-sm); }
-.btn-primary:hover { background: rgb(var(--primary-hover)); box-shadow: var(--shadow-md); }
-/* Gold is a light hue: pair it with deep-denim text (AA), never white. */
-.btn-accent { background: rgb(var(--accent)); color: rgb(var(--denim-950)); box-shadow: var(--shadow-sm); }
-.btn-accent:hover { filter: brightness(1.04); box-shadow: var(--shadow-md); }
+/* Primary = solid Deep SDA Navy with white text (high contrast). */
+.btn-primary { background: rgb(var(--denim-800)); color: #fff; box-shadow: var(--shadow-sm); }
+.btn-primary:hover { background: rgb(var(--denim-900)); box-shadow: var(--shadow-md); }
+/* On the dark theme, lift to a mid-blue so the button reads against the navy page. */
+.dark .btn-primary { background: rgb(var(--denim-600)); color: #fff; }
+.dark .btn-primary:hover { background: rgb(var(--denim-500)); }
+/* Accent = Orange for giving / building campaign. Uses the deeper orange so white text passes AA. */
+.btn-accent { background: rgb(var(--accent-strong)); color: #fff; box-shadow: var(--shadow-sm); }
+.btn-accent:hover { filter: brightness(1.06); box-shadow: var(--shadow-md); }
 .btn-outline { background: rgb(var(--surface)); border-color: rgb(var(--primary)); color: rgb(var(--primary)); box-shadow: var(--shadow-sm); }
 .btn-outline:hover { background: rgb(var(--denim-50)); box-shadow: var(--shadow-md); }
 .dark .btn-outline:hover { background: rgb(var(--surface-2)); }

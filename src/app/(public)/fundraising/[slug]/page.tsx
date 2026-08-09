@@ -34,7 +34,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
           {c.goal ? <span className="text-sm text-muted">of {formatUsd(c.goal)} goal</span> : null}
         </div>
         <div className="mt-3 h-3 overflow-hidden rounded-full bg-denim-100 dark:bg-white/10" role="progressbar" aria-valuenow={totals.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Campaign progress">
-          <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${Math.max(totals.pct, 2)}%` }} />
+          <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.max(totals.pct, 2)}%` }} />
         </div>
         <p className="mt-2 text-sm text-muted">{totals.count} gift{totals.count === 1 ? "" : "s"}{c.goal ? ` · ${totals.pct}% of goal` : ""}</p>
       </div>

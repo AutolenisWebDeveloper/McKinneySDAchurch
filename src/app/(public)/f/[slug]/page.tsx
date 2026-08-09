@@ -36,7 +36,7 @@ export default async function FundraiserPage({ params, searchParams }: { params:
         </div>
         {f.personalGoal ? (
           <div className="mt-3 h-3 overflow-hidden rounded-full bg-denim-100 dark:bg-white/10" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Fundraiser progress">
-            <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${Math.max(pct, 2)}%` }} />
+            <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.max(pct, 2)}%` }} />
           </div>
         ) : null}
       </div>

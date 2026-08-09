@@ -80,7 +80,7 @@ export default async function Construction({ searchParams }: { searchParams: Pro
                 <span className="text-sm text-white/70">of {formatUsd(project.totalGoal)}</span>
               </div>
               <div className="mt-4 h-4 overflow-hidden rounded-full bg-white/15" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Building fund progress">
-                <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${Math.max(pct, 2)}%` }} />
+                <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.max(pct, 2)}%` }} />
               </div>
               <div className="mt-5 grid grid-cols-3 gap-4 border-t border-white/10 pt-5 text-center">
                 <div><p className="text-2xl font-semibold text-white">{pct}%</p><p className="text-xs text-white/60">of goal</p></div>

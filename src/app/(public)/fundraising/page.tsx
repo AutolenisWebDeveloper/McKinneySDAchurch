@@ -45,7 +45,7 @@ export default async function Fundraising() {
                       </div>
                       {c.goal ? (
                         <div className="h-2.5 overflow-hidden rounded-full bg-denim-100 dark:bg-white/10">
-                          <div className="h-full rounded-full bg-gold" style={{ width: `${Math.max(pct, 2)}%` }} />
+                          <div className="h-full rounded-full bg-accent" style={{ width: `${Math.max(pct, 2)}%` }} />
                         </div>
                       ) : <p className="text-xs text-muted">raised so far</p>}
                     </div>
