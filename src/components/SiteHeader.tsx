@@ -144,8 +144,8 @@ export function SiteHeader({
                 className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-fg transition-colors hover:text-primary sm:inline-flex"
               >
                 <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-denim-500 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-denim-500" />
                 </span>
                 Watch Live
               </a>
@@ -182,7 +182,7 @@ export function SiteHeader({
       {/* Mobile drawer */}
       {mobileOpen && (
         <div className="lg:hidden" id="mobile-menu">
-          <div className="fixed inset-0 top-[4.5rem] z-30 bg-ink-900/20" onClick={() => setMobileOpen(false)} aria-hidden="true" />
+          <div className="fixed inset-0 top-[4.5rem] z-30 bg-ink/40" onClick={() => setMobileOpen(false)} aria-hidden="true" />
           <div className="relative z-40 max-h-[calc(100vh-4.5rem)] overflow-y-auto border-t border-line bg-bg px-4 pb-8 pt-4 shadow-lg">
             <div className="mb-4"><SearchBox /></div>
             <nav aria-label="Mobile" className="space-y-5">

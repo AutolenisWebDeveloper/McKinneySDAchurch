@@ -10,68 +10,63 @@
    ========================================================================= */
 
 :root {
-  /* --- Brand scale: Denim (PMS 302 = 700) --- */
-  --denim-50: 234 241 245;
-  --denim-100: 213 226 234;
-  --denim-200: 176 201 214;
-  --denim-300: 130 169 189;
-  --denim-400: 74 128 156;
-  --denim-500: 26 95 128;
-  --denim-600: 0 79 113;   /* #004F71 — PMS 302, the anchor */
-  --denim-700: 0 64 92;
-  --denim-800: 3 48 68;
-  --denim-900: 4 33 47;
+  /* --- Brand scale: Denim. Anchor = PMS 302 (#004F71 = denim-800). --- */
+  --denim-50: 244 249 252;   /* #F4F9FC — barely-there tint */
+  --denim-100: 231 241 247;  /* #E7F1F7 — pale section tint */
+  --denim-200: 205 226 237;  /* derived */
+  --denim-300: 127 180 208;  /* #7FB4D0 — hairlines/accents on dark */
+  --denim-400: 78 145 178;   /* derived */
+  --denim-500: 33 121 160;   /* derived */
+  --denim-600: 21 103 143;   /* #15678F — buttons, links, active states */
+  --denim-700: 11 84 120;    /* derived hover */
+  --denim-800: 0 79 113;     /* #004F71 — PMS 302, brand anchor / logo lockup */
+  --denim-900: 4 56 79;      /* derived */
+  --denim-950: 7 42 60;      /* #072A3C — deep hero/footer base */
 
-  /* --- Warm neutrals (sand / stone / taupe) --- */
-  --sand-50: 250 248 244;   /* warm paper */
-  --sand-100: 244 239 231;
-  --sand-200: 233 224 210;
-  --sand-300: 214 201 181;
-  --stone-400: 168 154 133;
-  --stone-500: 122 110 92;
-  --ink-700: 61 71 79;      /* warm slate for secondary text */
-  --ink-900: 22 33 41;      /* near-black, denim-tinted */
-
-  /* --- Restrained warm accent (used sparingly: Give / campaign) --- */
-  --accent-500: 176 122 46;  /* muted brass */
-  --accent-600: 150 102 36;
+  /* --- Neutrals & accent --- */
+  --canvas: 251 250 248;     /* #FBFAF8 — warm off-white page background */
+  --ink: 19 33 43;           /* #13212B — primary text */
+  --slate: 85 96 105;        /* #556069 — secondary text */
+  --gold: 198 161 91;        /* #C6A15B — giving / thermometer accent ONLY */
 
   /* --- Semantic tokens (light) --- */
-  --bg: var(--sand-50);
+  --bg: var(--canvas);
   --surface: 255 255 255;
-  --surface-2: var(--sand-100);
-  --fg: var(--ink-900);
-  --muted: var(--stone-500);
-  --line: 224 214 199;         /* warm hairline */
-  --line-strong: 205 192 173;
+  --surface-2: var(--denim-50);
+  --tint: var(--denim-100);         /* pale denim section band */
+  --fg: var(--ink);
+  --muted: var(--slate);
+  --line: 226 231 235;              /* cool hairline */
+  --line-strong: 208 217 223;
   --primary: var(--denim-600);
   --primary-hover: var(--denim-700);
   --on-primary: 255 255 255;
-  --accent: var(--accent-600);
-  --ring: var(--denim-500);
+  --accent: var(--gold);
+  --ring: var(--denim-600);
 
   --radius: 0.75rem;
   --radius-lg: 1.25rem;
-  --shadow-sm: 0 1px 2px rgb(4 33 47 / 0.06), 0 1px 3px rgb(4 33 47 / 0.04);
-  --shadow-md: 0 4px 16px -4px rgb(4 33 47 / 0.10), 0 2px 6px -2px rgb(4 33 47 / 0.06);
-  --shadow-lg: 0 24px 48px -16px rgb(4 33 47 / 0.22), 0 8px 20px -8px rgb(4 33 47 / 0.12);
+  --shadow-sm: 0 1px 2px rgb(7 42 60 / 0.05), 0 1px 3px rgb(7 42 60 / 0.04);
+  --shadow-md: 0 4px 16px -4px rgb(7 42 60 / 0.10), 0 2px 6px -2px rgb(7 42 60 / 0.06);
+  --shadow-lg: 0 24px 48px -16px rgb(7 42 60 / 0.18), 0 8px 20px -8px rgb(7 42 60 / 0.10);
 
   --font-serif: "Noto Serif", Georgia, "Times New Roman", serif;
   --font-sans: "Noto Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 .dark {
-  --bg: 6 26 36;               /* deep denim night */
-  --surface: 12 38 51;
-  --surface-2: 16 46 61;
-  --fg: 236 231 222;           /* warm off-white */
-  --muted: 159 176 186;
-  --line: 30 63 80;
-  --line-strong: 43 82 102;
+  --bg: var(--denim-950);           /* deep denim night */
+  --surface: 13 52 70;
+  --surface-2: 10 44 60;
+  --tint: 10 49 69;                 /* dark denim band */
+  --fg: 236 241 244;
+  --muted: 157 177 189;
+  --line: 28 70 92;
+  --line-strong: 42 91 116;
   --primary: var(--denim-300);
-  --primary-hover: var(--denim-200);
-  --on-primary: 4 33 47;
-  --accent: 210 168 108;
+  --primary-hover: 169 207 227;
+  --on-primary: var(--denim-950);
+  --accent: 216 185 120;
   --ring: var(--denim-300);
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-md: 0 6px 20px -6px rgb(0 0 0 / 0.5);
@@ -108,7 +103,7 @@ h1, h2, h3, h4 { font-family: var(--font-serif); font-weight: 600; line-height: 
   font-size: 0.75rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgb(var(--accent));
+  color: rgb(var(--primary));
 }
 
 /* Links inside prose */
@@ -128,12 +123,15 @@ h1, h2, h3, h4 { font-family: var(--font-serif); font-weight: 600; line-height: 
 ::selection { background: rgb(var(--denim-600) / 0.18); }
 
 /* Decorative denim rule */
-.rule-accent { height: 3px; width: 3.5rem; border-radius: 999px; background: rgb(var(--accent)); }
+.rule-accent { height: 3px; width: 3.5rem; border-radius: 999px; background: rgb(var(--primary)); }
+
+/* Deep denim hero/CTA gradient: denim-950 -> denim-800 */
+.bg-hero-denim { background: linear-gradient(160deg, rgb(var(--denim-950)) 0%, rgb(var(--denim-900)) 45%, rgb(var(--denim-800)) 100%); }
 
 /* Subtle radial glow used behind hero / campaign art */
 .glow-denim { background:
-  radial-gradient(60% 90% at 15% 10%, rgb(var(--denim-400) / 0.35), transparent 60%),
-  radial-gradient(50% 80% at 95% 90%, rgb(var(--denim-800) / 0.55), transparent 65%);
+  radial-gradient(55% 80% at 12% 8%, rgb(var(--denim-400) / 0.28), transparent 60%),
+  radial-gradient(45% 70% at 98% 95%, rgb(var(--denim-950) / 0.5), transparent 65%);
 }
 
 /* Card surface */
@@ -159,8 +157,9 @@ h1, h2, h3, h4 { font-family: var(--font-serif); font-weight: 600; line-height: 
 .btn-accent { background: rgb(var(--accent)); color: #fff; box-shadow: var(--shadow-sm); }
 .dark .btn-accent { color: rgb(var(--ink-900)); }
 .btn-accent:hover { filter: brightness(1.05); box-shadow: var(--shadow-md); }
-.btn-outline { border-color: rgb(var(--line-strong)); color: rgb(var(--fg)); background: transparent; }
-.btn-outline:hover { border-color: rgb(var(--primary)); color: rgb(var(--primary)); }
+.btn-outline { background: rgb(var(--surface)); border-color: rgb(var(--primary)); color: rgb(var(--primary)); box-shadow: var(--shadow-sm); }
+.btn-outline:hover { background: rgb(var(--denim-50)); box-shadow: var(--shadow-md); }
+.dark .btn-outline:hover { background: rgb(var(--surface-2)); }
 .btn-ghost-light { border-color: rgb(255 255 255 / 0.35); color: #fff; background: rgb(255 255 255 / 0.06); }
 .btn-ghost-light:hover { background: rgb(255 255 255 / 0.14); }
 .btn-white { background: #fff; color: rgb(var(--denim-800)); box-shadow: var(--shadow-sm); }

@@ -21,12 +21,12 @@ function SocialLink({ href, label, children }: { href: string; label: string; ch
 
 export function SiteFooter({ livestream, giveUrl }: { livestream: string | null; giveUrl: string | null }) {
   return (
-    <footer className="mt-24 bg-denim-800 text-white/80">
+    <footer className="bg-denim-950 text-white/80">
       {/* Invitation band */}
-      <div className="border-b border-white/10">
+      <div className="bg-denim-900 border-b border-white/10">
         <div className="mx-auto flex max-w-content flex-col items-start gap-6 px-4 py-12 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="eyebrow text-accent">You’re welcome here</p>
+            <p className="eyebrow text-denim-300">You’re welcome here</p>
             <h2 className="mt-2 font-serif text-2xl font-semibold text-white sm:text-3xl">
               Join us this Sabbath.
             </h2>

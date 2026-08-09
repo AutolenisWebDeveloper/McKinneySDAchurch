@@ -52,7 +52,7 @@ export default async function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* ================= HERO ================= */}
-      <section className="relative overflow-hidden bg-denim-800 text-white">
+      <section className="relative overflow-hidden bg-hero-denim text-white">
         <div className="glow-denim absolute inset-0" aria-hidden="true" />
         {/* Symbol watermark */}
         <img
@@ -66,7 +66,7 @@ export default async function Home() {
         <Container className="relative py-20 sm:py-28 lg:py-32">
           <div className="max-w-3xl">
             <div className="animate-rise inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-1.5 text-sm text-white/85 backdrop-blur-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+              <span className="h-1.5 w-1.5 rounded-full bg-denim-300" aria-hidden="true" />
               Seventh-day Adventist · McKinney, Texas
             </div>
 
@@ -84,8 +84,8 @@ export default async function Home() {
               {livestream ? (
                 <a href={livestream} target="_blank" rel={EXT} className="btn btn-ghost-light">
                   <span className="relative flex h-2 w-2" aria-hidden="true">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-denim-300 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-denim-300" />
                   </span>
                   {t(locale, "home.watch")}
                 </a>
@@ -175,7 +175,7 @@ export default async function Home() {
 
           <div className="lg:col-span-5">
             <figure className="card relative overflow-hidden p-8">
-              <svg className="absolute right-4 top-4 h-10 w-10 text-accent/30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <svg className="absolute right-4 top-4 h-10 w-10 text-denim-200" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M9.13 8.6c.4-.28.55-.8.35-1.24C8.6 5.4 6.7 4.2 4.6 4.2H4v3.3h.6c.83 0 1.55.42 1.98 1.06-.9.3-1.55 1.15-1.55 2.15 0 1.26 1.02 2.29 2.28 2.29s2.29-1.03 2.29-2.29c0-.86-.02-1.66-.47-2.41zM19.13 8.6c.4-.28.55-.8.35-1.24-.88-1.96-2.78-3.16-4.88-3.16h-.6v3.3h.6c.83 0 1.55.42 1.98 1.06-.9.3-1.55 1.15-1.55 2.15 0 1.26 1.02 2.29 2.28 2.29S19.6 12.03 19.6 10.77c0-.86-.02-1.66-.47-2.17z" />
               </svg>
               <blockquote className="font-serif text-xl leading-relaxed text-fg">
@@ -193,17 +193,16 @@ export default async function Home() {
         </div>
       </Section>
 
-      {/* ================= BUILDING CAMPAIGN ================= */}
-      <section className="relative overflow-hidden bg-denim-700 text-white">
-        <div className="glow-denim absolute inset-0 opacity-70" aria-hidden="true" />
-        <Container className="relative py-16 sm:py-24">
+      {/* ================= BUILDING CAMPAIGN (pale denim band) ================= */}
+      <section className="bg-tint">
+        <Container className="py-16 sm:py-24">
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
             <div>
-              <Eyebrow className="mb-4 text-accent">Our building project</Eyebrow>
-              <h2 className="text-display font-serif font-semibold text-white">
+              <Eyebrow className="mb-4">Our building project</Eyebrow>
+              <h2 className="text-display font-serif font-semibold text-fg">
                 A home of our own
               </h2>
-              <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/80">
+              <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
                 For now we gather in a borrowed space — and we’re grateful for it.
                 But God has given us a vision: a permanent home where our church
                 family can worship, teach our children, and welcome our neighbors
@@ -211,32 +210,32 @@ export default async function Home() {
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/construction" className="btn btn-white">See the vision</Link>
+                <Link href="/construction" className="btn btn-primary">See the vision</Link>
                 {giveUrl && (
                   <a href={giveUrl} target="_blank" rel={EXT} className="btn btn-accent">Give to the building</a>
                 )}
               </div>
             </div>
 
-            {/* Progress card (glass on denim — not the opaque .card surface) */}
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-8 shadow-lg backdrop-blur-sm">
+            {/* Progress card — white on the pale band */}
+            <div className="card p-8">
               {project ? (
                 <>
-                  <p className="font-serif text-xl text-white">{project.title}</p>
+                  <p className="font-serif text-xl text-fg">{project.title}</p>
                   <div className="mt-6">
                     <div className="flex items-end justify-between">
-                      <span className="text-3xl font-semibold text-white">{formatUsd(project.currentRaised)}</span>
-                      <span className="text-sm text-white/60">of {formatUsd(project.totalGoal)} goal</span>
+                      <span className="text-3xl font-semibold text-denim-800 dark:text-denim-300">{formatUsd(project.currentRaised)}</span>
+                      <span className="text-sm text-muted">of {formatUsd(project.totalGoal)} goal</span>
                     </div>
-                    <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/15" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Building fund progress">
-                      <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.max(pct, 2)}%` }} />
+                    <div className="mt-3 h-3 overflow-hidden rounded-full bg-denim-100 dark:bg-white/10" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Building fund progress">
+                      <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${Math.max(pct, 2)}%` }} />
                     </div>
-                    <p className="mt-2 text-sm text-white/70">{pct}% raised toward our goal</p>
+                    <p className="mt-2 text-sm text-muted">{pct}% raised toward our goal</p>
                   </div>
                   {project.targetCompletion && (
-                    <p className="mt-6 border-t border-white/10 pt-5 text-sm text-white/70">
+                    <p className="mt-6 border-t border-line pt-5 text-sm text-muted">
                       Target completion:{" "}
-                      <span className="font-medium text-white">
+                      <span className="font-medium text-fg">
                         {new Date(project.targetCompletion).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
                       </span>
                     </p>
@@ -244,17 +243,17 @@ export default async function Home() {
                 </>
               ) : (
                 <>
-                  <p className="font-serif text-xl text-white">The campaign is taking shape</p>
-                  <p className="mt-4 text-white/75">
+                  <p className="font-serif text-xl text-fg">The campaign is taking shape</p>
+                  <p className="mt-4 text-muted">
                     We’re prayerfully preparing to build. Follow the journey, and
                     be part of the story from the very first brick.
                   </p>
                   <div className="mt-6 flex flex-wrap gap-2">
                     {["Worship center", "Classrooms", "Fellowship hall", "A place to serve"].map((f) => (
-                      <span key={f} className="rounded-full border border-white/20 px-3 py-1 text-sm text-white/80">{f}</span>
+                      <span key={f} className="chip">{f}</span>
                     ))}
                   </div>
-                  <Link href="/construction" className="mt-6 inline-flex text-sm font-semibold text-accent hover:underline">
+                  <Link href="/construction" className="mt-6 inline-flex text-sm font-semibold text-primary hover:text-primary-hover">
                     Learn more about the project →
                   </Link>
                 </>
@@ -333,9 +332,9 @@ export default async function Home() {
         </div>
       </Section>
 
-      {/* ================= LATEST SERMON ================= */}
+      {/* ================= LATEST SERMON (pale denim band) ================= */}
       {sermon && (
-        <section className="bg-surface-2">
+        <section className="bg-tint">
           <Container>
             <div className="grid items-center gap-10 py-16 sm:py-20 lg:grid-cols-2 lg:gap-16">
               <div>
@@ -386,6 +385,27 @@ export default async function Home() {
           </ConnectCard>
         </div>
       </Section>
+
+      {/* ================= CTA BAND (deep denim) ================= */}
+      <section className="bg-hero-denim text-white">
+        <Container className="py-14 sm:py-16">
+          <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="font-serif text-2xl font-semibold text-white sm:text-3xl">
+                We’d love to meet you this Sabbath.
+              </h2>
+              <p className="mt-2 max-w-xl text-white/75">
+                Plan your visit in under a minute, or reach out with any question —
+                we’ll be watching for you.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/plan-a-visit" className="btn btn-white">Plan a Visit</Link>
+              <Link href="/contact" className="btn btn-ghost-light">Contact us</Link>
+            </div>
+          </div>
+        </Container>
+      </section>
     </>
   );
 }

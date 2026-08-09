@@ -10,10 +10,14 @@ export default {
       colors: {
         // Semantic, theme-aware tokens
         bg: rgb("--bg"),
+        canvas: rgb("--canvas"),
         surface: rgb("--surface"),
         "surface-2": rgb("--surface-2"),
+        tint: rgb("--tint"),
         fg: rgb("--fg"),
+        ink: rgb("--ink"),
         muted: rgb("--muted"),
+        gold: rgb("--gold"),
         line: rgb("--line"),
         "line-strong": rgb("--line-strong"),
         primary: rgb("--primary"),
@@ -33,20 +37,15 @@ export default {
           700: rgb("--denim-700"),
           800: rgb("--denim-800"),
           900: rgb("--denim-900"),
-        },
-        sand: {
-          50: rgb("--sand-50"),
-          100: rgb("--sand-100"),
-          200: rgb("--sand-200"),
-          300: rgb("--sand-300"),
+          950: rgb("--denim-950"),
         },
         // Back-compat aliases: the legacy navy/green/gold token names now resolve
         // to the new NAD denim system, so pages not individually rewritten
         // (e.g. the private dashboard) stay on-brand instead of losing color.
         sda: {
-          navy: rgb("--denim-600"),
-          green: rgb("--denim-500"),
-          gold: rgb("--accent"),
+          navy: rgb("--denim-800"),
+          green: rgb("--denim-600"),
+          gold: rgb("--gold"),
         },
       },
       fontFamily: {
