@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { safe } from "@/lib/safe";
 import { PageHeader, Card } from "@/components/page-ui";
 import { Section } from "@/components/ui";
 
@@ -17,8 +18,8 @@ const EXT = "noopener noreferrer";
 
 export default async function SabbathSchool() {
   const [classes, lesson] = await Promise.all([
-    prisma.sabbathSchoolClass.findMany(),
-    prisma.sabbathSchoolLesson.findFirst({ orderBy: { weekOf: "desc" } }),
+    safe(prisma.sabbathSchoolClass.findMany(), []),
+    safe(prisma.sabbathSchoolLesson.findFirst({ orderBy: { weekOf: "desc" } }), null),
   ]);
   classes.sort((a, b) => ORDER.indexOf(a.division) - ORDER.indexOf(b.division));
 

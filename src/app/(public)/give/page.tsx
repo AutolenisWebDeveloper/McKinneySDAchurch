@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { safe } from "@/lib/safe";
 import { env } from "@/env";
 import { PageHeader, Card, Callout } from "@/components/page-ui";
 import { Section, Container } from "@/components/ui";
@@ -19,11 +20,11 @@ const CATEGORIES = [
 ];
 
 export default async function Give() {
-  const upcoming = await prisma.offeringCalendarEntry.findMany({
+  const upcoming = await safe(prisma.offeringCalendarEntry.findMany({
     where: { weekOf: { gte: new Date(Date.now() - 7 * 86400000) } },
     orderBy: { weekOf: "asc" },
     take: 8,
-  });
+  }), []);
 
   return (
     <>

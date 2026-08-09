@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { raisedPct, formatUsd, timelineLabel, phaseStatusLabel, campaignRollup, phaseRollup } from "@/lib/construction";
+import { safe } from "@/lib/safe";
 import { subscribeBuilding, createPledge } from "./actions";
 import { PageHeader, Card, Callout, fieldClass, Honeypot } from "@/components/page-ui";
 import { Section, Container, Eyebrow } from "@/components/ui";
@@ -15,7 +16,7 @@ const EXT = "noopener noreferrer";
 
 export default async function Construction({ searchParams }: { searchParams: Promise<{ subscribed?: string; pledged?: string }> }) {
   const { subscribed, pledged } = await searchParams;
-  const project = await prisma.constructionProject.findFirst({
+  const project = await safe(prisma.constructionProject.findFirst({
     where: { active: true }, orderBy: { createdAt: "desc" },
     include: {
       phases: { orderBy: { sortOrder: "asc" } },
@@ -27,7 +28,7 @@ export default async function Construction({ searchParams }: { searchParams: Pro
       pledges: { where: { publicRecognition: true, isAnonymous: false, status: { in: ["CONFIRMED", "FULFILLED"] } }, select: { donorName: true } },
       documents: { select: { id: true, title: true } },
     },
-  });
+  }), null);
 
   if (!project) {
     return (
@@ -43,7 +44,7 @@ export default async function Construction({ searchParams }: { searchParams: Pro
     );
   }
 
-  const allPledges = await prisma.buildingPledge.findMany({ where: { projectId: project.id }, select: { amount: true, receivedToDate: true, status: true } });
+  const allPledges = await safe(prisma.buildingPledge.findMany({ where: { projectId: project.id }, select: { amount: true, receivedToDate: true, status: true } }), []);
   const campaign = campaignRollup(allPledges);
   const phases = phaseRollup(project.phases);
   const pct = raisedPct(project.currentRaised, project.totalGoal);

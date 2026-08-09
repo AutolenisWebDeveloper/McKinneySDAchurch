@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { safe } from "@/lib/safe";
 import { sha256 } from "@/lib/crypto";
 import { PageHeader, Card } from "@/components/page-ui";
 import { Section } from "@/components/ui";
@@ -19,10 +20,10 @@ const DONE = new Set(["COMPLETED"]);
 
 export default async function TransferStatus({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const t = await prisma.membershipTransfer.findUnique({
+  const t = await safe(prisma.membershipTransfer.findUnique({
     where: { statusTokenDigest: sha256(decodeURIComponent(token)) },
     select: { personName: true, direction: true, status: true },
-  });
+  }), null);
 
   return (
     <>

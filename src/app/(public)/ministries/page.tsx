@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getMinistries } from "@/lib/public-content";
+import { safe } from "@/lib/safe";
 import { PageHeader } from "@/components/page-ui";
 import { Section } from "@/components/ui";
 
@@ -10,7 +11,7 @@ export const metadata = {
 };
 
 export default async function Ministries() {
-  const ministries = await getMinistries();
+  const ministries = await safe(getMinistries(), []);
   return (
     <>
       <PageHeader

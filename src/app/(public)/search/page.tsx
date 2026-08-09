@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { searchPublic } from "@/lib/search";
+import { safe } from "@/lib/safe";
 import { sanitize } from "@/lib/sanitize";
 import { PageHeader, fieldClass } from "@/components/page-ui";
 import { Section } from "@/components/ui";
@@ -13,7 +14,7 @@ export const metadata = {
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
   const query = (q ?? "").trim().slice(0, 200);
-  const hits = query ? await searchPublic(query) : [];
+  const hits = query ? await safe(searchPublic(query), []) : [];
 
   return (
     <>
