@@ -3,6 +3,8 @@ import { PageHeader, Prose, Card } from "@/components/page-ui";
 import { Section, Container, ArrowLink } from "@/components/ui";
 import { church } from "@/components/site-info";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Our Story",
   description: "Who we are — a Christ-centered Seventh-day Adventist family in McKinney, Texas.",

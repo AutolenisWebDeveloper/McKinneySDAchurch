@@ -2,6 +2,8 @@ import { PageHeader, Prose } from "@/components/page-ui";
 import { Section } from "@/components/ui";
 import { church } from "@/components/site-info";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Accessibility",
   description: "Our commitment to an accessible, welcoming website for everyone.",
