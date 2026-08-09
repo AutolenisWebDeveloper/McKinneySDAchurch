@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "echo \"Skipping: 'next lint' was removed in Next 16. Quality is gated by 'npm run typecheck' + 'npm run test' in CI.\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "prisma:validate": "prisma validate",
