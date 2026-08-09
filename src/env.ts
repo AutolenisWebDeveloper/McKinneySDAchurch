@@ -3,7 +3,11 @@ import { z } from "zod";
 /** Fail fast at boot if required configuration is missing. */
 const schema = z.object({
   DATABASE_URL: z.string().url(),
-  NEXT_PUBLIC_SITE_URL: z.string().url(),
+  // Accept a bare host (e.g. Vercel's "my-app.vercel.app") and normalize to https://.
+  NEXT_PUBLIC_SITE_URL: z.preprocess(
+    (v) => (typeof v === "string" && v && !/^https?:\/\//.test(v) ? `https://${v}` : v),
+    z.string().url(),
+  ),
   NEXTAUTH_SECRET: z.string().min(16),
   ENCRYPTION_KEY: z.string().min(32),
   TOKEN_HMAC_SECRET: z.string().min(16),
