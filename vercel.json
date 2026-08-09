@@ -1,0 +1,7 @@
+{
+  "crons": [
+    { "path": "/api/cron/visitor-weekly-invite", "schedule": "0 13 * * 3" },
+    { "path": "/api/cron/ministry-head-reminder", "schedule": "0 14 * * 1" },
+    { "path": "/api/cron/care-scan", "schedule": "0 6 * * 1" }
+  ]
+}

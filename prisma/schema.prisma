@@ -1,0 +1,822 @@
+// McKinney SDA Church Platform — Prisma schema (Master Plan v4, §5)
+// Generated from the spec of record. Do not hand-edit models without updating the plan.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ===== Enums =====
+enum Role { MEMBER MINISTRY_HEAD CLERK TREASURER ADMIN PASTOR }
+enum ApprovalStatus { PENDING APPROVED REJECTED WITHDRAWN }
+enum ContentVisibility { PUBLIC MEMBERS_ONLY }
+enum VisitorStatus { ACTIVE INACTIVE }
+enum SubscriptionStatus { SUBSCRIBED UNSUBSCRIBED }
+enum ConsentStatus { GRANTED REVOKED }
+enum SuppressionScope { GLOBAL MARKETING }
+enum SuppressionReason { USER_UNSUBSCRIBE HARD_BOUNCE SPAM_COMPLAINT ADMIN MINOR MISSING_CONSENT }
+enum EmailType { TRANSACTIONAL MARKETING }
+enum EmailStatus { QUEUED ACCEPTED DELIVERED DELAYED BOUNCED COMPLAINED FAILED SUPPRESSED UNSUBSCRIBED }
+enum DocumentVisibility { PUBLIC MEMBERS_ONLY ADMIN_ONLY }
+enum ScanStatus { PENDING CLEAN INFECTED FAILED }
+enum JobStatus { RUNNING COMPLETED FAILED }
+enum CareAlertStatus { OPEN ASSIGNED RESOLVED }
+enum InviteStatus { PENDING ACCEPTED REVOKED EXPIRED }
+
+// ===== Identity & auth =====
+model User {
+  id              String   @id @default(cuid())
+  name            String?
+  email           String   @unique
+  emailNormalized String   @unique
+  passwordHash    String
+  role            Role     @default(MEMBER)
+  mfaEnabled      Boolean  @default(false)
+  mfaSecret       String?              // encrypted at rest
+  sessionVersion  Int      @default(0) // bump to revoke all sessions
+  activatedAt     DateTime?            // set when an invited user accepts (scaffold delta vs v4 §5)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  ministryId      String?
+  ministry        Ministry?  @relation("MinistryMembers", fields: [ministryId], references: [id])
+  ministriesLed   Ministry[] @relation("MinistryLeader")
+  member          Member?    @relation("MemberUser")
+
+  announcementsCreated  Announcement[] @relation("AnnouncementCreatedBy")
+  announcementsReviewed Announcement[] @relation("AnnouncementReviewedBy")
+  eventsCreated         Event[]        @relation("EventCreatedBy")
+  eventsReviewed        Event[]        @relation("EventReviewedBy")
+  prayerReviewed        PrayerRequest[] @relation("PrayerReviewedBy")
+  invitesSent           Invite[]        @relation("InviteInvitedBy")
+  campaignsCreated      EmailCampaign[] @relation("CampaignCreatedBy")
+  careAlertsAssigned    CareAlert[]     @relation("CareAlertAssignee")
+  pastoralNotes         PastoralNote[]  @relation("PastoralNoteAuthor")
+  documentsUploaded     Document[]      @relation("DocUploadedBy")
+  consentsRecorded      GuardianConsent[] @relation("ConsentRecordedBy")
+  transfersAssigned     MembershipTransfer[] @relation("TransferClerk")
+  auditLogs             AuditLog[]
+  @@index([ministryId])
+}
+
+model Invite {
+  id              String       @id @default(cuid())
+  emailNormalized String
+  tokenDigest     String       @unique   // sha-256 of random token; raw token never stored
+  intendedRole    Role
+  ministryId      String?
+  invitedById     String
+  invitedBy       User         @relation("InviteInvitedBy", fields: [invitedById], references: [id])
+  status          InviteStatus @default(PENDING)
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime     @default(now())
+  @@index([emailNormalized])
+}
+
+model PasswordResetToken {
+  id          String   @id @default(cuid())
+  userId      String
+  tokenDigest String   @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+  @@index([userId])
+}
+
+// ===== Directory =====
+model Ministry {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+  leaderId    String? @unique
+  leader      User?   @relation("MinistryLeader", fields: [leaderId], references: [id])
+  members     User[]  @relation("MinistryMembers")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  announcements Announcement[]
+  events        Event[]
+}
+
+model Household {
+  id           String   @id @default(cuid())
+  familyName   String?
+  addressLine1 String?
+  city         String?
+  state        String?
+  zip          String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  members      Member[]
+}
+
+model Member {
+  id              String  @id @default(cuid())
+  firstName       String
+  lastName        String
+  email           String? @unique
+  emailNormalized String? @unique
+  phone           String?
+  isMinor         Boolean @default(false)
+  dateOfBirth     DateTime?          // minors: store year/age band only per policy
+  baptismDate     DateTime?
+  membershipStatus MembershipStatus @default(ACTIVE)  // mirrors eAdventist — NOT the official record (§2A)
+  joinedBy        JoinPathway?       // BAPTISM | PROFESSION_OF_FAITH | TRANSFER
+  directoryVisible Boolean @default(false)
+  showAddress     Boolean @default(false)
+  lastAttendance  DateTime?
+
+  householdId String?
+  household   Household? @relation(fields: [householdId], references: [id])
+  userId      String?  @unique
+  user        User?    @relation("MemberUser", fields: [userId], references: [id])
+
+  guardianMemberId String?
+  guardian    Member?  @relation("MinorGuardian", fields: [guardianMemberId], references: [id])
+  dependents  Member[] @relation("MinorGuardian")
+
+  guardianConsents GuardianConsent[] @relation("ConsentMinor")
+  consentsGiven    GuardianConsent[] @relation("ConsentGuardian")
+  pastoralNotes    PastoralNote[]    @relation("PastoralNoteMember")
+  attendance       Attendance[]
+  careAlerts       CareAlert[]       @relation("CareAlertMember")
+  transfers        MembershipTransfer[] @relation("MemberTransfers")
+  screening        VolunteerScreening?  @relation("MemberScreening")
+  mediaConsents    MediaConsent[]       @relation("MemberMediaConsent")
+  offices          ChurchOffice[]       @relation("OfficerMember")
+  youthClubs       YouthClubRegistration[] @relation("YouthClubMinor")
+  fundraisers      Fundraiser[]            @relation("MemberFundraisers")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([householdId])
+  @@index([guardianMemberId])
+}
+
+model GuardianConsent {
+  id             String   @id @default(cuid())
+  minorMemberId  String
+  minor          Member   @relation("ConsentMinor", fields: [minorMemberId], references: [id])
+  guardianMemberId String?
+  guardian       Member?  @relation("ConsentGuardian", fields: [guardianMemberId], references: [id])
+  guardianName   String?          // when guardian is not a member record
+  status         ConsentStatus @default(GRANTED)
+  scope          String           // e.g. "store-contact:yes; directory:no; email:no"
+  noticeVersion  String
+  method         String           // guardian-portal | in-person | paper-form | staff-entered
+  recorderRole   Role             // who entered it — normally the guardian (MEMBER)
+  recordedById   String           // authenticated user who created the record
+  recordedBy     User @relation("ConsentRecordedBy", fields: [recordedById], references: [id])
+  consentedAt    DateTime
+  revokedAt      DateTime?
+  createdAt      DateTime @default(now())
+  @@index([minorMemberId])
+}
+
+// ===== Content =====
+model Announcement {
+  id           String @id @default(cuid())
+  title        String
+  contentHtml  String            // sanitized before store & render
+  status       ApprovalStatus @default(PENDING)
+  version      Int    @default(0) // optimistic concurrency
+  visibility   ContentVisibility @default(PUBLIC)
+  ministryId   String
+  ministry     Ministry @relation(fields: [ministryId], references: [id])
+  createdById  String
+  createdBy    User    @relation("AnnouncementCreatedBy", fields: [createdById], references: [id])
+  reviewedById String?
+  reviewedBy   User?   @relation("AnnouncementReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  rejectReason String?
+  publishAt    DateTime?
+  isFeatured   Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@index([status, publishAt])
+  @@index([ministryId])
+}
+
+model Event {
+  id           String @id @default(cuid())
+  title        String
+  descriptionHtml String?
+  location     String?
+  startAt      DateTime
+  endAt        DateTime
+  status       ApprovalStatus @default(PENDING)
+  version      Int    @default(0)
+  visibility   ContentVisibility @default(PUBLIC)
+  ministryId   String
+  ministry     Ministry @relation(fields: [ministryId], references: [id])
+  createdById  String
+  createdBy    User    @relation("EventCreatedBy", fields: [createdById], references: [id])
+  reviewedById String?
+  reviewedBy   User?   @relation("EventReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  rejectReason String?
+  isFeatured   Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@index([status, startAt])
+  @@index([ministryId])
+}
+
+model Sermon {
+  id         String   @id @default(cuid())
+  title      String
+  speaker    String?
+  preachedAt DateTime
+  videoUrl   String
+  notesUrl   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@index([preachedAt])
+}
+
+// ===== Sensitive: prayer & pastoral (isolated + encrypted) =====
+model PrayerRequest {
+  id             String @id @default(cuid())
+  submitterName  String?
+  submitterEmail String?
+  isAnonymous    Boolean @default(false)
+  contentEncrypted String          // app-layer encryption
+  wantsPublish   Boolean @default(false)
+  status         ApprovalStatus @default(PENDING)
+  reviewedById   String?
+  reviewedBy     User?  @relation("PrayerReviewedBy", fields: [reviewedById], references: [id])
+  retainUntil    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  @@index([status])
+}
+
+model PastoralNote {
+  id        String @id @default(cuid())
+  memberId  String
+  member    Member @relation("PastoralNoteMember", fields: [memberId], references: [id])
+  authorId  String
+  author    User   @relation("PastoralNoteAuthor", fields: [authorId], references: [id])
+  contentEncrypted String
+  createdAt DateTime @default(now())
+  @@index([memberId])
+}
+
+// ===== Construction =====
+model ConstructionProject {
+  id            String @id @default(cuid())
+  title         String
+  description   String?
+  totalGoal     Int
+  currentRaised Int
+  heroImageUrl        String?
+  targetCompletion    DateTime?
+  publicPledgeEnabled Boolean @default(true)
+  active              Boolean @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  timelineItems ConstructionTimelineItem[]
+  updates       ConstructionUpdate[]
+  documents     Document[] @relation("ProjectDocuments")
+  phases        ConstructionPhase[] @relation("ProjectPhases")
+  pledges       BuildingPledge[]    @relation("ProjectPledges")
+  givingLevels  GivingLevel[]       @relation("ProjectLevels")
+  faqs          ProjectFaq[]        @relation("ProjectFaqs")
+  photos        ProjectPhoto[]      @relation("ProjectPhotos")
+}
+
+enum PhaseStatus { PLANNED IN_PROGRESS COMPLETED ON_HOLD }
+enum PledgeStatus { PENDING CONFIRMED FULFILLED CANCELLED }
+enum PledgeFrequency { ONE_TIME MONTHLY QUARTERLY ANNUAL }
+
+model ConstructionPhase {
+  id          String @id @default(cuid())
+  projectId   String
+  project     ConstructionProject @relation("ProjectPhases", fields: [projectId], references: [id])
+  name        String
+  description String?
+  budget      Int @default(0)
+  spent       Int @default(0)
+  status      PhaseStatus @default(PLANNED)
+  startDate   DateTime?
+  targetDate  DateTime?
+  sortOrder   Int @default(0)
+  @@index([projectId])
+}
+
+model BuildingPledge {
+  id                String @id @default(cuid())
+  projectId         String
+  project           ConstructionProject @relation("ProjectPledges", fields: [projectId], references: [id])
+  donorName         String
+  email             String?
+  phone             String?
+  amount            Int                 // total committed (whole dollars) — commitment only, no funds processed
+  receivedToDate    Int @default(0)
+  frequency         PledgeFrequency @default(ONE_TIME)
+  termMonths        Int?
+  startDate         DateTime?
+  status            PledgeStatus @default(PENDING)
+  isAnonymous       Boolean @default(false)
+  publicRecognition Boolean @default(false)
+  note              String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  @@index([projectId, status])
+}
+
+model GivingLevel {
+  id          String @id @default(cuid())
+  projectId   String
+  project     ConstructionProject @relation("ProjectLevels", fields: [projectId], references: [id])
+  name        String
+  minAmount   Int
+  description String?
+  sortOrder   Int @default(0)
+  @@index([projectId])
+}
+
+model ProjectFaq {
+  id         String @id @default(cuid())
+  projectId  String
+  project    ConstructionProject @relation("ProjectFaqs", fields: [projectId], references: [id])
+  question   String
+  answer     String
+  sortOrder  Int @default(0)
+  @@index([projectId])
+}
+
+model ProjectPhoto {
+  id         String @id @default(cuid())
+  projectId  String
+  project    ConstructionProject @relation("ProjectPhotos", fields: [projectId], references: [id])
+  url        String            // public URL (or a blob object key resolved to a URL)
+  caption    String?
+  category   String @default("progress")  // rendering | progress | completed
+  sortOrder  Int @default(0)
+  createdAt  DateTime @default(now())
+  @@index([projectId])
+}
+
+model ConstructionTimelineItem {
+  id         String @id @default(cuid())
+  projectId  String
+  project    ConstructionProject @relation(fields: [projectId], references: [id])
+  title      String
+  description String?
+  targetDate DateTime?
+  status     String   // planned | in_progress | completed
+  sortOrder  Int    @default(0)
+}
+
+model ConstructionUpdate {
+  id          String @id @default(cuid())
+  projectId   String
+  project     ConstructionProject @relation(fields: [projectId], references: [id])
+  month       Int
+  year        Int
+  title       String?
+  description String
+  photoKeys   String[] @default([])  // object keys, not URLs
+  videoUrl    String?
+  createdAt   DateTime @default(now())
+  @@index([projectId, year, month])
+}
+
+// ===== Files =====
+model Document {
+  id           String @id @default(cuid())
+  title        String
+  provider     String            // s3 | vercel-blob
+  bucket       String?
+  objectKey    String            // NOT a URL; sign at download after authorization
+  filename     String
+  mimeType     String
+  sizeBytes    Int
+  checksumSha256 String
+  visibility   DocumentVisibility @default(PUBLIC)
+  scanStatus   ScanStatus @default(PENDING)
+  uploadedById String
+  uploadedBy   User   @relation("DocUploadedBy", fields: [uploadedById], references: [id])
+  projectId    String?
+  project      ConstructionProject? @relation("ProjectDocuments", fields: [projectId], references: [id])
+  createdAt    DateTime @default(now())
+  @@index([visibility])
+}
+
+// ===== Email: identity, consent, suppression, lifecycle =====
+model EmailIdentity {
+  id              String @id @default(cuid())
+  emailNormalized String @unique
+  createdAt       DateTime @default(now())
+  subscriptions   EmailSubscription[]
+  suppressions    Suppression[]
+  messages        EmailMessage[]
+}
+
+model EmailSubscription {
+  id             String @id @default(cuid())
+  identityId     String
+  identity       EmailIdentity @relation(fields: [identityId], references: [id])
+  type           String            // VISITOR_UPDATES | BUILDING_PROJECT | NEWSLETTER
+  status         SubscriptionStatus @default(SUBSCRIBED)
+  source         String?
+  policyVersion  String?
+  subscribedAt   DateTime @default(now())
+  unsubscribedAt DateTime?
+  @@unique([identityId, type])
+}
+
+model Suppression {
+  id         String @id @default(cuid())
+  identityId String
+  identity   EmailIdentity @relation(fields: [identityId], references: [id])
+  scope      SuppressionScope
+  reason     SuppressionReason
+  createdAt  DateTime @default(now())
+  @@unique([identityId, scope])
+}
+
+model EmailCampaign {
+  id               String @id @default(cuid())
+  subject          String
+  type             EmailType @default(MARKETING)
+  audience         String
+  audienceSnapshot Json?            // frozen recipient identities at approval
+  fromIdentity     String
+  replyTo          String?
+  status           String @default("DRAFT") // DRAFT|APPROVED|SCHEDULED|SENDING|SENT|FAILED
+  idempotencyKey   String @unique
+  bodyHtml         String
+  createdById      String
+  createdBy        User   @relation("CampaignCreatedBy", fields: [createdById], references: [id])
+  scheduledAt      DateTime?
+  sentAt           DateTime?
+  createdAt        DateTime @default(now())
+  messages         EmailMessage[]
+}
+
+model EmailMessage {
+  id                String @id @default(cuid())
+  identityId        String
+  identity          EmailIdentity @relation(fields: [identityId], references: [id])
+  campaignId        String?
+  campaign          EmailCampaign? @relation(fields: [campaignId], references: [id])
+  type              EmailType
+  providerMessageId String? @unique
+  status            EmailStatus @default(QUEUED)
+  attempts          Int @default(0)
+  lastEventAt       DateTime?
+  createdAt         DateTime @default(now())
+  events            EmailEvent[]
+  @@index([campaignId])
+}
+
+model EmailEvent {
+  id              String @id @default(cuid())
+  messageId       String
+  message         EmailMessage @relation(fields: [messageId], references: [id])
+  providerEventId String @unique   // idempotent webhook ingestion
+  status          EmailStatus
+  payload         Json?
+  occurredAt      DateTime
+  createdAt       DateTime @default(now())
+}
+
+// ===== Automation =====
+model ScheduledJobRun {
+  id             String @id @default(cuid())
+  jobName        String
+  scheduledPeriod String           // deterministic period key, e.g. "2026-W32"
+  idempotencyKey String @unique    // jobName + scheduledPeriod
+  status         JobStatus @default(RUNNING)
+  leaseExpiresAt DateTime
+  startedAt      DateTime @default(now())
+  completedAt    DateTime?
+  attempts       Int @default(1)
+  processedCount Int @default(0)
+  failedCount    Int @default(0)
+  errorSummary   String?
+}
+
+model CareAlert {
+  id               String @id @default(cuid())
+  memberId         String
+  member           Member @relation("CareAlertMember", fields: [memberId], references: [id])
+  reason           String
+  attendanceCutoff DateTime
+  dedupeKey        String @unique   // memberId + cutoff window
+  status           CareAlertStatus @default(OPEN)
+  assignedToId     String?
+  assignedTo       User?  @relation("CareAlertAssignee", fields: [assignedToId], references: [id])
+  createdAt        DateTime @default(now())
+  resolvedAt       DateTime?
+  @@index([status])
+}
+
+model Attendance {
+  id          String @id @default(cuid())
+  memberId    String
+  member      Member @relation(fields: [memberId], references: [id])
+  attendedAt  DateTime
+  serviceName String?
+  @@index([attendedAt])
+}
+
+// ===== Membership pathway/status, transfers & reference library =====
+enum MembershipStatus { ACTIVE MISSING REMOVED TRANSFERRED_OUT DECEASED }  // mirrors eAdventist (§2A)
+enum JoinPathway { BAPTISM PROFESSION_OF_FAITH TRANSFER }
+enum TransferDirection { INCOMING OUTGOING }
+enum TransferStatus { SUBMITTED IN_REVIEW HANDED_TO_EADVENTIST COMPLETED DECLINED WITHDRAWN }
+enum ReferenceType { FUNDAMENTAL_BELIEF CHURCH_MANUAL }
+
+model MembershipTransfer {
+  id            String @id @default(cuid())
+  direction     TransferDirection
+  status        TransferStatus @default(SUBMITTED)
+  personName    String
+  personEmail   String?
+  personPhone   String?
+  memberId      String?
+  member        Member? @relation("MemberTransfers", fields: [memberId], references: [id])
+  otherChurchName    String
+  otherChurchContact String?
+  initiatedVia  String            // PUBLIC | CLERK | MEMBER
+  statusTokenDigest String @unique
+  assignedClerkId String?
+  assignedClerk User?  @relation("TransferClerk", fields: [assignedClerkId], references: [id])
+  eadventistRef String?           // reference once the clerk records it in eAdventist (§2A)
+  note          String?
+  submittedAt   DateTime @default(now())
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@index([direction, status])
+}
+
+model ReferenceDocument {
+  id            String @id @default(cuid())
+  type          ReferenceType
+  edition       String
+  number        Int?
+  parentId      String?
+  parent        ReferenceDocument?  @relation("RefTree", fields: [parentId], references: [id])
+  children      ReferenceDocument[] @relation("RefTree")
+  title         String
+  slug          String @unique
+  bodyHtml      String
+  scriptureRefs String[] @default([])
+  category      String?
+  sourceUrl     String?
+  sortOrder     Int @default(0)
+  lastReviewedAt DateTime?
+  searchVector  Unsupported("tsvector")?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@index([type, sortOrder])
+}
+
+// ===== Safeguarding: volunteer screening + media consent (§14D) =====
+enum ScreeningStatus { NONE PENDING CLEARED EXPIRED FAILED }
+enum MediaScope { PHOTO VIDEO SOCIAL }
+
+model VolunteerScreening {
+  id              String @id @default(cuid())
+  memberId        String @unique
+  member          Member @relation("MemberScreening", fields: [memberId], references: [id])
+  worksWithMinors Boolean @default(false)
+  status          ScreeningStatus @default(NONE)
+  backgroundCheckAt DateTime?      // FB-20 criminal background check
+  trainingAt      DateTime?        // child-protection training
+  expiresAt       DateTime?        // renew every 3 years
+  provider        String @default("Adventist Screening Verification")
+  externalRef     String?          // ASV / Sterling record reference (record of record lives there)
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  @@index([status, expiresAt])
+}
+
+model MediaConsent {
+  id          String @id @default(cuid())
+  memberId    String
+  member      Member @relation("MemberMediaConsent", fields: [memberId], references: [id])
+  scope       MediaScope
+  forMinor    Boolean @default(false)
+  status      ConsentStatus @default(GRANTED)
+  consentedAt DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+  @@unique([memberId, scope])
+}
+
+// ===== Sabbath School (§14E) =====
+enum SSDivision { ADULT YOUTH EARLITEEN JUNIOR PRIMARY KINDERGARTEN BEGINNER }
+
+model SabbathSchoolClass {
+  id             String @id @default(cuid())
+  division       SSDivision
+  name           String
+  room           String?
+  description    String?
+  superintendentMemberId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model SabbathSchoolLesson {           // pointer to the official quarterly guide (linked, not hosted)
+  id        String @id @default(cuid())
+  quarter   String                     // e.g. "2026-Q3"
+  weekOf    DateTime
+  title     String
+  guideUrl  String                     // official lesson source
+  memoryText String?
+  createdAt DateTime @default(now())
+  @@index([weekOf])
+}
+
+// ===== Weekly bulletin / order of service (§14F) =====
+model Bulletin {
+  id            String @id @default(cuid())
+  sabbathDate   DateTime @unique
+  title         String?
+  status        ApprovalStatus @default(PENDING)
+  pdfDocumentId String?
+  publishedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  items         OrderOfServiceItem[]
+}
+
+model OrderOfServiceItem {
+  id          String @id @default(cuid())
+  bulletinId  String
+  bulletin    Bulletin @relation(fields: [bulletinId], references: [id])
+  sortOrder   Int @default(0)
+  title       String            // "Opening Hymn", "Sermon", "Offering", ...
+  detail      String?           // hymn number, sermon title
+  participant String?
+}
+
+// ===== Officers, board & minutes (§14G) =====
+enum OfficerRole { ELDER DEACON DEACONESS CLERK TREASURER SS_SUPERINTENDENT MINISTRY_LEADER OTHER }
+enum MeetingType { BOARD BUSINESS }
+
+model ChurchOffice {
+  id         String @id @default(cuid())
+  role       OfficerRole
+  title      String
+  memberId   String
+  member     Member @relation("OfficerMember", fields: [memberId], references: [id])
+  ministryId String?
+  termStart  DateTime
+  termEnd    DateTime?
+  electedAt  DateTime?
+  active     Boolean @default(true)
+  createdAt  DateTime @default(now())
+  @@index([role, active])
+}
+
+model BoardMeeting {
+  id          String @id @default(cuid())
+  type        MeetingType
+  meetingDate DateTime
+  agendaHtml  String?
+  minutesEncrypted String?       // sensitive; access-restricted + app-layer encrypted
+  status      ApprovalStatus @default(PENDING)  // draft -> approved minutes
+  approvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([meetingDate])
+}
+
+// ===== Ordinances & membership pathways (§14H) =====
+enum BaptismStatus { REQUESTED IN_CLASS SCHEDULED COMPLETED WITHDRAWN }
+
+model BaptismCandidate {
+  id           String @id @default(cuid())
+  personName   String
+  memberId     String?
+  contactEmail String?
+  contactPhone String?
+  status       BaptismStatus @default(REQUESTED)
+  classCompletedAt DateTime?
+  scheduledAt  DateTime?
+  note         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@index([status])
+}
+// Communion (quarterly, incl. foot-washing) and profession-of-faith are calendar Events with a type tag;
+// profession of faith also sets Member.joinedBy = PROFESSION_OF_FAITH.
+
+// ===== Giving structure (giving itself stays external — AdventistGiving) (§14I) =====
+model OfferingCalendarEntry {
+  id           String @id @default(cuid())
+  weekOf       DateTime
+  offeringName String
+  isConferenceOffering Boolean @default(false)  // follows the denominational offering calendar
+  note         String?
+  @@index([weekOf])
+}
+
+// ===== Youth clubs (Pathfinders / Adventurers / AY) (§14J) =====
+enum YouthClub { PATHFINDERS ADVENTURERS AY }
+
+model YouthClubRegistration {
+  id            String @id @default(cuid())
+  club          YouthClub
+  minorMemberId String
+  minor         Member @relation("YouthClubMinor", fields: [minorMemberId], references: [id])
+  guardianConsentId String            // ties to GuardianConsent (§10)
+  registeredAt  DateTime @default(now())
+  active        Boolean @default(true)
+  @@index([club, active])
+}
+
+// ===== Config & audit =====
+model SiteSetting {
+  id        String @id @default(cuid())
+  key       String @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String @id @default(cuid())
+  actorId   String
+  actor     User   @relation(fields: [actorId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  requestId String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  @@index([entity, entityId])
+}
+
+// ===== Peer-to-peer fundraising =====
+enum CampaignStatus { DRAFT ACTIVE PAUSED COMPLETED }
+enum DonationStatus { PENDING CONFIRMED CANCELLED }
+enum DonationKind { PLEDGE GIVEN }   // PLEDGE = commitment; GIVEN = reported as given via AdventistGiving (no card data here)
+
+model FundraisingCampaign {
+  id                    String @id @default(cuid())
+  slug                  String @unique
+  title                 String
+  description           String?
+  goal                  Int @default(0)
+  status                CampaignStatus @default(ACTIVE)
+  constructionProjectId String?         // optional link to the building project
+  coverImageUrl         String?
+  allowMemberFundraisers Boolean @default(true)
+  startDate             DateTime?
+  endDate               DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  fundraisers Fundraiser[]
+  donations   Donation[]
+  @@index([status])
+}
+
+model Fundraiser {
+  id           String @id @default(cuid())
+  campaignId   String
+  campaign     FundraisingCampaign @relation(fields: [campaignId], references: [id])
+  memberId     String?
+  member       Member? @relation("MemberFundraisers", fields: [memberId], references: [id])
+  ownerUserId  String?
+  slug         String @unique
+  displayName  String
+  title        String
+  story        String?
+  personalGoal Int @default(0)
+  active       Boolean @default(true)
+  createdAt    DateTime @default(now())
+  donations    Donation[]
+  @@index([campaignId])
+}
+
+model Donation {
+  id           String @id @default(cuid())
+  campaignId   String
+  campaign     FundraisingCampaign @relation(fields: [campaignId], references: [id])
+  fundraiserId String?
+  fundraiser   Fundraiser? @relation(fields: [fundraiserId], references: [id])
+  donorName    String
+  email        String?
+  amount       Int
+  kind         DonationKind @default(PLEDGE)
+  status       DonationStatus @default(PENDING)
+  isAnonymous  Boolean @default(false)
+  message      String?
+  createdAt    DateTime @default(now())
+  confirmedAt  DateTime?
+  @@index([campaignId, status])
+  @@index([fundraiserId, status])
+}

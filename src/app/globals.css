@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --bg: 255 255 255; --fg: 17 24 39; --muted: 100 116 139; }
+.dark { --bg: 15 23 42; --fg: 226 232 240; --muted: 148 163 184; }
+
+html { color-scheme: light dark; }
+body { background: rgb(var(--bg)); color: rgb(var(--fg)); font-family: system-ui, sans-serif; }
+/* Larger, readable defaults for older members (WCAG-friendly). */
+:where(p, li) { line-height: 1.7; }
+.skip-link { position: absolute; left: -9999px; }
+.skip-link:focus { position: fixed; left: 1rem; top: 1rem; z-index: 50; background: #c9a227; color: #0f2a4a; padding: .5rem 1rem; border-radius: .375rem; }
+
+/* Visible keyboard focus for accessibility. */
+:focus-visible { outline: 2px solid #c9a227; outline-offset: 2px; border-radius: 2px; }
