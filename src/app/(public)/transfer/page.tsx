@@ -40,18 +40,18 @@ export default async function Transfer({ searchParams }: { searchParams: Promise
       <Section container size="narrow">
         <Card>
           <form action={submitTransfer} className="space-y-3">
-            <select name="direction" className={fieldClass}>
+            <select name="direction" aria-label="Transfer direction" className={fieldClass}>
               <option value="INCOMING">Transfer IN (to McKinney SDA)</option>
               <option value="OUTGOING">Transfer OUT (to another church)</option>
             </select>
-            <input name="personName" required placeholder="Your full name" className={fieldClass} />
+            <input name="personName" required placeholder="Your full name" aria-label="Your full name" className={fieldClass} />
             <div className="grid gap-3 sm:grid-cols-2">
-              <input name="personEmail" type="email" placeholder="Email" className={fieldClass} />
-              <input name="personPhone" placeholder="Phone" className={fieldClass} />
+              <input name="personEmail" type="email" placeholder="Email" aria-label="Email" className={fieldClass} />
+              <input name="personPhone" placeholder="Phone" aria-label="Phone" className={fieldClass} />
             </div>
-            <input name="otherChurchName" required placeholder="Other church name" className={fieldClass} />
-            <input name="otherChurchContact" placeholder="Other church contact (optional)" className={fieldClass} />
-            <textarea name="note" rows={3} placeholder="Anything else (optional)" className={fieldClass} />
+            <input name="otherChurchName" required placeholder="Other church name" aria-label="Other church name" className={fieldClass} />
+            <input name="otherChurchContact" placeholder="Other church contact (optional)" aria-label="Other church contact (optional)" className={fieldClass} />
+            <textarea name="note" rows={3} placeholder="Anything else (optional)" aria-label="Anything else (optional)" className={fieldClass} />
             <Honeypot />
             <button className="btn btn-primary">Submit</button>
           </form>

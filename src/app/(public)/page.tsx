@@ -419,7 +419,7 @@ function VisitFact({
 }) {
   return (
     <div className="px-1 py-8 sm:px-6">
-      <h3 className="font-serif text-lg font-semibold text-fg">{title}</h3>
+      <h2 className="font-serif text-lg font-semibold text-fg">{title}</h2>
       <p className="mt-2 text-sm text-fg/90">{body}</p>
       <p className="mt-2 text-sm text-muted">{note}</p>
       {external ? (

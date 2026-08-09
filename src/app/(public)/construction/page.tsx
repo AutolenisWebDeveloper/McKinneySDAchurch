@@ -60,7 +60,7 @@ export default async function Construction({ searchParams }: { searchParams: Pro
               {project.publicPledgeEnabled ? (
                 <div className="mt-8 flex flex-wrap gap-3">
                   <a href="#pledge" className="btn btn-white">Make a pledge</a>
-                  <a href="#updates" className="btn btn-ghost-light">Follow the progress</a>
+                  {project.updates.length ? <a href="#updates" className="btn btn-ghost-light">Follow the progress</a> : null}
                 </div>
               ) : null}
             </div>
@@ -92,7 +92,7 @@ export default async function Construction({ searchParams }: { searchParams: Pro
           <div className="mt-8 grid gap-6 sm:grid-cols-2">
             {renderings.map((p) => (
               <figure key={p.id} className="overflow-hidden rounded-xl border border-line shadow-sm">
-                <img src={p.url} alt={p.caption ?? ""} className="w-full object-cover" />
+                <img src={p.url} alt={p.caption ?? `${project.title} — architectural rendering`} className="w-full object-cover" />
                 {p.caption ? <figcaption className="bg-surface px-4 py-3 text-sm text-muted">{p.caption}</figcaption> : null}
               </figure>
             ))}
@@ -159,24 +159,24 @@ export default async function Construction({ searchParams }: { searchParams: Pro
                   <p className="mb-5 text-sm text-muted">A pledge is a giving commitment — no payment is collected here. You can give securely anytime through AdventistGiving.</p>
                   <form action={createPledge} className="space-y-3">
                     <input type="hidden" name="projectId" value={project.id} />
-                    <input name="donorName" required placeholder="Your name" className={fieldClass} />
+                    <input name="donorName" required placeholder="Your name" aria-label="Your name" className={fieldClass} />
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <input name="email" type="email" placeholder="Email" className={fieldClass} />
-                      <input name="phone" placeholder="Phone" className={fieldClass} />
+                      <input name="email" type="email" placeholder="Email" aria-label="Email" className={fieldClass} />
+                      <input name="phone" placeholder="Phone" aria-label="Phone" className={fieldClass} />
                     </div>
                     <div className="grid gap-3 sm:grid-cols-3">
-                      <input name="amount" type="number" min={1} required placeholder="Amount $" className={fieldClass} />
-                      <select name="frequency" className={fieldClass}>
+                      <input name="amount" type="number" min={1} required placeholder="Amount $" aria-label="Pledge amount in dollars" className={fieldClass} />
+                      <select name="frequency" aria-label="Giving frequency" className={fieldClass}>
                         <option value="ONE_TIME">One-time</option>
                         <option value="MONTHLY">Monthly</option>
                         <option value="QUARTERLY">Quarterly</option>
                         <option value="ANNUAL">Annual</option>
                       </select>
-                      <input name="termMonths" type="number" min={1} placeholder="Over N months" className={fieldClass} />
+                      <input name="termMonths" type="number" min={1} placeholder="Over N months" aria-label="Spread over how many months" className={fieldClass} />
                     </div>
                     <label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="publicRecognition" className="accent-primary" /> You may list my name as a supporter</label>
                     <label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="isAnonymous" className="accent-primary" /> Keep my pledge anonymous</label>
-                    <textarea name="note" rows={2} placeholder="Note (optional)" className={fieldClass} />
+                    <textarea name="note" rows={2} placeholder="Note (optional)" aria-label="Note (optional)" className={fieldClass} />
                     <Honeypot />
                     <button className="btn btn-primary">Submit pledge</button>
                   </form>
@@ -198,7 +198,7 @@ export default async function Construction({ searchParams }: { searchParams: Pro
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {progressPhotos.map((p) => (
               <figure key={p.id} className="overflow-hidden rounded-xl border border-line shadow-sm">
-                <img src={p.url} alt={p.caption ?? ""} className="aspect-square w-full object-cover" />
+                <img src={p.url} alt={p.caption ?? `${project.title} — construction progress`} className="aspect-square w-full object-cover" />
                 {p.caption ? <figcaption className="bg-surface px-4 py-2.5 text-xs text-muted">{p.caption}</figcaption> : null}
               </figure>
             ))}
@@ -293,7 +293,7 @@ export default async function Construction({ searchParams }: { searchParams: Pro
           <div className="mx-auto mt-6 max-w-md"><Callout tone="success">You’re subscribed to building updates. Thank you!</Callout></div>
         ) : (
           <form action={subscribeBuilding} className="mx-auto mt-6 flex max-w-md gap-2">
-            <input name="email" type="email" required placeholder="you@email.com" className={`${fieldClass} flex-1`} />
+            <input name="email" type="email" required placeholder="you@email.com" aria-label="Email address for building updates" className={`${fieldClass} flex-1`} />
             <Honeypot />
             <button className="btn btn-primary">Subscribe</button>
           </form>

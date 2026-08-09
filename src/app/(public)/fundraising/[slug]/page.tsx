@@ -22,7 +22,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
 
   return (
     <Container size="narrow" className="py-12 sm:py-16">
-      {c.coverImageUrl ? <img src={c.coverImageUrl} alt="" className="mb-6 max-h-72 w-full rounded-xl object-cover" /> : null}
+      {c.coverImageUrl ? <img src={c.coverImageUrl} alt={c.title} className="mb-6 max-h-72 w-full rounded-xl object-cover" /> : null}
       <p className="eyebrow mb-3">Campaign</p>
       <h1 className="text-display font-serif font-semibold text-fg">{c.title}</h1>
       {c.description ? <p className="mt-4 text-lg leading-relaxed text-muted">{c.description}</p> : null}

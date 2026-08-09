@@ -32,10 +32,10 @@ export default async function Baptism({ searchParams }: { searchParams: Promise<
                 <Callout tone="success">Thank you — a pastor will be in touch with you soon.</Callout>
               ) : (
                 <form action={requestBaptism} className="space-y-3">
-                  <input name="personName" required placeholder="Your name" className={fieldClass} />
-                  <input name="contactEmail" type="email" placeholder="Email" className={fieldClass} />
-                  <input name="contactPhone" placeholder="Phone (optional)" className={fieldClass} />
-                  <textarea name="note" rows={3} placeholder="Anything you’d like us to know (optional)" className={fieldClass} />
+                  <input name="personName" required placeholder="Your name" aria-label="Your name" className={fieldClass} />
+                  <input name="contactEmail" type="email" placeholder="Email" aria-label="Email" className={fieldClass} />
+                  <input name="contactPhone" placeholder="Phone (optional)" aria-label="Phone (optional)" className={fieldClass} />
+                  <textarea name="note" rows={3} placeholder="Anything you’d like us to know (optional)" aria-label="Anything you’d like us to know (optional)" className={fieldClass} />
                   <Honeypot />
                   <button className="btn btn-primary">Send request</button>
                 </form>
