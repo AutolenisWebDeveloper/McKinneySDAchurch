@@ -18,12 +18,17 @@ export default {
         ink: rgb("--ink"),
         muted: rgb("--muted"),
         gold: rgb("--gold"),
+        teal: rgb("--teal"),
+        "bright-teal": rgb("--bright-teal"),
+        orange: rgb("--orange"),
+        "orange-strong": rgb("--orange-strong"),
         line: rgb("--line"),
         "line-strong": rgb("--line-strong"),
         primary: rgb("--primary"),
         "primary-hover": rgb("--primary-hover"),
         "on-primary": rgb("--on-primary"),
         accent: rgb("--accent"),
+        "accent-strong": rgb("--accent-strong"),
         ring: rgb("--ring"),
         // Brand denim scale
         denim: {
