@@ -17,18 +17,32 @@ const excerpt = (html: string, n = 150) => {
   return text.length > n ? `${text.slice(0, n).trimEnd()}…` : text;
 };
 
+// Homepage content is fetched from the database, but the page must still render
+// its (mostly static) welcome content if the database is briefly unreachable.
+// Each read degrades to a safe default rather than throwing the whole page.
+async function safe<T>(p: Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await p;
+  } catch {
+    return fallback;
+  }
+}
+
 export default async function Home() {
   const [times, livestream, anns, events, sermon, project] = await Promise.all([
-    getServiceTimes(),
-    getSetting("livestream_url"),
-    getApprovedAnnouncements(3),
-    getUpcomingEvents(4),
-    getLatestSermon(),
-    prisma.constructionProject.findFirst({
-      where: { active: true },
-      orderBy: { createdAt: "desc" },
-      select: { title: true, description: true, totalGoal: true, currentRaised: true, targetCompletion: true },
-    }),
+    safe(getServiceTimes(), null),
+    safe(getSetting("livestream_url"), null),
+    safe(getApprovedAnnouncements(3), []),
+    safe(getUpcomingEvents(4), []),
+    safe(getLatestSermon(), null),
+    safe(
+      prisma.constructionProject.findFirst({
+        where: { active: true },
+        orderBy: { createdAt: "desc" },
+        select: { title: true, description: true, totalGoal: true, currentRaised: true, targetCompletion: true },
+      }),
+      null,
+    ),
   ]);
   const locale = await getLocale();
   const giveUrl = env.ADVENTIST_GIVING_URL ?? null;
