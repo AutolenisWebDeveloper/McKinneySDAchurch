@@ -137,7 +137,7 @@ export default async function Construction({ searchParams }: { searchParams: Pro
             {project.givingLevels.map((l) => (
               <div key={l.id} className="card p-6">
                 <p className="font-serif text-lg font-semibold text-fg">{l.name}</p>
-                <p className="mt-1 text-sm font-semibold text-gold">{formatUsd(l.minAmount)}+</p>
+                <p className="mt-1 text-sm font-semibold text-denim-800 dark:text-denim-300">{formatUsd(l.minAmount)}+</p>
                 {l.description ? <p className="mt-2 text-sm text-muted">{l.description}</p> : null}
               </div>
             ))}

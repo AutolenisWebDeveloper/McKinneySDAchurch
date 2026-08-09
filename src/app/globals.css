@@ -154,9 +154,9 @@ h1, h2, h3, h4 { font-family: var(--font-serif); font-weight: 600; line-height: 
 .btn:active { transform: translateY(1px) scale(0.99); }
 .btn-primary { background: rgb(var(--primary)); color: rgb(var(--on-primary)); box-shadow: var(--shadow-sm); }
 .btn-primary:hover { background: rgb(var(--primary-hover)); box-shadow: var(--shadow-md); }
-.btn-accent { background: rgb(var(--accent)); color: #fff; box-shadow: var(--shadow-sm); }
-.dark .btn-accent { color: rgb(var(--ink-900)); }
-.btn-accent:hover { filter: brightness(1.05); box-shadow: var(--shadow-md); }
+/* Gold is a light hue: pair it with deep-denim text (AA), never white. */
+.btn-accent { background: rgb(var(--accent)); color: rgb(var(--denim-950)); box-shadow: var(--shadow-sm); }
+.btn-accent:hover { filter: brightness(1.04); box-shadow: var(--shadow-md); }
 .btn-outline { background: rgb(var(--surface)); border-color: rgb(var(--primary)); color: rgb(var(--primary)); box-shadow: var(--shadow-sm); }
 .btn-outline:hover { background: rgb(var(--denim-50)); box-shadow: var(--shadow-md); }
 .dark .btn-outline:hover { background: rgb(var(--surface-2)); }
@@ -185,8 +185,12 @@ h1, h2, h3, h4 { font-family: var(--font-serif); font-weight: 600; line-height: 
 @media (prefers-reduced-motion: reduce) {
   .animate-rise, .animate-rise-2, .animate-rise-3, .animate-rise-4 { animation: none; }
   .card-hover { transition: none; }
+  .animate-ping { animation: none; }
   * { scroll-behavior: auto !important; }
 }
+
+/* Keep in-page anchor targets clear of the sticky header. */
+:target { scroll-margin-top: 6rem; }
 
 /* Rich text (sanitized) rendering */
 .richtext { line-height: 1.75; }

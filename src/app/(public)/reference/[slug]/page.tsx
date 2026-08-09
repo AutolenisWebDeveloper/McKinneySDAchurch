@@ -6,6 +6,13 @@ import { Container } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const doc = await getReferenceBySlug(slug);
+  if (!doc) return { title: "Not found" };
+  return { title: doc.number ? `${doc.number}. ${doc.title}` : doc.title };
+}
+
 export default async function ReferenceDocPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const doc = await getReferenceBySlug(slug);

@@ -6,6 +6,12 @@ import { Section } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const m = await getMinistryBySlug(slug);
+  return { title: m?.name ?? "Ministry", description: m?.description ?? undefined };
+}
+
 export default async function MinistryDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const m = await getMinistryBySlug(slug);

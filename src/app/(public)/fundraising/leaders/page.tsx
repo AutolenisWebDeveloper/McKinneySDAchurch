@@ -45,7 +45,7 @@ export default async function Leaders() {
                   <span className="flex items-center gap-3">
                     <span className="w-6 text-center font-serif text-lg font-semibold text-muted">{medal(b.rank) ?? b.rank}</span>
                     <span className="font-medium text-fg">{b.name}</span>
-                    {badge ? <span className="rounded-full bg-gold/15 px-2 py-0.5 text-xs font-semibold text-gold">{badge}</span> : null}
+                    {badge ? <span className="rounded-full bg-gold/20 px-2 py-0.5 text-xs font-semibold text-denim-900 dark:text-denim-100">{badge}</span> : null}
                   </span>
                   <span className="font-semibold text-denim-800 dark:text-denim-300">{formatUsd(b.total)}</span>
                 </li>

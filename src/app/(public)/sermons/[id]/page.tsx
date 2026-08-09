@@ -5,6 +5,12 @@ import { Container } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const s = await getSermon(id);
+  return { title: s?.title ?? "Sermon" };
+}
+
 function embed(url: string): string | null {
   const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
   if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
