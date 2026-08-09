@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { safe } from "@/lib/safe";
 import { formatUsd, raisedPct, confirmedTotal } from "@/lib/fundraising";
 import { DonateForm } from "@/components/DonateForm";
 import { Container } from "@/components/ui";
@@ -11,10 +12,10 @@ export const dynamic = "force-dynamic";
 export default async function FundraiserPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ donated?: string }> }) {
   const { slug } = await params;
   const { donated } = await searchParams;
-  const f = await prisma.fundraiser.findUnique({
+  const f = await safe(prisma.fundraiser.findUnique({
     where: { slug },
     include: { campaign: { select: { title: true, slug: true, status: true } }, donations: { select: { amount: true, status: true } } },
-  });
+  }), null);
   if (!f || !f.active || f.campaign.status !== "ACTIVE") notFound();
   const raised = confirmedTotal(f.donations);
   const pct = f.personalGoal ? raisedPct(raised, f.personalGoal) : 0;

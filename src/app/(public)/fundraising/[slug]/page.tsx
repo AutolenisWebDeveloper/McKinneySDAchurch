@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { safe } from "@/lib/safe";
 import { formatUsd, campaignTotals, fundraiserTotals, rankFundraisers, confirmedTotal } from "@/lib/fundraising";
 import { DonateForm } from "@/components/DonateForm";
 import { Container } from "@/components/ui";
@@ -11,10 +12,10 @@ export const dynamic = "force-dynamic";
 export default async function CampaignPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ donated?: string }> }) {
   const { slug } = await params;
   const { donated } = await searchParams;
-  const c = await prisma.fundraisingCampaign.findUnique({
+  const c = await safe(prisma.fundraisingCampaign.findUnique({
     where: { slug },
     include: { donations: { select: { amount: true, status: true, fundraiserId: true } }, fundraisers: { where: { active: true }, include: { donations: { select: { amount: true, status: true } } } } },
-  });
+  }), null);
   if (!c || c.status === "DRAFT") notFound();
   const totals = campaignTotals(c.donations, c.goal);
   const names = Object.fromEntries(c.fundraisers.map((f) => [f.id, f.displayName]));

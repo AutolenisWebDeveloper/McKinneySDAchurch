@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { safe } from "@/lib/safe";
 import { formatUsd, rankFundraisers, raiserBadge, type LeaderEntry } from "@/lib/fundraising";
 import { PageHeader } from "@/components/page-ui";
 import { Section } from "@/components/ui";
@@ -11,10 +12,10 @@ export const metadata = {
 
 export default async function Leaders() {
   // All confirmed, fundraiser-attributed donations, aggregated per person (across campaigns).
-  const rows = await prisma.donation.findMany({
+  const rows = await safe(prisma.donation.findMany({
     where: { status: "CONFIRMED", fundraiserId: { not: null } },
     select: { amount: true, fundraiser: { select: { ownerUserId: true, displayName: true } } },
-  });
+  }), []);
   const byPerson = new Map<string, { name: string; total: number }>();
   for (const r of rows) {
     if (!r.fundraiser) continue;

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { safe } from "@/lib/safe";
 import { formatUsd, raisedPct } from "@/lib/fundraising";
 import { PageHeader } from "@/components/page-ui";
 import { Section } from "@/components/ui";
@@ -12,8 +13,8 @@ export const metadata = {
 
 export default async function Fundraising() {
   const [campaigns, sums] = await Promise.all([
-    prisma.fundraisingCampaign.findMany({ where: { status: "ACTIVE" } }),
-    prisma.donation.groupBy({ by: ["campaignId"], where: { status: "CONFIRMED" }, _sum: { amount: true } }),
+    safe(prisma.fundraisingCampaign.findMany({ where: { status: "ACTIVE" } }), []),
+    safe(prisma.donation.groupBy({ by: ["campaignId"], where: { status: "CONFIRMED" }, _sum: { amount: true } }), []),
   ]);
   const raisedBy = new Map(sums.map((s) => [s.campaignId, s._sum.amount ?? 0]));
   const ranked = [...campaigns].sort((a, b) => (raisedBy.get(b.id) ?? 0) - (raisedBy.get(a.id) ?? 0));

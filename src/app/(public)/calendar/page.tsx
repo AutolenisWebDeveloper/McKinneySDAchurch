@@ -1,4 +1,5 @@
 import { getUpcomingEvents } from "@/lib/public-content";
+import { safe } from "@/lib/safe";
 import { googleCalUrl } from "@/lib/ics";
 import { PageHeader } from "@/components/page-ui";
 import { Section } from "@/components/ui";
@@ -12,7 +13,7 @@ export const metadata = {
 const EXT = "noopener noreferrer";
 
 export default async function Calendar() {
-  const events = await getUpcomingEvents(50);
+  const events = await safe(getUpcomingEvents(50), []);
   return (
     <>
       <PageHeader
