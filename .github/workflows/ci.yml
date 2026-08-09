@@ -46,7 +46,7 @@ jobs:
       - run: npm ci
       - run: npx prisma validate      # authoritative schema check
       - run: npx prisma generate
-      - run: npx prisma db push        # apply schema to the CI database
+      - run: npx prisma migrate deploy # apply the committed migrations to the CI database
       - run: npm run typecheck
       - run: npm run test
       - run: npm run build
