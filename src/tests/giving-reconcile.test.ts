@@ -7,7 +7,7 @@ describe("AdventistGiving CSV parse", () => {
     const rows = parseGivingCsv('Donor,Email,Amount,Fund\n"Lee, Ada",ada@x.com,"$1,200.00",Building\nBo Ng,bo@x.com,500,Building');
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({ donorName: "Lee, Ada", email: "ada@x.com", amount: 1200, fund: "Building" });
-    expect(rows[1].amount).toBe(500);
+    expect(rows[1]!.amount).toBe(500);
   });
 });
 

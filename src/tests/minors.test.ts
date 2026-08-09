@@ -20,7 +20,7 @@ describe("adultWhere fragment", () => {
   it("excludes flagged minors and requires adult or unknown dob", () => {
     const w = adultWhere(asOf) as { isMinor: boolean; OR: Array<Record<string, unknown>> };
     expect(w.isMinor).toBe(false);
-    const cutoff = (w.OR[1].dateOfBirth as { lte: Date }).lte;
+    const cutoff = (w.OR[1]!.dateOfBirth as { lte: Date }).lte;
     expect(cutoff.getFullYear()).toBe(2008); // 2026 - 18
   });
 });

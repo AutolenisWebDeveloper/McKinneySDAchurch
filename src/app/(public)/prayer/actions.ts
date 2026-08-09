@@ -22,7 +22,7 @@ export async function submitPrayer(formData: FormData) {
   });
   await prisma.prayerRequest.create({
     data: {
-      name: data.isAnonymous ? null : (data.name ?? null),
+      submitterName: data.isAnonymous ? null : (data.name ?? null),
       isAnonymous: data.isAnonymous,
       wantsPublish: data.wantsPublish,
       contentEncrypted: encryptField(data.content), // sensitive: encrypted at rest

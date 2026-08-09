@@ -1,15 +1,52 @@
 name: ci
 on: [push, pull_request]
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # Ephemeral Postgres so schema validation, the test suite, and the
+    # production build (which prerenders DB-backed pages) all have a real
+    # database. No external secret required for CI to pass.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: mckinney
+          POSTGRES_HOST_AUTH_METHOD: trust   # passwordless, ephemeral CI DB — no credential to commit
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres@localhost:5432/mckinney
+      NEXT_PUBLIC_SITE_URL: https://example.com
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: "npm" }
+        with: { node-version: "22", cache: "npm" }
+
+      # Ephemeral, CI-only app secrets generated at runtime (nothing secret is
+      # committed). Real secrets live in the deployment environment, not here.
+      - name: Generate CI env
+        run: |
+          {
+            echo "NEXTAUTH_SECRET=$(openssl rand -hex 24)"
+            echo "ENCRYPTION_KEY=$(openssl rand -hex 16)"
+            echo "TOKEN_HMAC_SECRET=$(openssl rand -hex 24)"
+            echo "CRON_SECRET=$(openssl rand -hex 24)"
+          } >> "$GITHUB_ENV"
+
       - run: npm ci
-      - run: npx prisma validate      # authoritative schema check (needs network for engine)
+      - run: npx prisma validate      # authoritative schema check
       - run: npx prisma generate
+      - run: npx prisma db push        # apply schema to the CI database
       - run: npm run typecheck
       - run: npm run test
       - run: npm run build

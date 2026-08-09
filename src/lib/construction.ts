@@ -56,7 +56,7 @@ export function phaseRollup(phases: PhaseLike[]): {
 /** Highest giving level an amount qualifies for (or null). */
 export function qualifyingLevel(amount: number, levels: { name: string; minAmount: number }[]): string | null {
   const eligible = levels.filter((l) => amount >= l.minAmount).sort((a, b) => b.minAmount - a.minAmount);
-  return eligible.length ? eligible[0].name : null;
+  return eligible.length ? eligible[0]!.name : null;
 }
 
 /** Per-period amount for a recurring pledge, for display ("$250/month"). */
