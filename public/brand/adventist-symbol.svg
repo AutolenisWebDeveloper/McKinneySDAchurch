@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Church symbol placeholder">
+  <!-- ============================================================= -->
+  <!-- PLACEHOLDER ONLY — replace with the OFFICIAL Seventh-day       -->
+  <!-- Adventist symbol (open Bible + cross + flame, white on denim). -->
+  <!-- Do not redraw/recolor the official mark. See README.md.        -->
+  <!-- This generic denim roundel keeps the layout intact until then. -->
+  <!-- ============================================================= -->
+  <circle cx="50" cy="50" r="50" fill="#004F71"/>
+  <g fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- generic cross -->
+    <path d="M50 26 V70"/>
+    <path d="M38 41 H62"/>
+    <!-- open book baseline -->
+    <path d="M28 72 Q50 64 72 72" stroke-width="4"/>
+    <path d="M28 72 V66 Q50 58 72 66 V72" fill="none"/>
+  </g>
+</svg>

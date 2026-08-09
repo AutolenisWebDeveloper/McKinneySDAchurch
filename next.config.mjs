@@ -34,7 +34,6 @@ const nextConfig = {
   // Keeping these off lets `next build` produce a deployable artifact without silently masking
   // presentation regressions, which are caught by the dev typecheck + test suite.
   typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
   // Keep Next.js on the current Active LTS (16.x) and apply coordinated security releases.
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
