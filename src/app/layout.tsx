@@ -2,8 +2,14 @@ import "./globals.css";
 import type { ReactNode } from "react";
 import { serif, sans } from "./fonts";
 
+// Vercel may provide NEXT_PUBLIC_SITE_URL / VERCEL_URL as a bare host (no scheme);
+// normalize so `new URL()` never throws during the build.
+const rawSiteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL || "https://mckinneysda.vercel.app";
+const siteUrl = /^https?:\/\//.test(rawSiteUrl) ? rawSiteUrl : `https://${rawSiteUrl}`;
+
 export const metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://mckinneysda.org"),
+  metadataBase: new URL(siteUrl),
   title: {
     default: "McKinney Seventh-day Adventist Church",
     template: "%s · McKinney SDA Church",
