@@ -7,3 +7,6 @@ coverage
 prisma/*.db
 
 # local build helper artifacts
+
+# TypeScript incremental build cache
+*.tsbuildinfo
