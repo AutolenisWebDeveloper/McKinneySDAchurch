@@ -1,10 +1,16 @@
 import { prisma } from "@/lib/db";
 import { raisedPct, formatUsd, timelineLabel, phaseStatusLabel, campaignRollup, phaseRollup } from "@/lib/construction";
 import { subscribeBuilding, createPledge } from "./actions";
+import { PageHeader, Card, Callout, fieldClass, Honeypot } from "@/components/page-ui";
+import { Section, Container, Eyebrow } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Building Project — McKinney SDA Church" };
-const inp = "w-full rounded border border-black/20 dark:border-white/20 bg-transparent px-3 py-2";
+export const metadata = {
+  title: "The Building Project",
+  description: "Help us build a permanent home for worship, discipleship, and community.",
+};
+
+const EXT = "noopener noreferrer";
 
 export default async function Construction({ searchParams }: { searchParams: Promise<{ subscribed?: string; pledged?: string }> }) {
   const { subscribed, pledged } = await searchParams;
@@ -18,10 +24,17 @@ export default async function Construction({ searchParams }: { searchParams: Pro
       faqs: { orderBy: { sortOrder: "asc" } },
       photos: { orderBy: { sortOrder: "asc" } },
       pledges: { where: { publicRecognition: true, isAnonymous: false, status: { in: ["CONFIRMED", "FULFILLED"] } }, select: { donorName: true } },
-      documents: { select: { id: true, title: true, url: true } },
+      documents: { select: { id: true, title: true } },
     },
   });
-  if (!project) return <div><h1 className="text-2xl font-bold mb-2">Building Project</h1><p className="text-muted">Details about our building project will be posted here soon.</p></div>;
+
+  if (!project) {
+    return (
+      <>
+        <PageHeader eyebrow="Our building project" title="A home of our own" lede="Details about our building project will be posted here soon." tone="denim" />
+      </>
+    );
+  }
 
   const allPledges = await prisma.buildingPledge.findMany({ where: { projectId: project.id }, select: { amount: true, receivedToDate: true, status: true } });
   const campaign = campaignRollup(allPledges);
@@ -31,128 +44,261 @@ export default async function Construction({ searchParams }: { searchParams: Pro
   const progressPhotos = project.photos.filter((p) => p.category !== "rendering");
 
   return (
-    <div className="max-w-3xl space-y-12">
-      {/* hero */}
-      <section>
-        {project.heroImageUrl ? <img src={project.heroImageUrl} alt="" className="w-full rounded-xl mb-4 object-cover max-h-72" /> : null}
-        <h1 className="text-3xl font-bold">{project.title}</h1>
-        {project.description ? <p className="mt-2 text-muted">{project.description}</p> : null}
-        {project.targetCompletion ? <p className="text-sm text-muted mt-1">Target completion: {new Date(project.targetCompletion).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p> : null}
-        {/* thermometer */}
-        <div className="mt-5">
-          <div className="flex justify-between text-sm mb-1"><span className="font-medium">{formatUsd(project.currentRaised)} raised</span><span className="text-muted">Goal {formatUsd(project.totalGoal)}</span></div>
-          <div className="h-4 rounded bg-black/10 dark:bg-white/10 overflow-hidden"><div className="h-full bg-sda-green" style={{ width: `${pct}%` }} aria-hidden="true" /></div>
-          <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted">
-            <span>{pct}% of goal</span>
-            <span>{formatUsd(campaign.totalPledged)} pledged</span>
-            <span>{campaign.count} {campaign.count === 1 ? "pledge" : "pledges"}</span>
-          </div>
-        </div>
-      </section>
-
-      {/* renderings */}
-      {renderings.length ? (
-        <section><h2 className="text-xl font-semibold mb-3">Renderings</h2>
-          <div className="grid gap-4 sm:grid-cols-2">{renderings.map((p) => (<figure key={p.id}><img src={p.url} alt={p.caption ?? ""} className="w-full rounded object-cover" />{p.caption ? <figcaption className="text-xs text-muted mt-1">{p.caption}</figcaption> : null}</figure>))}</div>
-        </section>
-      ) : null}
-
-      {/* phases */}
-      {project.phases.length ? (
-        <section><h2 className="text-xl font-semibold mb-1">Phases</h2>
-          <p className="text-sm text-muted mb-3">{formatUsd(phases.totalSpent)} of {formatUsd(phases.totalBudget)} budget · {phases.completionPct}% of phases complete</p>
-          <ul className="space-y-3">{project.phases.map((ph) => (
-            <li key={ph.id} className="rounded border border-black/10 dark:border-white/10 p-3">
-              <div className="flex justify-between"><span className="font-medium">{ph.name}</span><span className="text-xs rounded px-2 py-0.5 border border-black/20 dark:border-white/20">{phaseStatusLabel(ph.status)}</span></div>
-              {ph.description ? <p className="text-sm text-muted mt-1">{ph.description}</p> : null}
-              {ph.budget > 0 ? (<div className="mt-2"><div className="h-2 rounded bg-black/10 dark:bg-white/10 overflow-hidden"><div className="h-full bg-sda-navy" style={{ width: `${raisedPct(ph.spent, ph.budget)}%` }} /></div><p className="text-xs text-muted mt-1">{formatUsd(ph.spent)} of {formatUsd(ph.budget)}</p></div>) : null}
-            </li>))}
-          </ul>
-        </section>
-      ) : null}
-
-      {/* giving levels */}
-      {project.givingLevels.length ? (
-        <section><h2 className="text-xl font-semibold mb-3">Ways to give</h2>
-          <div className="grid gap-3 sm:grid-cols-2">{project.givingLevels.map((l) => (
-            <div key={l.id} className="rounded border border-black/10 dark:border-white/10 p-3"><p className="font-medium">{l.name} · {formatUsd(l.minAmount)}+</p>{l.description ? <p className="text-sm text-muted mt-1">{l.description}</p> : null}</div>))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* pledge form */}
-      {project.publicPledgeEnabled ? (
-        <section id="pledge">
-          <h2 className="text-xl font-semibold mb-2">Make a pledge</h2>
-          {pledged ? <p className="rounded bg-sda-green/10 text-sda-green px-3 py-2">Thank you — your pledge has been received. Our team will follow up.</p> : (
-            <>
-              <p className="text-sm text-muted mb-3">A pledge is a giving commitment — no payment is collected here. Give securely anytime through AdventistGiving.</p>
-              <form action={createPledge} className="space-y-3">
-                <input type="hidden" name="projectId" value={project.id} />
-                <input name="donorName" required placeholder="Your name" className={inp} />
-                <div className="grid grid-cols-2 gap-3"><input name="email" type="email" placeholder="Email" className={inp} /><input name="phone" placeholder="Phone" className={inp} /></div>
-                <div className="grid grid-cols-3 gap-3">
-                  <input name="amount" type="number" min={1} required placeholder="Amount $" className={inp} />
-                  <select name="frequency" className={inp}><option value="ONE_TIME">One-time</option><option value="MONTHLY">Monthly</option><option value="QUARTERLY">Quarterly</option><option value="ANNUAL">Annual</option></select>
-                  <input name="termMonths" type="number" min={1} placeholder="Over N months" className={inp} />
+    <>
+      {/* HERO with progress */}
+      <section className="relative overflow-hidden bg-hero-denim text-white">
+        <div className="glow-denim absolute inset-0" aria-hidden="true" />
+        <Container className="relative py-16 sm:py-24">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
+            <div>
+              <p className="eyebrow mb-4 text-denim-300">Our building project</p>
+              <h1 className="text-hero font-serif font-semibold text-white">{project.title}</h1>
+              {project.description ? <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/80">{project.description}</p> : null}
+              {project.targetCompletion ? (
+                <p className="mt-4 text-sm text-white/70">Target completion: <span className="font-medium text-white">{new Date(project.targetCompletion).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span></p>
+              ) : null}
+              {project.publicPledgeEnabled ? (
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <a href="#pledge" className="btn btn-white">Make a pledge</a>
+                  <a href="#updates" className="btn btn-ghost-light">Follow the progress</a>
                 </div>
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="publicRecognition" /> You may list my name as a supporter</label>
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isAnonymous" /> Keep my pledge anonymous</label>
-                <textarea name="note" rows={2} placeholder="Note (optional)" className={inp} />
-                <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
-                <button className="rounded bg-sda-navy text-white px-4 py-2">Submit pledge</button>
-              </form>
-            </>
-          )}
-          {project.pledges.length ? <p className="text-xs text-muted mt-3">With thanks to {project.pledges.map((p) => p.donorName).join(", ")} and many others.</p> : null}
-        </section>
-      ) : null}
+              ) : null}
+            </div>
 
-      {/* progress gallery */}
-      {progressPhotos.length ? (
-        <section><h2 className="text-xl font-semibold mb-3">Progress photos</h2>
-          <div className="grid gap-4 sm:grid-cols-3">{progressPhotos.map((p) => (<figure key={p.id}><img src={p.url} alt={p.caption ?? ""} className="w-full rounded object-cover aspect-square" />{p.caption ? <figcaption className="text-xs text-muted mt-1">{p.caption}</figcaption> : null}</figure>))}</div>
-        </section>
-      ) : null}
-
-      {/* timeline */}
-      {project.timelineItems.length ? (
-        <section><h2 className="text-xl font-semibold mb-3">Timeline</h2>
-          <ol className="space-y-2">{project.timelineItems.map((it) => (
-            <li key={it.id} className="rounded border border-black/10 dark:border-white/10 p-3"><div className="flex justify-between"><span className="font-medium">{it.title}</span><span className="text-xs rounded px-2 py-0.5 border border-black/20 dark:border-white/20">{timelineLabel(it.status)}</span></div>{it.targetDate ? <p className="text-xs text-muted mt-1">Target: {new Date(it.targetDate).toLocaleDateString("en-US")}</p> : null}</li>))}
-          </ol>
-        </section>
-      ) : null}
-
-      {/* updates */}
-      {project.updates.length ? (
-        <section><h2 className="text-xl font-semibold mb-3">Updates</h2>
-          <ul className="space-y-4">{project.updates.map((u) => (
-            <li key={u.id} className="rounded border border-black/10 dark:border-white/10 p-4"><p className="text-sm text-muted">{new Date(u.year, u.month - 1).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>{u.title ? <p className="font-medium">{u.title}</p> : null}<p className="mt-1">{u.description}</p>{u.videoUrl ? <p className="mt-2 text-sm"><a href={u.videoUrl} target="_blank" rel="noopener noreferrer" className="underline">Watch update</a></p> : null}</li>))}
-          </ul>
-        </section>
-      ) : null}
-
-      {/* documents */}
-      {project.documents.length ? (
-        <section><h2 className="text-xl font-semibold mb-3">Documents</h2>
-          <ul className="text-sm space-y-1">{project.documents.map((d) => <li key={d.id}><a href={d.url} target="_blank" rel="noopener noreferrer" className="underline">{d.title}</a></li>)}</ul>
-        </section>
-      ) : null}
-
-      {/* FAQ */}
-      {project.faqs.length ? (
-        <section><h2 className="text-xl font-semibold mb-3">FAQ</h2>
-          <dl className="space-y-3">{project.faqs.map((f) => (<div key={f.id}><dt className="font-medium">{f.question}</dt><dd className="text-sm text-muted">{f.answer}</dd></div>))}</dl>
-        </section>
-      ) : null}
-
-      {/* subscribe */}
-      <section><h2 className="text-xl font-semibold mb-2">Get building updates</h2>
-        {subscribed ? <p className="rounded bg-sda-green/10 text-sda-green px-3 py-2">You're subscribed to building updates.</p> : (
-          <form action={subscribeBuilding} className="flex gap-2"><input name="email" type="email" required placeholder="you@email.com" className={`${inp} flex-1`} /><input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" /><button className="rounded bg-sda-navy text-white px-4 py-2">Subscribe</button></form>
-        )}
+            {/* Thermometer card (glass on denim) */}
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-8 shadow-lg backdrop-blur-sm">
+              <div className="flex items-end justify-between">
+                <span className="text-3xl font-semibold text-white sm:text-4xl">{formatUsd(project.currentRaised)}</span>
+                <span className="text-sm text-white/70">of {formatUsd(project.totalGoal)}</span>
+              </div>
+              <div className="mt-4 h-4 overflow-hidden rounded-full bg-white/15" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Building fund progress">
+                <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${Math.max(pct, 2)}%` }} />
+              </div>
+              <div className="mt-5 grid grid-cols-3 gap-4 border-t border-white/10 pt-5 text-center">
+                <div><p className="text-2xl font-semibold text-white">{pct}%</p><p className="text-xs text-white/60">of goal</p></div>
+                <div><p className="text-2xl font-semibold text-white">{formatUsd(campaign.totalPledged)}</p><p className="text-xs text-white/60">pledged</p></div>
+                <div><p className="text-2xl font-semibold text-white">{campaign.count}</p><p className="text-xs text-white/60">{campaign.count === 1 ? "pledge" : "pledges"}</p></div>
+              </div>
+            </div>
+          </div>
+        </Container>
       </section>
-    </div>
+
+      {/* RENDERINGS */}
+      {renderings.length ? (
+        <Section>
+          <Eyebrow className="mb-3">The vision</Eyebrow>
+          <h2 className="text-title font-serif font-semibold text-fg">Renderings</h2>
+          <div className="mt-8 grid gap-6 sm:grid-cols-2">
+            {renderings.map((p) => (
+              <figure key={p.id} className="overflow-hidden rounded-xl border border-line shadow-sm">
+                <img src={p.url} alt={p.caption ?? ""} className="w-full object-cover" />
+                {p.caption ? <figcaption className="bg-surface px-4 py-3 text-sm text-muted">{p.caption}</figcaption> : null}
+              </figure>
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
+      {/* PHASES */}
+      {project.phases.length ? (
+        <section className="bg-tint">
+          <Container className="py-16 sm:py-20">
+            <Eyebrow className="mb-3">The plan</Eyebrow>
+            <h2 className="text-title font-serif font-semibold text-fg">Building in phases</h2>
+            <p className="mt-2 text-muted">{formatUsd(phases.totalSpent)} of {formatUsd(phases.totalBudget)} budget · {phases.completionPct}% of phases complete</p>
+            <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+              {project.phases.map((ph) => (
+                <li key={ph.id} className="card p-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-serif text-lg font-semibold text-fg">{ph.name}</span>
+                    <span className="chip shrink-0">{phaseStatusLabel(ph.status)}</span>
+                  </div>
+                  {ph.description ? <p className="mt-2 text-sm text-muted">{ph.description}</p> : null}
+                  {ph.budget > 0 ? (
+                    <div className="mt-4">
+                      <div className="h-2 overflow-hidden rounded-full bg-denim-100 dark:bg-white/10"><div className="h-full rounded-full bg-denim-600" style={{ width: `${raisedPct(ph.spent, ph.budget)}%` }} /></div>
+                      <p className="mt-1.5 text-xs text-muted">{formatUsd(ph.spent)} of {formatUsd(ph.budget)}</p>
+                    </div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </Container>
+        </section>
+      ) : null}
+
+      {/* GIVING LEVELS */}
+      {project.givingLevels.length ? (
+        <Section>
+          <Eyebrow className="mb-3">Ways to give</Eyebrow>
+          <h2 className="text-title font-serif font-semibold text-fg">Every gift builds something</h2>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {project.givingLevels.map((l) => (
+              <div key={l.id} className="card p-6">
+                <p className="font-serif text-lg font-semibold text-fg">{l.name}</p>
+                <p className="mt-1 text-sm font-semibold text-gold">{formatUsd(l.minAmount)}+</p>
+                {l.description ? <p className="mt-2 text-sm text-muted">{l.description}</p> : null}
+              </div>
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
+      {/* PLEDGE FORM */}
+      {project.publicPledgeEnabled ? (
+        <section id="pledge" className="bg-tint">
+          <Container className="py-16 sm:py-20" >
+            <div className="mx-auto max-w-2xl">
+              <Eyebrow className="mb-3">Join the campaign</Eyebrow>
+              <h2 className="text-title font-serif font-semibold text-fg">Make a pledge</h2>
+              {pledged ? (
+                <div className="mt-6"><Callout tone="success">Thank you — your pledge has been received. Our team will follow up with you.</Callout></div>
+              ) : (
+                <Card className="mt-6">
+                  <p className="mb-5 text-sm text-muted">A pledge is a giving commitment — no payment is collected here. You can give securely anytime through AdventistGiving.</p>
+                  <form action={createPledge} className="space-y-3">
+                    <input type="hidden" name="projectId" value={project.id} />
+                    <input name="donorName" required placeholder="Your name" className={fieldClass} />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <input name="email" type="email" placeholder="Email" className={fieldClass} />
+                      <input name="phone" placeholder="Phone" className={fieldClass} />
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <input name="amount" type="number" min={1} required placeholder="Amount $" className={fieldClass} />
+                      <select name="frequency" className={fieldClass}>
+                        <option value="ONE_TIME">One-time</option>
+                        <option value="MONTHLY">Monthly</option>
+                        <option value="QUARTERLY">Quarterly</option>
+                        <option value="ANNUAL">Annual</option>
+                      </select>
+                      <input name="termMonths" type="number" min={1} placeholder="Over N months" className={fieldClass} />
+                    </div>
+                    <label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="publicRecognition" className="accent-primary" /> You may list my name as a supporter</label>
+                    <label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="isAnonymous" className="accent-primary" /> Keep my pledge anonymous</label>
+                    <textarea name="note" rows={2} placeholder="Note (optional)" className={fieldClass} />
+                    <Honeypot />
+                    <button className="btn btn-primary">Submit pledge</button>
+                  </form>
+                </Card>
+              )}
+              {project.pledges.length ? (
+                <p className="mt-5 text-sm text-muted">With thanks to {project.pledges.map((p) => p.donorName).join(", ")} and many others.</p>
+              ) : null}
+            </div>
+          </Container>
+        </section>
+      ) : null}
+
+      {/* PROGRESS PHOTOS */}
+      {progressPhotos.length ? (
+        <Section>
+          <Eyebrow className="mb-3">On the ground</Eyebrow>
+          <h2 className="text-title font-serif font-semibold text-fg">Progress photos</h2>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {progressPhotos.map((p) => (
+              <figure key={p.id} className="overflow-hidden rounded-xl border border-line shadow-sm">
+                <img src={p.url} alt={p.caption ?? ""} className="aspect-square w-full object-cover" />
+                {p.caption ? <figcaption className="bg-surface px-4 py-2.5 text-xs text-muted">{p.caption}</figcaption> : null}
+              </figure>
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
+      {/* TIMELINE */}
+      {project.timelineItems.length ? (
+        <section className="bg-tint">
+          <Container className="py-16 sm:py-20">
+            <Eyebrow className="mb-3">The road ahead</Eyebrow>
+            <h2 className="text-title font-serif font-semibold text-fg">Timeline</h2>
+            <ol className="mt-8 space-y-3">
+              {project.timelineItems.map((it) => (
+                <li key={it.id} className="card flex items-center justify-between gap-3 p-5">
+                  <div>
+                    <p className="font-serif text-base font-semibold text-fg">{it.title}</p>
+                    {it.targetDate ? <p className="mt-0.5 text-xs text-muted">Target: {new Date(it.targetDate).toLocaleDateString("en-US")}</p> : null}
+                  </div>
+                  <span className="chip shrink-0">{timelineLabel(it.status)}</span>
+                </li>
+              ))}
+            </ol>
+          </Container>
+        </section>
+      ) : null}
+
+      {/* UPDATES */}
+      {project.updates.length ? (
+        <Section>
+          <div id="updates" className="scroll-mt-24" />
+          <Eyebrow className="mb-3">News</Eyebrow>
+          <h2 className="text-title font-serif font-semibold text-fg">Building updates</h2>
+          <ul className="mt-8 space-y-5">
+            {project.updates.map((u) => (
+              <li key={u.id} className="card p-6">
+                <p className="text-sm text-muted">{new Date(u.year, u.month - 1).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
+                {u.title ? <p className="mt-0.5 font-serif text-lg font-semibold text-fg">{u.title}</p> : null}
+                <p className="mt-2 text-fg/90">{u.description}</p>
+                {u.videoUrl ? <p className="mt-3"><a href={u.videoUrl} target="_blank" rel={EXT} className="text-sm font-semibold text-primary hover:text-primary-hover">Watch update →</a></p> : null}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+
+      {/* DOCUMENTS + FAQ */}
+      {(project.documents.length || project.faqs.length) ? (
+        <section className="bg-tint">
+          <Container className="py-16 sm:py-20">
+            <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
+              {project.faqs.length ? (
+                <div>
+                  <Eyebrow className="mb-3">Questions</Eyebrow>
+                  <h2 className="text-title font-serif font-semibold text-fg">Frequently asked</h2>
+                  <dl className="mt-6 space-y-5">
+                    {project.faqs.map((f) => (
+                      <div key={f.id} className="card p-5">
+                        <dt className="font-semibold text-fg">{f.question}</dt>
+                        <dd className="mt-1.5 text-sm text-muted">{f.answer}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              ) : null}
+              {project.documents.length ? (
+                <div>
+                  <Eyebrow className="mb-3">Resources</Eyebrow>
+                  <h2 className="text-title font-serif font-semibold text-fg">Documents</h2>
+                  <ul className="mt-6 space-y-2">
+                    {project.documents.map((d) => (
+                      <li key={d.id} className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-3 text-sm">
+                        <svg className="h-4 w-4 shrink-0 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /></svg>
+                        <span className="text-fg">{d.title}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-3 text-xs text-muted">Contact the church office to request access to project documents.</p>
+                </div>
+              ) : null}
+            </div>
+          </Container>
+        </section>
+      ) : null}
+
+      {/* SUBSCRIBE */}
+      <Section container size="narrow" className="text-center">
+        <Eyebrow className="mb-3">Stay connected</Eyebrow>
+        <h2 className="text-title font-serif font-semibold text-fg">Get building updates</h2>
+        {subscribed ? (
+          <div className="mx-auto mt-6 max-w-md"><Callout tone="success">You’re subscribed to building updates. Thank you!</Callout></div>
+        ) : (
+          <form action={subscribeBuilding} className="mx-auto mt-6 flex max-w-md gap-2">
+            <input name="email" type="email" required placeholder="you@email.com" className={`${fieldClass} flex-1`} />
+            <Honeypot />
+            <button className="btn btn-primary">Subscribe</button>
+          </form>
+        )}
+      </Section>
+    </>
   );
 }
