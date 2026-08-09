@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getServiceTimes } from "@/lib/site";
+import { safe } from "@/lib/safe";
 import { PageHeader, Card, Callout } from "@/components/page-ui";
 import { Section, Container } from "@/components/ui";
 import { church, addressOneLine } from "@/components/site-info";
@@ -20,7 +21,7 @@ const steps = [
 ];
 
 export default async function PlanAVisit() {
-  const times = await getServiceTimes();
+  const times = await safe(getServiceTimes(), null);
   return (
     <>
       <PageHeader

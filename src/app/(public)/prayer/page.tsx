@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { safe } from "@/lib/safe";
 import { submitPrayer } from "./actions";
 import { PageHeader, Card, Callout, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
 import { Section } from "@/components/ui";
@@ -12,12 +13,12 @@ export const metadata = {
 export default async function Prayer({ searchParams }: { searchParams: Promise<{ thanks?: string }> }) {
   const { thanks } = await searchParams;
   // Optional prayer wall: only APPROVED + wantsPublish. Content stays encrypted; the wall shows names, not bodies.
-  const wall = await prisma.prayerRequest.findMany({
+  const wall = await safe(prisma.prayerRequest.findMany({
     where: { status: "APPROVED", wantsPublish: true },
     orderBy: { updatedAt: "desc" },
     take: 20,
     select: { id: true, submitterName: true, isAnonymous: true },
-  });
+  }), []);
 
   return (
     <>

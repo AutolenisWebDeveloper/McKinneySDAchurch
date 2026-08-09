@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getReferenceBySlug } from "@/lib/reference";
+import { safe } from "@/lib/safe";
 import { sanitize } from "@/lib/sanitize";
 import { Container } from "@/components/ui";
 
@@ -8,14 +9,14 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const doc = await getReferenceBySlug(slug);
+  const doc = await safe(getReferenceBySlug(slug), null);
   if (!doc) return { title: "Not found" };
   return { title: doc.number ? `${doc.number}. ${doc.title}` : doc.title };
 }
 
 export default async function ReferenceDocPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const doc = await getReferenceBySlug(slug);
+  const doc = await safe(getReferenceBySlug(slug), null);
   if (!doc) notFound();
   const EXT = "noopener noreferrer";
   const isBelief = doc.type === "FUNDAMENTAL_BELIEF";

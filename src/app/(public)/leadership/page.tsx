@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { currentOfficeWhere, officerRank } from "@/lib/governance";
+import { safe } from "@/lib/safe";
 import { PageHeader, Card } from "@/components/page-ui";
 import { Section } from "@/components/ui";
 import { church } from "@/components/site-info";
@@ -11,10 +12,10 @@ export const metadata = {
 };
 
 export default async function Leadership() {
-  const offices = await prisma.churchOffice.findMany({
+  const offices = await safe(prisma.churchOffice.findMany({
     where: currentOfficeWhere(),
     include: { member: { select: { firstName: true, lastName: true } } },
-  });
+  }), []);
   offices.sort((a, b) => officerRank(a.role) - officerRank(b.role));
 
   const initials = (first: string, last: string) => `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase();

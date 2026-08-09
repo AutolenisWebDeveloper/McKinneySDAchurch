@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getManualRoots } from "@/lib/reference";
+import { safe } from "@/lib/safe";
 import { PageHeader } from "@/components/page-ui";
 import { Section } from "@/components/ui";
 
@@ -10,7 +11,7 @@ export const metadata = {
 };
 
 export default async function ChurchManualPage() {
-  const roots = await getManualRoots();
+  const roots = await safe(getManualRoots(), []);
   return (
     <>
       <PageHeader

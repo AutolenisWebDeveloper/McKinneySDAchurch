@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSermon } from "@/lib/public-content";
+import { safe } from "@/lib/safe";
 import { Container } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const s = await getSermon(id);
+  const s = await safe(getSermon(id), null);
   return { title: s?.title ?? "Sermon" };
 }
 
@@ -21,7 +22,7 @@ function embed(url: string): string | null {
 
 export default async function SermonDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const s = await getSermon(id);
+  const s = await safe(getSermon(id), null);
   if (!s) notFound();
   const src = embed(s.videoUrl);
   const EXT = "noopener noreferrer";

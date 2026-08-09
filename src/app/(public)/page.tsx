@@ -5,6 +5,7 @@ import { getApprovedAnnouncements, getUpcomingEvents, getLatestSermon } from "@/
 import { raisedPct, formatUsd } from "@/lib/construction";
 import { churchJsonLd } from "@/lib/structured-data";
 import { getLocale, t } from "@/lib/i18n";
+import { safe } from "@/lib/safe";
 import { env } from "@/env";
 import { Container, Section, SectionHeading, Eyebrow, ArrowLink } from "@/components/ui";
 import { church, addressOneLine } from "@/components/site-info";
@@ -16,17 +17,6 @@ const excerpt = (html: string, n = 150) => {
   const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   return text.length > n ? `${text.slice(0, n).trimEnd()}…` : text;
 };
-
-// Homepage content is fetched from the database, but the page must still render
-// its (mostly static) welcome content if the database is briefly unreachable.
-// Each read degrades to a safe default rather than throwing the whole page.
-async function safe<T>(p: Promise<T>, fallback: T): Promise<T> {
-  try {
-    return await p;
-  } catch {
-    return fallback;
-  }
-}
 
 export default async function Home() {
   const [times, livestream, anns, events, sermon, project] = await Promise.all([

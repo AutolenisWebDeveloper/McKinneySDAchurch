@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getBeliefs } from "@/lib/reference";
+import { safe } from "@/lib/safe";
 import { PageHeader } from "@/components/page-ui";
 import { Section } from "@/components/ui";
 
@@ -10,7 +11,7 @@ export const metadata = {
 };
 
 export default async function BeliefsPage() {
-  const beliefs = await getBeliefs();
+  const beliefs = await safe(getBeliefs(), []);
   return (
     <>
       <PageHeader

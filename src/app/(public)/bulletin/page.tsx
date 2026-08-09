@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { safe } from "@/lib/safe";
 import { PageHeader, Card } from "@/components/page-ui";
 import { Section } from "@/components/ui";
 
@@ -9,18 +10,18 @@ export const metadata = {
 };
 
 export default async function BulletinPublic() {
-  const latest = await prisma.bulletin.findFirst({
+  const latest = await safe(prisma.bulletin.findFirst({
     where: { status: "APPROVED" },
     orderBy: { sabbathDate: "desc" },
     include: { items: { orderBy: { sortOrder: "asc" } } },
-  });
-  const archive = await prisma.bulletin.findMany({
+  }), null);
+  const archive = await safe(prisma.bulletin.findMany({
     where: { status: "APPROVED" },
     orderBy: { sabbathDate: "desc" },
     skip: 1,
     take: 8,
     select: { id: true, sabbathDate: true, title: true },
-  });
+  }), []);
 
   if (!latest) {
     return (

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMinistryBySlug, getApprovedAnnouncementsForMinistry, getUpcomingEventsForMinistry } from "@/lib/public-content";
+import { safe } from "@/lib/safe";
 import { PageHeader } from "@/components/page-ui";
 import { Section } from "@/components/ui";
 
@@ -8,17 +9,17 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const m = await getMinistryBySlug(slug);
+  const m = await safe(getMinistryBySlug(slug), null);
   return { title: m?.name ?? "Ministry", description: m?.description ?? undefined };
 }
 
 export default async function MinistryDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const m = await getMinistryBySlug(slug);
+  const m = await safe(getMinistryBySlug(slug), null);
   if (!m) notFound();
   const [anns, events] = await Promise.all([
-    getApprovedAnnouncementsForMinistry(m.id),
-    getUpcomingEventsForMinistry(m.id),
+    safe(getApprovedAnnouncementsForMinistry(m.id), []),
+    safe(getUpcomingEventsForMinistry(m.id), []),
   ]);
 
   return (
