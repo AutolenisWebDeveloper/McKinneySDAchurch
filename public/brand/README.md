@@ -36,6 +36,15 @@ If you have separate white and denim versions, name them
 `adventist-symbol-white.svg` / `adventist-symbol-denim.svg` and update
 `src/components/Brand.tsx` to point at them (one-line change, commented there).
 
+## Architectural drawings (already included)
+
+The church's architect drawings are committed under `/public/building-plans/`
+(`master-plan`, `ground-floor-plan`, `mep-plan` — each as a web preview `.jpg`
+plus the full `.pdf`) and are shown on the **Building Project** page with the
+project facts (site 219,290 sq ft; built-up 10,938 sq ft; total floor 76,443 sq
+ft; future site at Stickhorse Ln & CR 330, Collin County, TX). Replace those
+files (same names) to update the drawings.
+
 ## Building renderings & photos (optional, enhances the site)
 
 The home and building-campaign pages have image slots that light up when photos
