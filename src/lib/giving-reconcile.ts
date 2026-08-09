@@ -20,7 +20,7 @@ function parseCsvLine(line: string): string[] {
 export function parseGivingCsv(text: string): GiftRow[] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim() && !l.trim().startsWith("#"));
   if (!lines.length) return [];
-  const header = parseCsvLine(lines[0]).map((h) => h.trim().toLowerCase());
+  const header = parseCsvLine(lines[0]!).map((h) => h.trim().toLowerCase());
   const idx = (names: string[]) => header.findIndex((h) => names.includes(h));
   const iName = idx(["donor", "donor name", "name"]);
   const iEmail = idx(["email", "email address"]);
@@ -29,7 +29,7 @@ export function parseGivingCsv(text: string): GiftRow[] {
   const iDate = idx(["date", "gift date"]);
   const rows: GiftRow[] = [];
   for (let i = 1; i < lines.length; i++) {
-    const f = parseCsvLine(lines[i]);
+    const f = parseCsvLine(lines[i]!);
     const donorName = (iName >= 0 ? f[iName] ?? "" : "").trim();
     const amount = Math.round(parseFloat((iAmount >= 0 ? f[iAmount] ?? "" : "").replace(/[$,]/g, "")) || 0);
     if (!donorName && !amount) continue;

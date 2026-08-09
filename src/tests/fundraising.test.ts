@@ -34,7 +34,7 @@ describe("leaderboard", () => {
     const entries = fundraiserTotals(donations, { a: "Ada", b: "Bo", c: "Cy" });
     const ranked = rankFundraisers(entries);
     expect(ranked[0]).toMatchObject({ name: "Ada", total: 1000, rank: 1 });
-    expect(ranked[1].rank).toBe(2);
-    expect(ranked[2].rank).toBe(2); // tie
+    expect(ranked[1]!.rank).toBe(2);
+    expect(ranked[2]!.rank).toBe(2); // tie
   });
 });

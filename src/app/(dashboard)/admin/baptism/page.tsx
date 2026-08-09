@@ -23,7 +23,7 @@ export default async function BaptismAdmin() {
               <p className="font-medium">{c.personName} <span className="text-muted text-sm">· {c.status}{c.contactEmail ? ` · ${c.contactEmail}` : ""}</span></p>
               {c.note ? <p className="text-sm text-muted mt-1">{c.note}</p> : null}
               <div className="mt-3 flex gap-2">
-                {NEXT[c.status].map((n) => (
+                {(NEXT[c.status] ?? []).map((n) => (
                   <form key={n.to} action={advanceBaptism}>
                     <input type="hidden" name="id" value={c.id} /><input type="hidden" name="to" value={n.to} />
                     <button className="rounded border border-black/20 dark:border-white/20 px-3 py-1 text-sm">{n.label}</button>

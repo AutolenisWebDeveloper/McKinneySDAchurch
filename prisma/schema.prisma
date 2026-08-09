@@ -511,10 +511,31 @@ model EmailSubscription {
   type           String            // VISITOR_UPDATES | BUILDING_PROJECT | NEWSLETTER
   status         SubscriptionStatus @default(SUBSCRIBED)
   source         String?
+  consentAt      DateTime?          // when opt-in consent was captured
   policyVersion  String?
   subscribedAt   DateTime @default(now())
   unsubscribedAt DateTime?
   @@unique([identityId, type])
+}
+
+// ===== Visitors =====
+// A first-time/returning guest captured via the public "Connect with us" form.
+// Not a Member and not a login; the clerk converts to a Member separately.
+model Visitor {
+  id             String @id @default(cuid())
+  name           String
+  email          String
+  phone          String?
+  address        String?
+  status         VisitorStatus @default(ACTIVE)
+  marketingOptIn Boolean @default(false)
+  optInSource    String?
+  optInAt        DateTime?
+  firstVisitDate DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  @@index([status])
+  @@index([email])
 }
 
 model Suppression {
