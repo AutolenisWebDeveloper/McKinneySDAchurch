@@ -51,7 +51,7 @@ function parseCsvLine(line: string): string[] {
 export function parseMemberCsv(text: string): EAdventistRow[] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim() && !l.trim().startsWith("#"));
   if (!lines.length) return [];
-  const header = parseCsvLine(lines[0]).map((h) => h.trim().toLowerCase());
+  const header = parseCsvLine(lines[0]!).map((h) => h.trim().toLowerCase());
   const idx = (names: string[]) => header.findIndex((h) => names.includes(h));
   const iF = idx(["first name", "firstname", "first"]);
   const iL = idx(["last name", "lastname", "last"]);
@@ -59,7 +59,7 @@ export function parseMemberCsv(text: string): EAdventistRow[] {
   const iS = idx(["membership status", "status"]);
   const rows: EAdventistRow[] = [];
   for (let i = 1; i < lines.length; i++) {
-    const f = parseCsvLine(lines[i]);
+    const f = parseCsvLine(lines[i]!);
     const firstName = (iF >= 0 ? f[iF] ?? "" : "").trim();
     const lastName = (iL >= 0 ? f[iL] ?? "" : "").trim();
     if (!firstName && !lastName) continue;

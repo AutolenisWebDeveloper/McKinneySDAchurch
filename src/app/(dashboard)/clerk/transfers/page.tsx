@@ -24,7 +24,7 @@ export default async function Transfers() {
               <p className="font-medium">{t.personName} <span className="text-muted text-sm">· {t.direction} · {t.status} · {t.otherChurchName}</span></p>
               {t.eadventistRef ? <p className="text-xs text-muted mt-1">eAdventist ref: {t.eadventistRef}</p> : null}
               <div className="mt-3 flex flex-wrap gap-2">
-                {NEXT[t.status].map((n) => (
+                {(NEXT[t.status] ?? []).map((n) => (
                   <form key={n.to} action={advanceTransfer} className="flex items-center gap-1">
                     <input type="hidden" name="id" value={t.id} /><input type="hidden" name="to" value={n.to} />
                     {n.needsRef ? <input name="eadventistRef" placeholder="eAdventist ref" className="rounded border border-black/20 dark:border-white/20 bg-transparent px-2 py-1 text-sm" /> : null}
