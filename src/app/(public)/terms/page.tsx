@@ -2,6 +2,8 @@ import { PageHeader, Prose, Callout } from "@/components/page-ui";
 import { Section } from "@/components/ui";
 import { church } from "@/components/site-info";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Terms of Use",
   description: "Terms for using the McKinney SDA Church website.",

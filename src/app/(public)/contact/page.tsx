@@ -3,6 +3,8 @@ import { PageHeader, Card } from "@/components/page-ui";
 import { Section, Container } from "@/components/ui";
 import { church, addressOneLine } from "@/components/site-info";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Contact",
   description: "Get in touch with McKinney Seventh-day Adventist Church.",

@@ -3,6 +3,8 @@ import { submitVisitor } from "./actions";
 import { PageHeader, Card, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
 import { Section } from "@/components/ui";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Connect With Us",
   description: "Let us know you visited — we’d love to stay in touch.",
