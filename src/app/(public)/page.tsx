@@ -337,38 +337,53 @@ export default async function Home() {
         </div>
       </Section>
 
-      {/* ================= LATEST SERMON (pale denim band) ================= */}
-      {sermon && (
-        <section className="bg-tint">
-          <Container>
-            <div className="grid items-center gap-10 py-16 sm:py-20 lg:grid-cols-2 lg:gap-16">
-              <div>
-                <Eyebrow className="mb-4">Latest message</Eyebrow>
-                <h2 className="text-title font-serif font-semibold text-fg">{sermon.title}</h2>
-                <p className="mt-3 text-muted">
-                  {sermon.speaker ? `${sermon.speaker} · ` : ""}
-                  {new Date(sermon.preachedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                </p>
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <a href={sermon.videoUrl} target="_blank" rel={EXT} className="btn btn-primary">
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
-                    Watch now
-                  </a>
-                  <Link href="/sermons" className="btn btn-outline">All sermons</Link>
-                </div>
-              </div>
-              <div className="relative aspect-video overflow-hidden rounded-xl bg-denim-800 shadow-md">
-                <div className="glow-denim absolute inset-0" aria-hidden="true" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-denim-800 shadow-lg">
-                    <svg className="ml-1 h-7 w-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
-                  </span>
-                </div>
+      {/* ================= MEDIA / LATEST MESSAGE (pale band) ================= */}
+      <section className="bg-tint">
+        <Container>
+          <div className="grid items-center gap-10 py-16 sm:py-20 lg:grid-cols-2 lg:gap-16">
+            <div>
+              <Eyebrow className="mb-4">{sermon ? "Latest message" : "Watch & listen"}</Eyebrow>
+              <h2 className="text-title font-serif font-semibold text-fg">
+                {sermon ? sermon.title : "Worship with us anytime"}
+              </h2>
+              <p className="mt-3 text-muted">
+                {sermon
+                  ? `${sermon.speaker ? `${sermon.speaker} · ` : ""}${new Date(sermon.preachedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+                  : "Catch our services live each Sabbath, or watch past messages on demand — wherever you are."}
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <a
+                  href={sermon ? sermon.videoUrl : church.social.youtube}
+                  target="_blank"
+                  rel={EXT}
+                  className="btn btn-primary"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                  {sermon ? "Watch now" : "Watch on YouTube"}
+                </a>
+                {livestream && (
+                  <a href={livestream} target="_blank" rel={EXT} className="btn btn-outline">Watch live</a>
+                )}
+                <Link href="/sermons" className="btn btn-outline">All sermons</Link>
               </div>
             </div>
-          </Container>
-        </section>
-      )}
+            <a
+              href={sermon ? sermon.videoUrl : church.social.youtube}
+              target="_blank"
+              rel={EXT}
+              aria-label={sermon ? `Watch: ${sermon.title}` : "Watch our services on YouTube"}
+              className="group relative block aspect-video overflow-hidden rounded-xl bg-denim-800 shadow-md"
+            >
+              <div className="glow-denim absolute inset-0" aria-hidden="true" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-denim-800 shadow-lg transition-transform group-hover:scale-105">
+                  <svg className="ml-1 h-7 w-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                </span>
+              </div>
+            </a>
+          </div>
+        </Container>
+      </section>
 
       {/* ================= WAYS TO CONNECT ================= */}
       <Section>
