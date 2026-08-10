@@ -11,13 +11,14 @@ const OPEN = ["NEW", "TRIAGED", "ASSIGNED", "IN_PROGRESS", "FOLLOW_UP", "NEEDS_I
 export default async function AdminPortal() {
   await requirePortal("admin");
 
-  const [pendingAnn, pendingEvt, activeVisitors, openCare, openTransfers, openSupport] = await Promise.all([
+  const [pendingAnn, pendingEvt, activeVisitors, openCare, openTransfers, openSupport, accountRequests] = await Promise.all([
     prisma.announcement.count({ where: { status: "PENDING" } }),
     prisma.event.count({ where: { status: "PENDING" } }),
     prisma.visitor.count({ where: { status: "ACTIVE" } }),
     prisma.careAlert.count({ where: { status: { in: ["OPEN", "ASSIGNED"] } } }),
     prisma.membershipTransfer.count({ where: { status: { in: ["SUBMITTED", "IN_REVIEW"] } } }),
     prisma.workItem.count({ where: { type: "SUPPORT", status: { in: [...OPEN] } } }),
+    prisma.accountRequest.count({ where: { status: { in: ["PENDING_ADMIN_REVIEW", "NEEDS_INFO"] } } }),
   ]);
 
   const pendingApprovals = pendingAnn + pendingEvt;
@@ -29,6 +30,7 @@ export default async function AdminPortal() {
     >
       <StatGrid>
         <StatCard label="Pending approvals" value={pendingApprovals} tone={pendingApprovals ? "accent" : "default"} href="/dashboard/admin/approvals" />
+        <StatCard label="Account requests" value={accountRequests} tone={accountRequests ? "accent" : "default"} href="/dashboard/admin/account-requests" />
         <StatCard label="Open care" value={openCare} tone={openCare ? "warn" : "default"} href="/dashboard/admin/care" />
         <StatCard label="Transfers" value={openTransfers} tone={openTransfers ? "accent" : "default"} href="/dashboard/clerk/transfers" />
         <StatCard label="Active visitors" value={activeVisitors} href="/dashboard/admin/visitors" />

@@ -57,6 +57,7 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
       return [
         { href: PORTAL_ROUTE.admin, label: "Operations" },
         { href: "/dashboard/admin/approvals", label: "Approvals" },
+        { href: "/dashboard/admin/account-requests", label: "Account Requests" },
         { href: "/dashboard/admin/accounts", label: "Accounts & Roles" },
         { href: "/dashboard/admin/visitors", label: "Visitors" },
         { href: "/dashboard/admin/email", label: "Member Email" },

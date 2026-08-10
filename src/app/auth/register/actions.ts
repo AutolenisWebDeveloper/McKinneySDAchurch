@@ -1,35 +1,33 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
-import { hashPassword } from "@/lib/crypto";
+import { submitAccountRequest } from "@/lib/account-requests";
 
 /**
- * Open member self-registration. Creates a MEMBER account in a *pending* state
- * (activatedAt = null); an admin must approve it before it can sign in.
- * Responses are generic so the form never reveals whether an email already exists.
+ * Public "Request a Member Account" (§20). Creates an AccountRequest and runs membership
+ * matching — a single confident match to an eligible member is auto-approved; otherwise it
+ * goes to the admin exception queue. No login is created here. Responses are always generic
+ * (no account enumeration).
  */
 export async function registerMember(formData: FormData) {
   // Honeypot: silently accept + drop bots.
   if (String(formData.get("website") ?? "")) redirect("/auth/register?done=1");
 
-  const name = String(formData.get("name") ?? "").trim() || undefined;
+  const firstName = String(formData.get("firstName") ?? "").trim();
+  const lastName = String(formData.get("lastName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
-  const emailNormalized = email.toLowerCase();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const verificationData = String(formData.get("verification") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
 
+  if (!firstName || !lastName) redirect("/auth/register?error=name");
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) redirect("/auth/register?error=invalid");
   if (password.length < 8) redirect("/auth/register?error=short");
   if (password !== confirm) redirect("/auth/register?error=match");
 
-  const existing = await prisma.user.findUnique({ where: { emailNormalized } });
-  if (!existing) {
-    const passwordHash = await hashPassword(password);
-    await prisma.user.create({
-      data: { name, email, emailNormalized, passwordHash, role: "MEMBER", activatedAt: null },
-    });
-  }
-  // Generic success either way (no account enumeration).
+  await submitAccountRequest({ firstName, lastName, email, phone, verificationData, password });
+
+  // Generic success regardless of match/auto/pending (no enumeration).
   redirect("/auth/register?done=1");
 }

@@ -6,6 +6,48 @@ now being extended to the merged Master Directive (Phases 1–10) starting with 
 
 ---
 
+## Phase 2 — member account request + membership matching (this pass)
+
+Adds the §20 request-and-match flow on top of the existing open registration: a public request
+no longer creates a login directly — it creates an `AccountRequest`, runs a conservative membership
+matcher, and either **auto-approves** a single confident match to an eligible member or routes to an
+**admin exception queue**. A `User` is created and bound to the `Member` only on approval.
+
+**Verified end-to-end on real Postgres (smoke test):**
+- AUTO_APPROVED: an exact match creates + activates the user and binds the member automatically.
+- PENDING: no confident match creates **no** user until an admin approves; approval then creates +
+  activates the user and carries the chosen password across.
+- REJECT: status REJECTED, the stored password hash is **purged**, no user created.
+- 3 audit rows written; admins with an active role receive the in-app "new request" notification.
+
+- ✅ `src/lib/membership-match.ts` — pure `matchMembership(request, members)` → confidence (0–100),
+  band (EXACT/HIGH/MEDIUM/LOW/NONE), reasons, ranked candidates, and `autoApprovable`. **Conservative:**
+  auto-approve requires a full first+last name match, HIGH+ score, a clear lead over the runner-up,
+  and an *eligible* member (adult, no existing login). **Safeguarding:** minors are never
+  auto-matched (§6). Table-tested — exact / high / medium / low / ambiguous / duplicate / no-match /
+  minor / already-linked / clear-winner (11 cases).
+- 🟡 Schema: `AccountRequest` + `AccountRequestStatus` (AUTO_APPROVED, PENDING_ADMIN_REVIEW, APPROVED,
+  REJECTED, NEEDS_INFO). Password captured at request time, stored hashed, moved to the User on
+  approval and purged on rejection — never a plaintext password at rest, and no orphan pending Users.
+  Additive migration.
+- 🟡 `src/lib/account-requests.ts` — `submitAccountRequest` (match → auto/queue, generic response =
+  no account enumeration, notifies admins, emails the requester), `approveAccountRequest` (creates +
+  binds the user, dedupe-guards existing emails), `rejectAccountRequest` (purges the hash),
+  `needsInfoAccountRequest`. All transactional + audited.
+- 🟡 `/auth/register` reworked to the §20 form (first/last name, email, phone, optional verification,
+  password) with a clear confirmation journey (§43); honeypot preserved.
+- 🟡 Admin exception queue `/dashboard/admin/account-requests` — live candidate matches per request,
+  approve-and-link (choose the member), ask-for-info, reject; wired into admin nav + a home stat card.
+- 🟡 Emails: request received, approved (auto + admin), needs-info, rejected — HTML-escaped, tested.
+- 🟢 **Phase-1 integration fix:** `acceptInvite` now creates the matching active `UserRole` (+ MEMBER)
+  and sets `primaryRole`, so invited leaders are visible to `notifyRoles`/role-management instead of
+  relying only on the legacy `role` fallback. `account-requests` does the same for new members.
+
+**Verified:** typecheck clean; **148/148 tests** (+13); production build clean; migration applies on
+real Postgres; full request lifecycle smoke-tested.
+
+---
+
 ## Phase 1 keystone — data + logic + integration layer (this pass)
 
 Implements the foundation every later phase depends on (Directive §13–§17): multi-role RBAC,
