@@ -6,6 +6,47 @@ now being extended to the merged Master Directive (Phases 1–10) starting with 
 
 ---
 
+## Phase 6 — Governance: committees, motions, action items, Church Manual (this pass)
+
+Extends the existing ChurchOffice/BoardMeeting foundation into a working governance system
+(§31–§33, §35): committees with rosters, motions with vote tallies, tracked action items,
+encrypted secretary notes, and an authorized Church Manual accessible from every portal.
+
+**Verified end-to-end on real Postgres (smoke test):** committee create with authz (a plain member
+is **blocked**), roster add/remove (soft), archive; a motion tally computes **CARRIED** from a 6–2–1
+vote; action items and an **encrypted** secretary note round-trip; the Church Manual enforces
+**exactly one active version**; audit rows recorded.
+
+- ✅ `src/lib/governance.ts` — added pure `tallyMotion` (majority carries; abstentions don't count;
+  tie fails; no votes = pending), `canActionItemTransition` / `isActionItemClosed`, and
+  `committeeSlug`. Table-tested (8 governance cases total).
+- 🟡 Schema: `Committee` + `CommitteeMember` (archived, not deleted); `Motion` (aggregate vote
+  counts + result); `ActionItem` (meeting- or committee-linked, owner, due date, status);
+  `SecretaryNote` (encrypted at rest); `ChurchManualVersion`; `BoardMeeting` gains
+  location/attendees/excusedAbsences + optional committee link. Additive migration.
+- 🟡 `src/lib/committees.ts` — create / archive / add-member / remove-member (soft), gated to
+  ADMIN/PASTOR/CLERK, audited.
+- 🟡 **Committees** `/dashboard/admin/committees` (+ `/[id]` workspace) — roster (adult picker,
+  Chair/Secretary/Member roles), action items (add / mark done / reopen), encrypted notes; archive/restore.
+- 🟡 **Board meeting** `/dashboard/admin/board/[id]` rebuilt — meeting details (location/attendees/
+  excused), **motions** (add + record for/against/abstain → auto-tally, or table/withdraw), **action
+  items**, encrypted **minutes** (approval still locks), and **secretary notes**. CLERK (secretary)
+  now has access alongside ADMIN/PASTOR.
+- 🟡 **Church Manual** `/dashboard/admin/manual` (add version by official link + effective date +
+  release notes; make-current enforces one active) and `/dashboard/manual` viewer available to **every
+  authenticated portal** (§35). Copyright-safe: links the authorized PDF, never scrapes text.
+- 🟡 Nav: **Church Manual** added to all six portals; **Committees** to Secretary + Admin.
+
+**Deferred (documented):** the full **Document Management Center** (§34) — upload center/browser,
+categories/tags/folders, version history, and secure signed downloads via Vercel Blob — is a focused
+follow-up. The Church Manual and meeting/committee records use official links / encrypted text for now;
+attachment upload + authorized download will layer on the existing `Document` model + `lib/storage`.
+
+**Verified:** typecheck clean; **173/173 tests** (+4); production build clean; migration applies on real
+Postgres; committees / motions / action items / secretary notes / Church Manual smoke-tested end-to-end.
+
+---
+
 ## Phase 5 — Membership Transfers rework (this pass)
 
 Corrects the transfer intake architecture (§29) and adds member confirmation for on-behalf transfers.

@@ -19,6 +19,7 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
         { href: "/dashboard/household", label: "My Household" },
         { href: "/dashboard/profile", label: "My Profile" },
         { href: "/dashboard/fundraisers", label: "My Fundraisers" },
+        { href: "/dashboard/manual", label: "Church Manual" },
       ];
 
     case "ministry":
@@ -28,6 +29,7 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
         { href: "/dashboard/ministry/announcements", label: "My Announcements" },
         { href: "/dashboard/ministry/events", label: "My Events" },
         { href: "/dashboard/admin/bulletin", label: "Bulletins" },
+        { href: "/dashboard/manual", label: "Church Manual" },
       ];
 
     case "leadership":
@@ -36,6 +38,7 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
         { href: "/dashboard/leadership/workitems", label: "Work Items" },
         { href: "/dashboard/admin/care", label: "Care Alerts" },
         { href: "/dashboard/admin/approvals", label: "Approvals" },
+        { href: "/dashboard/manual", label: "Church Manual" },
       ];
 
     case "clerk":
@@ -44,9 +47,11 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
         { href: "/dashboard/clerk/transfers", label: "Transfers" },
         { href: "/dashboard/clerk/reconcile", label: "eAdventist Reconcile" },
         { href: "/dashboard/admin/board", label: "Board & Minutes" },
+        { href: "/dashboard/admin/committees", label: "Committees" },
         { href: "/dashboard/admin/officers", label: "Officers" },
         { href: "/dashboard/admin/attendance", label: "Attendance" },
         { href: "/api/members/export", label: "Export members (CSV)", external: true },
+        { href: "/dashboard/manual", label: "Church Manual" },
       ];
 
     case "treasurer":
@@ -55,6 +60,7 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
         { href: "/dashboard/admin/offerings", label: "Offering Calendar" },
         { href: "/dashboard/admin/campaigns", label: "Campaigns" },
         { href: "/dashboard/admin/construction", label: "Building Fund" },
+        { href: "/dashboard/manual", label: "Church Manual" },
       ];
 
     case "admin":
@@ -71,9 +77,12 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
         { href: "/dashboard/admin/sabbath-school", label: "Sabbath School" },
         { href: "/dashboard/admin/baptism", label: "Baptism" },
         { href: "/dashboard/admin/board", label: "Board" },
+        { href: "/dashboard/admin/committees", label: "Committees" },
+        { href: "/dashboard/admin/manual", label: "Manage Manual" },
         { href: "/dashboard/admin/construction", label: "Building Project" },
         { href: "/dashboard/admin/ministries", label: "Departments" },
         { href: "/dashboard/admin/bulletin", label: "Bulletins" },
+        { href: "/dashboard/manual", label: "Church Manual" },
       ];
 
     default:

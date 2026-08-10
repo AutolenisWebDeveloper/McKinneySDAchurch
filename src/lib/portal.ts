@@ -19,6 +19,8 @@ const SEGMENT_PORTAL: Record<string, PortalKey> = {
   household: "member",
   profile: "member",
   fundraisers: "member",
+  // cross-portal pages available to every authenticated user
+  manual: "member",
 };
 
 /** The portal a dashboard pathname belongs to, or null if it is the bare /dashboard index. */
