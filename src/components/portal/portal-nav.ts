@@ -66,6 +66,7 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
     case "admin":
       return [
         { href: PORTAL_ROUTE.admin, label: "Operations" },
+        { href: "/dashboard/admin/workitems", label: "Requests Inbox" },
         { href: "/dashboard/admin/weekly", label: "Weekly Bulletin" },
         { href: "/dashboard/admin/approvals", label: "Approvals" },
         { href: "/dashboard/admin/account-requests", label: "Account Requests" },

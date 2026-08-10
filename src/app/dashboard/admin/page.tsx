@@ -44,6 +44,7 @@ export default async function AdminPortal() {
           <QuickAction href="/dashboard/admin/approvals" title="Approvals" description="Announcements and events awaiting review" />
           <QuickAction href="/dashboard/admin/accounts" title="Accounts & roles" description="Provision logins and manage roles" />
           <QuickAction href="/dashboard/admin/visitors" title="Visitors" description="Follow-up and convert to members" />
+          <QuickAction href="/dashboard/admin/workitems" title="Requests inbox" description="Volunteer, sponsor, support, and contact" />
         </QuickActionGrid>
       </PortalSection>
 

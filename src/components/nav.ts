@@ -29,6 +29,7 @@ export const navGroups: NavGroup[] = [
       { href: "/ministries", label: "Ministries", desc: "Find your place to serve" },
       { href: "/prayer", label: "Prayer Requests", desc: "We would love to pray with you" },
       { href: "/care", label: "Care & Support", desc: "Tell us if you or someone needs care" },
+      { href: "/volunteer", label: "Volunteer", desc: "Find your place to serve" },
       { href: "/baptism", label: "Baptism", desc: "Take your next step in faith" },
       { href: "/transfer", label: "Membership Transfer", desc: "Moving your membership here" },
     ],
@@ -38,6 +39,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { href: "/construction", label: "The Building Project", desc: "A home of our own" },
       { href: "/fundraising", label: "Fundraising", desc: "Campaigns and ways to help" },
+      { href: "/sponsors", label: "Sponsors & Partners", desc: "Partner with our mission" },
     ],
   },
 ];
@@ -55,6 +57,8 @@ export const publicNav = [
   { href: "/baptism", label: "Baptism" },
   { href: "/transfer", label: "Transfer" },
   { href: "/prayer", label: "Prayer" },
+  { href: "/volunteer", label: "Volunteer" },
+  { href: "/sponsors", label: "Sponsors" },
   { href: "/plan-a-visit", label: "Visit" },
   { href: "/construction", label: "Building" },
   { href: "/fundraising", label: "Fundraising" },
