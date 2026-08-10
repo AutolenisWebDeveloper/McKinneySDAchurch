@@ -12,11 +12,13 @@ This folder holds the church's visual identity assets. The site follows the
 
 ## The official Adventist symbol
 
-`adventist-symbol.svg` in this folder is a **PLACEHOLDER** (a plain denim
-roundel) so the layout renders before you drop in the real asset.
+`adventist-symbol.svg` in this folder is the **official Seventh-day Adventist
+symbol** (open Bible + cross + flame, white on denim), converted to web-ready
+SVG from the official vector artwork. The source vector files (Illustrator /
+EPS, in PMS, RGB, and CMYK) are kept under `/public/image/`
+(`symbol_square_*.ai` / `.eps`) alongside the web export `symbol_square.svg`.
 
-**Replace it with the official Seventh-day Adventist symbol** (open Bible +
-cross + flame). Requirements from the identity guidelines:
+If you ever need to re-export or replace it, follow the identity guidelines:
 
 1. Use the **official vector artwork** — do **not** redraw, recolor, rotate,
    distort, stretch, or add effects (shadows/gradients) to it.
