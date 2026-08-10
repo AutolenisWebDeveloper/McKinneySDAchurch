@@ -4,7 +4,8 @@ import type { Role } from "@prisma/client";
 export function roleLabel(role: string): string {
   switch (role) {
     case "MINISTRY_HEAD": return "Ministry Head";
-    case "CLERK": return "Church Clerk (Secretary)";
+    case "ELDER": return "Elder";
+    case "CLERK": return "Church Secretary";
     case "TREASURER": return "Treasurer";
     case "ADMIN": return "Administrator";
     case "PASTOR": return "Pastor";
@@ -12,6 +13,9 @@ export function roleLabel(role: string): string {
     default: return role;
   }
 }
+
+/** Roles an admin can assign/revoke on an existing account (multi-role, §13A). */
+export const MANAGEABLE_ROLES: Role[] = ["MEMBER", "MINISTRY_HEAD", "ELDER", "CLERK", "TREASURER", "PASTOR", "ADMIN"];
 
 /** Only ministry heads are bound to a specific ministry. */
 export function requiresMinistry(role: string): boolean {

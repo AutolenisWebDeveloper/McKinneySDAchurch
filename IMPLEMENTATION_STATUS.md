@@ -59,17 +59,69 @@ in this environment against a real Postgres 16 instance** (not just compiled).
 - 🟡 `src/lib/notify.ts` — one shared service: `notify`, `notifyRoles` (role-/ministry-scoped
   fan-out, de-duped, self-excludable), `unreadCount`, `markRead`, `markAllRead`, `archive`.
 
-**Remaining in Phase 1 (NOT built this pass — honest scope):**
-- ⬜ **1D — the six portal UIs** (`/dashboard/{member,ministry,leadership,clerk,treasurer,admin}`),
-  shared `PortalShell`/`PortalSwitcher`/`NotificationBell`, and migrating existing dashboard
-  pages into them. The `lib/roles.ts` routing + `notify.ts` service are the ready foundation;
-  the deep-links emitted by `workitems.ts` (e.g. `/dashboard/leadership/workitems/:id`) are
-  forward references that resolve once those portals exist.
-- ⬜ Admin role-management UI (assign/revoke/scope with audit) on `/dashboard/admin/accounts`.
-- ⬜ Wiring the existing Care/Prayer/Contact/Attendance flows onto the WorkItem spine (Phases 4–8).
-
 > Service-times seed is now a clearly-marked **placeholder** (`placeholder: true`, values `TBD`)
 > per §67.3 — the previous 9:30/11:00 values were unverified and must not be treated as fact.
+
+**Verified end-to-end on real Postgres (smoke test):** `createWorkItem` encrypts the body (never
+plaintext), routes an URGENT CARE item to the Pastor and creates the notification; the pastor then
+triages → assigns → resolves (close reason persisted); 4 lifecycle events + 3 audit rows recorded;
+an illegal transition (RESOLVED→NEW) is rejected.
+
+---
+
+## Phase 1D — six portal shells, notifications UI, role management (this pass)
+
+Replaces the "Use the sidebar" dashboard with one shared portal design system across all six
+portals (§18), wires the notification bell to the shared service, and ships admin role management.
+
+**Structural fix (repairs a pre-existing bug):** the dashboard lived in a `(dashboard)` route
+group, which emits **no** `/dashboard` URL prefix — yet 29 in-app links pointed at `/dashboard/…`,
+so they were dead (§57). Converted the group to a real `dashboard/` segment (git renames, history
+preserved): every dashboard page now resolves under `/dashboard/*`, matching those 29 links, the
+directive's `/dashboard/{portal}` scheme, the `PORTAL_ROUTE` map, and the middleware matcher — and
+resolving the `/leadership` public-vs-portal collision (`/leadership` = officers, `/dashboard/leadership`
+= portal). Verified in the build route table.
+
+**Shared portal system:**
+- 🟡 `components/portal/PortalShell.tsx` (server) + `PortalChrome.tsx` (client): responsive shell —
+  fixed sidebar on desktop, slide-over drawer on mobile, header with notification bell. The active
+  portal is derived from the URL, so the **PortalSwitcher is plain navigation** and nav never
+  desyncs. Accessible: labelled nav, `aria-current`, focus-visible, Escape/outside-click on menus.
+- 🟡 `components/portal/portal-nav.ts`: per-portal navigation, filtered to the actor's roles, **only
+  routes that exist** (no dead links).
+- 🟡 `components/portal/NotificationBell.tsx` (client) + `GET /api/notifications`,
+  `POST /api/notifications/[id]/read`, `POST /api/notifications/read-all`: unread badge, list,
+  mark-read / mark-all, deep-link navigation. All scoped to the caller (no IDOR).
+- 🟡 `components/portal/home-ui.tsx`: shared `PortalPage`/`StatCard`/`QuickAction`/`TaskRow`/
+  `EmptyState`/`PortalSection` primitives.
+- ✅ `lib/portal.ts` — pure `portalFromPath` (URL→portal), unit-tested (4 cases).
+
+**Six portal homes** (`/dashboard/{member,ministry,leadership,clerk,treasurer,admin}`), each with a
+purpose statement (§65), live status cards, quick actions, recent-work lists, and empty states —
+gated by `requirePortal` (portal access is presentation; records/actions still enforce policy):
+- 🟡 Member ("My Church"), Ministry ("This Week"), Leadership ("Pastoral Overview"),
+  Church Secretary, Treasurer (with the no-payment-processing notice), Admin ("Operations").
+- 🟡 `/dashboard` now redirects to each user's primary portal (`primaryPortal`).
+- 🟡 Read-only `WorkItemDetail` view at `/dashboard/member/requests/[id]` and
+  `/dashboard/leadership/workitems/[id]` (gated by `canReadWorkItem`; internal notes only to
+  managers; `notFound()` hides existence) — resolves the notification deep links from `workitems.ts`.
+
+**Admin role management (§13A):**
+- 🟡 `lib/user-roles.ts` — `assignRole`/`revokeRole` (transactional, audited, notifies the user,
+  respects the active-uniqueness invariant) + `activeRolesByUser`.
+- 🟡 `/dashboard/admin/accounts` now shows each account's active roles as removable chips and an
+  "add role (+ ministry)" form; server actions double-gate on `admin()` and `canManageRoles`.
+- CLERK now displays as **"Church Secretary"** everywhere (§18/§30); `ELDER` labelled.
+
+**Retired:** `DashboardShell` + `dashboard-nav.ts` deleted after confirming zero remaining consumers.
+
+**Verified:** typecheck clean; **135/135 tests** (+4 portal); production build clean (route table
+shows all `/dashboard/*` routes + public `/leadership` coexisting).
+
+**Remaining in Phase 1:** none blocking. Portal homes surface counts; the full WorkItem **inbox with
+inline triage actions** and public **submission forms** that create WorkItems arrive with the Phase-4
+domain wiring (Care/Prayer/Contact/Attendance → WorkItem). Portal switching is navigation today;
+a per-user default-portal preference toggle is a later nicety.
 
 ---
 

@@ -2,7 +2,8 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "./options";
 import { prisma } from "@/lib/db";
-import { type Actor, ForbiddenError, hasRole } from "@/lib/rbac";
+import { type Actor, ForbiddenError, hasRole, actorRoles } from "@/lib/rbac";
+import { canAccessPortal, type PortalKey } from "@/lib/roles";
 import type { Role } from "@prisma/client";
 
 /**
@@ -62,5 +63,16 @@ export async function requireActor(...roles: Role[]): Promise<Actor> {
   let actor: Actor;
   try { actor = await getActor(); } catch { redirect("/auth/login"); }
   if (roles.length && !hasRole(actor, ...roles)) redirect("/dashboard");
+  return actor;
+}
+
+/**
+ * Portal-access guard for a portal home page. Portal context is presentation, not
+ * authorization — individual actions/records inside still enforce their own policy.
+ */
+export async function requirePortal(portal: PortalKey): Promise<Actor> {
+  let actor: Actor;
+  try { actor = await getActor(); } catch { redirect("/auth/login"); }
+  if (!canAccessPortal(actorRoles(actor), portal)) redirect("/dashboard");
   return actor;
 }

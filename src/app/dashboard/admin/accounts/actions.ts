@@ -7,10 +7,12 @@ import { requireRole } from "@/lib/rbac";
 import { writeAudit } from "@/lib/audit";
 import { issueInvite } from "@/auth/issue-invite";
 import { INVITABLE_ROLES, requiresMinistry } from "@/lib/accounts";
+import { assignRole, revokeRole } from "@/lib/user-roles";
 
 async function admin() { const a = await getActor(); requireRole(a, "ADMIN", "PASTOR"); return a; }
 
 const roleSchema = z.enum(["MINISTRY_HEAD", "CLERK", "TREASURER", "PASTOR", "ADMIN", "MEMBER"]);
+const manageableRoleSchema = z.enum(["MEMBER", "MINISTRY_HEAD", "ELDER", "CLERK", "TREASURER", "PASTOR", "ADMIN"]);
 
 /** Issue an invite for any provisionable role. Returns the accept link (shown once) + email status. */
 export async function inviteUser(email: string, role: string, ministryId?: string): Promise<{ ok: boolean; acceptUrl?: string; emailed?: boolean; error?: string }> {
@@ -31,5 +33,26 @@ export async function revokeInvite(formData: FormData) {
   const id = String(formData.get("id"));
   await prisma.invite.update({ where: { id }, data: { status: "REVOKED", revokedAt: new Date() } });
   await writeAudit(prisma, { actorId: a.userId, action: "invite.revoke", entity: "Invite", entityId: id });
+  revalidatePath("/dashboard/admin/accounts");
+}
+
+/** Assign a role to an existing account (multi-role). Audited + notifies the user. */
+export async function assignRoleAction(formData: FormData): Promise<void> {
+  const a = await admin();
+  const userId = String(formData.get("userId"));
+  const role = String(formData.get("role"));
+  const ministryId = formData.get("ministryId") ? String(formData.get("ministryId")) : null;
+  const parsed = z.object({ userId: z.string().min(1), role: manageableRoleSchema }).safeParse({ userId, role });
+  if (!parsed.success) return;
+  await assignRole(a, parsed.data.userId, parsed.data.role, ministryId);
+  revalidatePath("/dashboard/admin/accounts");
+}
+
+/** Revoke a specific role assignment. Audited + notifies the user. */
+export async function revokeRoleAction(formData: FormData): Promise<void> {
+  const a = await admin();
+  const userRoleId = String(formData.get("userRoleId"));
+  if (!userRoleId) return;
+  await revokeRole(a, userRoleId);
   revalidatePath("/dashboard/admin/accounts");
 }
