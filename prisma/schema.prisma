@@ -245,18 +245,19 @@ model Member {
   guardian         Member?  @relation("MinorGuardian", fields: [guardianMemberId], references: [id])
   dependents       Member[] @relation("MinorGuardian")
 
-  guardianConsents GuardianConsent[]       @relation("ConsentMinor")
-  consentsGiven    GuardianConsent[]       @relation("ConsentGuardian")
-  pastoralNotes    PastoralNote[]          @relation("PastoralNoteMember")
-  attendance       Attendance[]
-  careAlerts       CareAlert[]             @relation("CareAlertMember")
-  transfers        MembershipTransfer[]    @relation("MemberTransfers")
-  screening        VolunteerScreening?     @relation("MemberScreening")
-  accountRequests  AccountRequest[]        @relation("AccountRequestMatch")
-  mediaConsents    MediaConsent[]          @relation("MemberMediaConsent")
-  offices          ChurchOffice[]          @relation("OfficerMember")
-  youthClubs       YouthClubRegistration[] @relation("YouthClubMinor")
-  fundraisers      Fundraiser[]            @relation("MemberFundraisers")
+  guardianConsents     GuardianConsent[]       @relation("ConsentMinor")
+  consentsGiven        GuardianConsent[]       @relation("ConsentGuardian")
+  pastoralNotes        PastoralNote[]          @relation("PastoralNoteMember")
+  attendance           Attendance[]
+  careAlerts           CareAlert[]             @relation("CareAlertMember")
+  transfers            MembershipTransfer[]    @relation("MemberTransfers")
+  screening            VolunteerScreening?     @relation("MemberScreening")
+  accountRequests      AccountRequest[]        @relation("AccountRequestMatch")
+  mediaConsents        MediaConsent[]          @relation("MemberMediaConsent")
+  offices              ChurchOffice[]          @relation("OfficerMember")
+  youthClubs           YouthClubRegistration[] @relation("YouthClubMinor")
+  fundraisers          Fundraiser[]            @relation("MemberFundraisers")
+  committeeMemberships CommitteeMember[]       @relation("CommitteeMemberMember")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -934,14 +935,143 @@ model BoardMeeting {
   id               String         @id @default(cuid())
   type             MeetingType
   meetingDate      DateTime
+  location         String?
   agendaHtml       String?
+  attendees        String? // freeform attendee list
+  excusedAbsences  String?
   minutesEncrypted String? // sensitive; access-restricted + app-layer encrypted
   status           ApprovalStatus @default(PENDING) // draft -> approved minutes
   approvedAt       DateTime?
+  committeeId      String?
+  committee        Committee?     @relation("CommitteeMeetings", fields: [committeeId], references: [id])
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
+  motions     Motion[]
+  actionItems ActionItem[]    @relation("MeetingActionItems")
+  notes       SecretaryNote[] @relation("MeetingNotes")
+
   @@index([meetingDate])
+  @@index([committeeId])
+}
+
+// ===== Phase 6: Governance — committees, motions, action items, secretary notes, Church Manual (§31–§35) =====
+
+enum MotionResult {
+  PENDING
+  CARRIED
+  FAILED
+  TABLED
+  WITHDRAWN
+}
+
+enum ActionItemStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+/// A committee (governance body). Archived rather than deleted so history is preserved (§32).
+model Committee {
+  id          String            @id @default(cuid())
+  name        String
+  slug        String            @unique
+  description String?
+  archived    Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  members     CommitteeMember[]
+  meetings    BoardMeeting[]    @relation("CommitteeMeetings")
+  actionItems ActionItem[]      @relation("CommitteeActionItems")
+  notes       SecretaryNote[]   @relation("CommitteeNotes")
+}
+
+model CommitteeMember {
+  id          String    @id @default(cuid())
+  committeeId String
+  committee   Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+  memberId    String
+  member      Member    @relation("CommitteeMemberMember", fields: [memberId], references: [id])
+  role        String? // Chair | Secretary | Member
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@unique([committeeId, memberId])
+  @@index([committeeId])
+}
+
+/// A motion at a board/business/committee meeting. Aggregate vote counts serve as the vote record.
+model Motion {
+  id           String       @id @default(cuid())
+  meetingId    String
+  meeting      BoardMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  text         String
+  moverName    String?
+  seconderName String?
+  result       MotionResult @default(PENDING)
+  votesFor     Int          @default(0)
+  votesAgainst Int          @default(0)
+  votesAbstain Int          @default(0)
+  createdAt    DateTime     @default(now())
+
+  @@index([meetingId])
+}
+
+/// A tracked action item arising from a meeting or committee. Owner is a scalar id/name.
+model ActionItem {
+  id            String           @id @default(cuid())
+  description   String
+  ownerMemberId String?
+  ownerName     String?
+  dueDate       DateTime?
+  status        ActionItemStatus @default(OPEN)
+  meetingId     String?
+  meeting       BoardMeeting?    @relation("MeetingActionItems", fields: [meetingId], references: [id])
+  committeeId   String?
+  committee     Committee?       @relation("CommitteeActionItems", fields: [committeeId], references: [id])
+  createdById   String?
+  completedAt   DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([status])
+  @@index([meetingId])
+  @@index([committeeId])
+}
+
+/// Internal secretary/governance note, encrypted at rest. Optionally linked to a meeting or committee.
+model SecretaryNote {
+  id            String        @id @default(cuid())
+  bodyEncrypted String
+  authorId      String?
+  confidential  Boolean       @default(true)
+  meetingId     String?
+  meeting       BoardMeeting? @relation("MeetingNotes", fields: [meetingId], references: [id])
+  committeeId   String?
+  committee     Committee?    @relation("CommitteeNotes", fields: [committeeId], references: [id])
+  createdAt     DateTime      @default(now())
+
+  @@index([meetingId])
+  @@index([committeeId])
+}
+
+/// A version of the SDA Church Manual. Content is an uploaded/authorized PDF or an official link —
+/// NEVER scraped copyrighted text (§35). Exactly one active version is the current one.
+model ChurchManualVersion {
+  id            String    @id @default(cuid())
+  version       String // e.g. "19th ed. (2022)"
+  title         String?
+  documentId    String? // uploaded Document (PDF) — scalar link
+  externalUrl   String? // or an official link
+  effectiveDate DateTime?
+  releaseNotes  String?
+  active        Boolean   @default(false)
+  uploadedById  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([active])
 }
 
 // ===== Ordinances & membership pathways (§14H) =====
