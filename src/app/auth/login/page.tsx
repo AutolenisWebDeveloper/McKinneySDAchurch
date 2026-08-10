@@ -49,11 +49,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </div>
 
         <p className="mt-6 text-center text-sm text-muted">
-          Accounts are created by invitation. Need access?{" "}
-          <Link href="/contact" className="font-medium text-primary hover:text-primary-hover">
-            Contact the church office
-          </Link>
-          .
+          New here?{" "}
+          <Link href="/auth/register" className="font-medium text-primary hover:text-primary-hover">
+            Create an account
+          </Link>{" "}
+          — a church administrator will approve it before it goes live.
         </p>
       </div>
     </main>

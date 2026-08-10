@@ -3,10 +3,12 @@ import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getActor } from "@/auth/actor";
+import { requireRole } from "@/lib/rbac";
 import { reviewDecision, type ReviewDecision } from "@/lib/approval";
 import { writeAudit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import { decisionEmail } from "@/lib/email-templates";
+import { env } from "@/env";
 
 function parse(formData: FormData): { id: string; version: number; decision: ReviewDecision } {
   const id = String(formData.get("id"));
@@ -56,3 +58,45 @@ async function review(kind: "announcement" | "event", formData: FormData) {
 
 export async function reviewAnnouncement(fd: FormData) { return review("announcement", fd); }
 export async function reviewEvent(fd: FormData) { return review("event", fd); }
+
+/** Approve a pending, self-registered member account (activatedAt = now). */
+export async function approveAccount(formData: FormData) {
+  const actor = await getActor();
+  requireRole(actor, "ADMIN", "PASTOR");
+  const id = String(formData.get("id"));
+
+  const approved = await prisma.$transaction(async (tx) => {
+    const u = await tx.user.findUniqueOrThrow({ where: { id }, select: { id: true, email: true, activatedAt: true } });
+    if (u.activatedAt) return null; // already active — no-op
+    await tx.user.update({ where: { id }, data: { activatedAt: new Date() } });
+    await writeAudit(tx, { actorId: actor.userId, action: "account.approve", entity: "User", entityId: id });
+    return u;
+  });
+
+  if (approved?.email) {
+    try {
+      await sendEmail({
+        to: approved.email,
+        subject: "Your McKinney SDA Church account is ready",
+        type: "TRANSACTIONAL",
+        html: `<p>Good news — your account has been approved.</p><p>You can now sign in at ${env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "")}/auth/login.</p>`,
+      });
+    } catch { /* best-effort */ }
+  }
+  revalidatePath("/dashboard/admin/approvals");
+}
+
+/** Reject (and remove) a still-pending account request. Never touches active accounts. */
+export async function rejectAccount(formData: FormData) {
+  const actor = await getActor();
+  requireRole(actor, "ADMIN", "PASTOR");
+  const id = String(formData.get("id"));
+
+  await prisma.$transaction(async (tx) => {
+    const u = await tx.user.findUniqueOrThrow({ where: { id }, select: { id: true, activatedAt: true } });
+    if (u.activatedAt) return; // safety: only pending requests are removable here
+    await writeAudit(tx, { actorId: actor.userId, action: "account.reject", entity: "User", entityId: id });
+    await tx.user.delete({ where: { id } });
+  });
+  revalidatePath("/dashboard/admin/approvals");
+}

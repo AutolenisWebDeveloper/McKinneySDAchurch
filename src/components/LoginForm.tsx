@@ -22,7 +22,11 @@ export function LoginForm() {
     const res = await signIn("credentials", { email, password, redirect: false });
     setPending(false);
     if (!res || res.error) {
-      setError("That email and password didn’t match. Please try again.");
+      setError(
+        res?.error === "ACCOUNT_PENDING"
+          ? "Your account is awaiting administrator approval. You’ll be able to sign in once it’s approved."
+          : "That email and password didn’t match. Please try again.",
+      );
       return;
     }
     router.push(next);
