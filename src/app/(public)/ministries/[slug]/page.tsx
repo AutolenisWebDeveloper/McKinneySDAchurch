@@ -9,7 +9,13 @@ import { safe } from "@/lib/safe";
 import { PageHeader, Callout } from "@/components/page-ui";
 import { Section } from "@/components/ui";
 import { MinistryBadge } from "@/components/ministry-badge";
-import { getMinistryContent, resolveMeets } from "@/lib/ministry-content";
+import {
+  getMinistryContent,
+  resolveMeets,
+  resolveHeadRole,
+  initialsFromName,
+  MINISTRY_CATEGORY_STYLE,
+} from "@/lib/ministry-content";
 import { getServiceTimes } from "@/lib/site";
 import { church } from "@/components/site-info";
 
@@ -49,6 +55,8 @@ export default async function MinistryDetail({ params }: { params: Promise<{ slu
     safe(getServiceTimes(), null),
   ]);
   const meets = resolveMeets(content, serviceTimes);
+  const headRole = resolveHeadRole(slug, content);
+  const style = MINISTRY_CATEGORY_STYLE[content.category];
 
   return (
     <>
@@ -63,6 +71,46 @@ export default async function MinistryDetail({ params }: { params: Promise<{ slu
         <div className="grid gap-12 lg:grid-cols-[1fr_20rem]">
           {/* Main column */}
           <div className="min-w-0 space-y-12">
+            {/* Department head */}
+            <section aria-labelledby="dept-head" className="overflow-hidden rounded-2xl border border-line">
+              <div className={`relative flex items-center gap-5 bg-gradient-to-br ${style.cover} p-6 sm:p-8`}>
+                <span
+                  className={`absolute -right-8 -top-8 h-32 w-32 rounded-full blur-2xl ${style.glow}`}
+                  aria-hidden="true"
+                />
+                {m.leader?.name ? (
+                  <span className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-white/15 font-serif text-xl font-semibold text-white ring-1 ring-inset ring-white/25 backdrop-blur">
+                    {initialsFromName(m.leader.name)}
+                  </span>
+                ) : (
+                  <span className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-white/10 font-serif text-xl font-semibold text-white/70 ring-1 ring-inset ring-white/20" aria-hidden="true">
+                    ?
+                  </span>
+                )}
+                <div className="relative min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-white/70">Department head</p>
+                  <h2 id="dept-head" className="mt-1 font-serif text-2xl font-semibold text-white">
+                    {m.leader?.name ?? "Leader being confirmed"}
+                  </h2>
+                  <p className="mt-0.5 text-sm font-medium text-white/85">{headRole}</p>
+                </div>
+              </div>
+              <div className="bg-surface p-6 sm:p-8">
+                <p className="text-[1.05rem] leading-relaxed text-fg/90">
+                  {m.leader?.name
+                    ? `${m.leader.name} leads ${m.name} at McKinney SDA Church. Whether you're
+                       exploring this ministry for the first time or ready to jump in, they would
+                       love to welcome you and help you find your place.`
+                    : `A leader for ${m.name} is being confirmed. In the meantime, our team would be
+                       glad to answer your questions and point you to the right person.`}
+                </p>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <a href={church.emailHref} className="btn btn-primary">Contact the leader</a>
+                  <Link href="/leadership" className="btn btn-outline">Meet all our leaders</Link>
+                </div>
+              </div>
+            </section>
+
             {/* About */}
             <section>
               <div className="flex items-center gap-4">
@@ -150,12 +198,10 @@ export default async function MinistryDetail({ params }: { params: Promise<{ slu
             <div className="card p-6">
               <h2 className="font-serif text-lg font-semibold text-fg">Ministry details</h2>
               <dl className="mt-4 space-y-4 text-sm">
-                {m.leader?.name ? (
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-widest text-muted">Led by</dt>
-                    <dd className="mt-0.5 font-semibold text-fg">{m.leader.name}</dd>
-                  </div>
-                ) : null}
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-widest text-muted">{headRole}</dt>
+                  <dd className="mt-0.5 font-semibold text-fg">{m.leader?.name ?? "Being confirmed"}</dd>
+                </div>
                 {meets ? (
                   <div>
                     <dt className="text-xs font-semibold uppercase tracking-widest text-muted">Meets</dt>
