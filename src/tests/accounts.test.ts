@@ -2,8 +2,9 @@ import { describe, it, expect } from "vitest";
 import { roleLabel, requiresMinistry, inviteExpiresAt, isInviteAcceptable, INVITABLE_ROLES } from "@/lib/accounts";
 
 describe("account roles", () => {
-  it("labels CLERK as the church secretary", () => {
-    expect(roleLabel("CLERK")).toBe("Church Clerk (Secretary)");
+  it("labels CLERK as the Church Secretary (Directive §18/§30 user-facing label)", () => {
+    expect(roleLabel("CLERK")).toBe("Church Secretary");
+    expect(roleLabel("ELDER")).toBe("Elder");
     expect(roleLabel("MINISTRY_HEAD")).toBe("Ministry Head");
     expect(roleLabel("TREASURER")).toBe("Treasurer");
   });
