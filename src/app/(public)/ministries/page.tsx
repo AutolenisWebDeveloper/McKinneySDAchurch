@@ -5,8 +5,10 @@ import { PageHeader } from "@/components/page-ui";
 import { Section, ArrowLink } from "@/components/ui";
 import { MinistryBadge } from "@/components/ministry-badge";
 import { church } from "@/components/site-info";
+import { getServiceTimes } from "@/lib/site";
 import {
   getMinistryContent,
+  resolveMeets,
   MINISTRY_CATEGORY_ORDER,
   type MinistryCategory,
 } from "@/lib/ministry-content";
@@ -28,13 +30,16 @@ const CATEGORY_BLURB: Record<MinistryCategory, string> = {
 type Row = Awaited<ReturnType<typeof getMinistries>>[number];
 
 export default async function Ministries() {
-  const ministries = await safe(getMinistries(), [] as Row[]);
+  const [ministries, serviceTimes] = await Promise.all([
+    safe(getMinistries(), [] as Row[]),
+    safe(getServiceTimes(), null),
+  ]);
 
   // Attach editorial content and bucket by category, preserving the display order.
-  const enriched = ministries.map((m) => ({
-    m,
-    content: getMinistryContent(m.slug, { name: m.name, description: m.description }),
-  }));
+  const enriched = ministries.map((m) => {
+    const content = getMinistryContent(m.slug, { name: m.name, description: m.description });
+    return { m, content, meets: resolveMeets(content, serviceTimes) };
+  });
   const byCategory = MINISTRY_CATEGORY_ORDER.map((category) => ({
     category,
     items: enriched.filter((e) => e.content.category === category),
@@ -64,7 +69,7 @@ export default async function Ministries() {
                   <p className="mt-1 text-sm text-muted">{CATEGORY_BLURB[category]}</p>
                 </div>
                 <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {items.map(({ m, content }) => (
+                  {items.map(({ m, content, meets }) => (
                     <li key={m.id}>
                       <Link
                         href={`/ministries/${m.slug}`}
@@ -79,9 +84,9 @@ export default async function Ministries() {
                         <p className="mt-4 flex-1 text-sm leading-relaxed text-muted">
                           {m.description?.trim() || content.tagline}
                         </p>
-                        {content.meets ? (
+                        {meets ? (
                           <p className="mt-4 text-xs font-medium uppercase tracking-wide text-muted/80">
-                            {content.meets}
+                            {meets}
                           </p>
                         ) : null}
                         <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary">

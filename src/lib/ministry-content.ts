@@ -39,8 +39,14 @@ export type MinistryContent = {
   activities: string[];
   /** Supporting verse for the detail page. */
   scripture?: { text: string; ref: string };
-  /** When the ministry typically meets/serves. */
+  /** Static fallback for when the ministry meets/serves, used when the
+   *  `service_times` site setting is unavailable or has no matching key. */
   meets?: string;
+  /** Derive the meeting time from the `service_times` site setting at render
+   *  time. `key` indexes into that setting; `prefix` is prepended to the
+   *  formatted clock time (e.g. "Sabbath mornings, "). Takes precedence over
+   *  the static `meets` string when the setting provides a value. */
+  meetsFrom?: { key: string; prefix?: string };
 };
 
 const CONTENT: Record<string, MinistryContent> = {
@@ -58,6 +64,7 @@ const CONTENT: Record<string, MinistryContent> = {
     ],
     scripture: { text: "Study to shew thyself approved unto God, a workman that needeth not to be ashamed.", ref: "2 Timothy 2:15" },
     meets: "Sabbath mornings, 9:30 AM",
+    meetsFrom: { key: "sabbathSchool", prefix: "Sabbath mornings, " },
   },
   "personal-ministries": {
     monogram: "PM",
@@ -228,6 +235,7 @@ const CONTENT: Record<string, MinistryContent> = {
     ],
     scripture: { text: "The effectual fervent prayer of a righteous man availeth much.", ref: "James 5:16" },
     meets: "Wednesday evenings, 7:00 PM",
+    meetsFrom: { key: "prayerMeeting" },
   },
   hospitality: {
     monogram: "HO",
@@ -291,4 +299,67 @@ export function getMinistryContent(
 /** True when we have hand-written content for this slug. */
 export function hasMinistryContent(slug: string): boolean {
   return slug in CONTENT;
+}
+
+const DAY_LABELS: Record<string, string> = {
+  sun: "Sundays",
+  mon: "Mondays",
+  tue: "Tuesdays",
+  wed: "Wednesdays",
+  thu: "Thursdays",
+  fri: "Fridays",
+  sat: "Sabbath",
+};
+
+/** Format a bare "HH:MM" (24-hour) clock string as "7:00 PM". Returns the
+ *  input unchanged if it isn't a recognizable time. */
+function formatClock(hhmm: string): string {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(hhmm);
+  if (!match) return hhmm;
+  let h = parseInt(match[1]!, 10);
+  const minutes = match[2]!;
+  if (h < 0 || h > 23) return hhmm;
+  const meridiem = h >= 12 ? "PM" : "AM";
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h}:${minutes} ${meridiem}`;
+}
+
+/**
+ * Format a stored `service_times` value for display. Handles a bare time
+ * ("9:30" → "9:30 AM"), a day + time ("Wed 19:00" → "Wednesdays at 7:00 PM"),
+ * and passes through anything it can't parse.
+ */
+export function formatServiceTime(raw: string): string {
+  const tokens = raw.trim().split(/\s+/);
+  let dayLabel = "";
+  let timeToken = "";
+  for (const token of tokens) {
+    if (/^\d{1,2}:\d{2}$/.test(token)) {
+      timeToken = token;
+    } else {
+      const label = DAY_LABELS[token.slice(0, 3).toLowerCase()];
+      if (label) dayLabel = label;
+    }
+  }
+  if (!timeToken) return raw.trim();
+  const clock = formatClock(timeToken);
+  return dayLabel ? `${dayLabel} at ${clock}` : clock;
+}
+
+/**
+ * Resolve a ministry's meeting time for display. Prefers the live
+ * `service_times` site setting (via `meetsFrom`), falling back to the static
+ * `meets` string, then to null.
+ */
+export function resolveMeets(
+  content: MinistryContent,
+  serviceTimes?: Record<string, string> | null,
+): string | null {
+  const from = content.meetsFrom;
+  if (from) {
+    const raw = serviceTimes?.[from.key];
+    if (raw && raw.trim()) return `${from.prefix ?? ""}${formatServiceTime(raw)}`;
+  }
+  return content.meets ?? null;
 }

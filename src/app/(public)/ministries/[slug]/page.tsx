@@ -9,7 +9,8 @@ import { safe } from "@/lib/safe";
 import { PageHeader, Callout } from "@/components/page-ui";
 import { Section } from "@/components/ui";
 import { MinistryBadge } from "@/components/ministry-badge";
-import { getMinistryContent } from "@/lib/ministry-content";
+import { getMinistryContent, resolveMeets } from "@/lib/ministry-content";
+import { getServiceTimes } from "@/lib/site";
 import { church } from "@/components/site-info";
 
 export const dynamic = "force-dynamic";
@@ -42,10 +43,12 @@ export default async function MinistryDetail({ params }: { params: Promise<{ slu
   if (!m) notFound();
 
   const content = getMinistryContent(slug, { name: m.name, description: m.description });
-  const [anns, events] = await Promise.all([
+  const [anns, events, serviceTimes] = await Promise.all([
     safe(getApprovedAnnouncementsForMinistry(m.id), []),
     safe(getUpcomingEventsForMinistry(m.id), []),
+    safe(getServiceTimes(), null),
   ]);
+  const meets = resolveMeets(content, serviceTimes);
 
   return (
     <>
@@ -153,10 +156,10 @@ export default async function MinistryDetail({ params }: { params: Promise<{ slu
                     <dd className="mt-0.5 font-semibold text-fg">{m.leader.name}</dd>
                   </div>
                 ) : null}
-                {content.meets ? (
+                {meets ? (
                   <div>
                     <dt className="text-xs font-semibold uppercase tracking-widest text-muted">Meets</dt>
-                    <dd className="mt-0.5 text-fg">{content.meets}</dd>
+                    <dd className="mt-0.5 text-fg">{meets}</dd>
                   </div>
                 ) : null}
                 <div>
