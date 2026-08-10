@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getServiceTimes } from "@/lib/site";
+import { getLocale, t } from "@/lib/i18n";
 import { safe } from "@/lib/safe";
 import { PageHeader, Card, Callout } from "@/components/page-ui";
 import { Section, Container } from "@/components/ui";
@@ -21,16 +22,16 @@ const steps = [
 ];
 
 export default async function PlanAVisit() {
-  const times = await safe(getServiceTimes(), null);
+  const [times, locale] = await Promise.all([safe(getServiceTimes(), null), getLocale()]);
   return (
     <>
       <PageHeader
-        eyebrow="Plan your visit"
-        title="We saved you a seat"
-        lede="We’d love to welcome you this Sabbath. Come exactly as you are — no dress code, no insider knowledge required. Here’s what a visit looks like."
+        eyebrow={t(locale, "visit.eyebrow")}
+        title={t(locale, "visit.title")}
+        lede={t(locale, "visit.lede")}
         actions={<>
-          <Link href="/visitor/new" className="btn btn-primary">Let us know you’re coming</Link>
-          <a href={church.mapsHref} target="_blank" rel={EXT} className="btn btn-outline">Get directions</a>
+          <Link href="/visitor/new" className="btn btn-primary">{t(locale, "visit.cta")}</Link>
+          <a href={church.mapsHref} target="_blank" rel={EXT} className="btn btn-outline">{t(locale, "common.get_directions")}</a>
         </>}
       />
 

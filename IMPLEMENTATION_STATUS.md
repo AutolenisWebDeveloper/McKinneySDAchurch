@@ -6,6 +6,35 @@ now being extended to the merged Master Directive (Phases 1–10) starting with 
 
 ---
 
+## Phase 10 — EN/ES internationalization + accessibility polish (this pass)
+
+Extends the i18n foundation toward full English/Spanish coverage (§49) and tightens accessibility
+(§7, WCAG 2.2 AA). No schema change.
+
+- ✅ `src/lib/i18n.ts` — broadened EN/ES dictionaries (home, common actions, footer, Plan-a-Visit)
+  with a typed `MsgKey`, plus `makeT(locale)`. **A dictionary-parity test fails CI if EN and ES ever
+  drift** (identical key sets, no empty strings, genuine translations). Table-tested (5 cases).
+- 🟡 **`<html lang>` now reflects the chosen locale** (root layout) — WCAG 3.1.1.
+- 🟡 The **skip-to-content** link and the **footer invitation band + CTAs** (welcome / “Join us this
+  Sabbath” / Plan a Visit / Give / rights) are translated; the **Plan a Visit** header + CTAs read from
+  the dictionary. The site-wide EN/ES toggle (existing) drives all of it via the `locale` cookie.
+- Existing a11y foundation confirmed in place: skip link, `main#main` landmark, `aria-pressed` language
+  toggle, focus-visible styles, labelled forms.
+
+**Remaining (mechanical / documented):** page-by-page string extraction for the long-form bodies of the
+remaining public pages (about, beliefs, ministries, give, prayer, care, etc.) and the portal UI — the
+infrastructure, toggle, `<html lang>`, and CI parity gate are all in place, so this is additive
+dictionary work with no architectural risk. Portal-side strings can adopt `t()`/`makeT` the same way.
+
+**Verified:** typecheck clean; **191/191 tests** (+5); production build clean.
+
+> With this pass the directive's Phases 1–10 each have a landed, verified increment. Standing
+> follow-ups tracked above: Reporting (§46), extended member profile (§48), Document Management Center
+> (§34), Prayer→WorkItem inbox (§26), PDF brochure generation (§37), migrating the remaining code-driven
+> email sends onto the template system (§39), and completing per-page i18n extraction (§49).
+
+---
+
 ## Phase 9 — CMS, RBAC-aware search, communication preferences (this pass)
 
 Delivers three §44/§45/§47 subsystems: an admin-managed lightweight CMS for public surfaces,
