@@ -105,7 +105,7 @@ export async function createWorkItem(input: CreateWorkItemInput): Promise<WorkIt
       {
         category: `workitem:${item.type.toLowerCase()}`,
         title: `New ${labelForType(item.type)}: ${item.title}`,
-        deepLink: `/dashboard/leadership/workitems/${item.id}`,
+        deepLink: staffWorkItemLink(item.type, item.id),
       },
       { ministryId: route.ministryScoped ? item.ministryId : null },
     );
@@ -171,7 +171,7 @@ export async function transitionWorkItem(
           userId: patch.assigneeUserId,
           category: `workitem:${current.type.toLowerCase()}`,
           title: `Assigned to you: ${current.title}`,
-          deepLink: `/dashboard/leadership/workitems/${workItemId}`,
+          deepLink: staffWorkItemLink(current.type, workItemId),
         },
         tx,
       );
@@ -246,6 +246,13 @@ export async function addWorkItemMessage(
       );
     }
   });
+}
+
+/** Staff-facing deep link: care/prayer/leadership messages triage in the Leadership portal;
+ *  volunteer/sponsor/support/contact triage in the Admin portal. */
+export function staffWorkItemLink(type: WorkItemType, id: string): string {
+  const leadership = type === "CARE" || type === "PRAYER" || type === "LEADERSHIP_MESSAGE";
+  return `/dashboard/${leadership ? "leadership" : "admin"}/workitems/${id}`;
 }
 
 function labelForType(type: WorkItemType): string {

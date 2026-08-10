@@ -94,6 +94,16 @@ export function PortalChrome({
         {switcher}
       </div>
       <div className="mt-2 border-t border-line pt-3">
+        <Link
+          href={`/dashboard/support?from=${encodeURIComponent(pathname)}`}
+          onClick={() => setDrawer(false)}
+          className="mb-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+        >
+          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM9 9a1 1 0 112 0v4a1 1 0 11-2 0V9zm1-4a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />
+          </svg>
+          Help &amp; support
+        </Link>
         <SignOutButton />
       </div>
     </div>

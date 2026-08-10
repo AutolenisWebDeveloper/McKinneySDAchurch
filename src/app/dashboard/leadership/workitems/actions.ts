@@ -16,6 +16,9 @@ function refresh(id: string) {
   revalidatePath(`/dashboard/leadership/workitems/${id}`);
   revalidatePath("/dashboard/leadership/workitems");
   revalidatePath("/dashboard/leadership");
+  // Volunteer/sponsor/support/contact items are triaged from the Admin portal.
+  revalidatePath(`/dashboard/admin/workitems/${id}`);
+  revalidatePath("/dashboard/admin/workitems");
 }
 
 /** Move an item to a target status (assignee/reason/follow-up as required by the state machine). */

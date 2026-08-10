@@ -6,6 +6,43 @@ now being extended to the merged Master Directive (Phases 1–10) starting with 
 
 ---
 
+## Phase 8 — Volunteer, Sponsor, Support + confirmation journeys (this pass)
+
+Lights up the remaining WorkItem types (VOLUNTEER / SPONSOR / SUPPORT) with public/portal intake,
+an Admin triage inbox, acknowledgement emails, and clear confirmation journeys (§40–§43). No schema
+change — pure wiring onto the Phase-1 spine.
+
+**Verified end-to-end on real Postgres (smoke test):** volunteer/sponsor/support intake routes to the
+**Admin** portal (staff deep links point at `/dashboard/admin/workitems/…`, while care→leadership);
+admins are notified; an admin can triage a volunteer item while a **pastor cannot** triage an
+admin-routed sponsor item; the support lifecycle runs assign → resolve.
+
+- 🟢 **Deep-link fix:** `staffWorkItemLink(type, id)` routes care/prayer/leadership-message triage to
+  the Leadership portal and volunteer/sponsor/support/contact triage to the **Admin** portal —
+  `createWorkItem`/`transitionWorkItem` now use it (previously all staff links hardcoded leadership).
+- 🟡 **Volunteer (§40):** public `/volunteer` — ministry directory + **adult-facing** application
+  (safeguarding note; no minor volunteer intake) → VOLUNTEER WorkItem (ministry-routed) + ack email +
+  confirmation journey.
+- 🟡 **Sponsor (§41):** public `/sponsors` — partnership info + inquiry → SPONSOR WorkItem + ack email +
+  confirmation.
+- 🟡 **Support (§42):** `/dashboard/support` "Help & support" reachable from **every portal** (a link in
+  the shared chrome that passes the current page) → SUPPORT WorkItem (category, priority, page context)
+  + ack email + "my requests" tracker.
+- 🟡 **Admin triage inbox:** `/dashboard/admin/workitems` (+ `/[id]`) — VOLUNTEER/SPONSOR/SUPPORT/CONTACT
+  with type/status filters and per-item read authorization, reusing the shared `WorkItemDetail` +
+  inline triage panel (assign/note/message/resolve). Nav + admin-home quick action.
+- 🟡 Email registry gains wired `volunteer.received`, `sponsor.received`, `support.received`
+  (sent via `sendTemplated`, admin-customizable). Public nav gains Volunteer + Sponsors.
+
+**Confirmation journeys (§43):** every public/portal submission now ends on a professional success
+page explaining what happens next — volunteer, sponsor, support (new) alongside care, contact, prayer,
+transfer-in, and account request (existing).
+
+**Verified:** typecheck clean; **181/181 tests**; production build clean; volunteer/sponsor/support
+intake → routing → admin triage → resolution (with authorization) smoke-tested end-to-end.
+
+---
+
 ## Phase 7 — Email template administration + diagnostics (this pass)
 
 Adds an admin-managed email template system (§38/§39) on top of the existing suppression-aware
