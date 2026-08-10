@@ -70,3 +70,49 @@ export function inviteEmail(p: { roleLabel: string; ministryName?: string; accep
       `<p style="font-size:12px;color:#666">If you weren't expecting this, you can ignore this email.</p>`,
   };
 }
+
+/* ===== Phase 2: member account requests (§20/§38) ===== */
+
+export function accountRequestReceivedEmail(p: { firstName: string; churchName: string }): Rendered {
+  return {
+    subject: `We received your account request — ${esc(p.churchName)}`,
+    html:
+      `<h2>Thanks, ${esc(p.firstName)}</h2>` +
+      `<p>We received your request for a member account at ${esc(p.churchName)}. ` +
+      `A church administrator will review it and confirm your membership. ` +
+      `You'll get an email as soon as your account is ready.</p>` +
+      `<p style="font-size:12px;color:#666">If you didn't request this, you can ignore this email.</p>`,
+  };
+}
+
+export function accountApprovedEmail(p: { firstName: string; churchName: string; loginUrl: string; auto: boolean }): Rendered {
+  return {
+    subject: `Your account is ready — ${esc(p.churchName)}`,
+    html:
+      `<h2>Welcome, ${esc(p.firstName)}</h2>` +
+      `<p>Your member account at ${esc(p.churchName)} is ${p.auto ? "approved" : "now approved"} and ready to use.</p>` +
+      `<p><a href="${esc(p.loginUrl)}">Sign in</a> with the email and password you chose.</p>`,
+  };
+}
+
+export function accountNeedsInfoEmail(p: { firstName: string; churchName: string; note: string; contactEmail: string }): Rendered {
+  return {
+    subject: `A little more information needed — ${esc(p.churchName)}`,
+    html:
+      `<h2>Hello ${esc(p.firstName)}</h2>` +
+      `<p>Before we can finish setting up your account, we need a bit more information:</p>` +
+      `<blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#444">${esc(p.note)}</blockquote>` +
+      `<p>Please reply to <a href="mailto:${esc(p.contactEmail)}">${esc(p.contactEmail)}</a> and we'll take it from there.</p>`,
+  };
+}
+
+export function accountRejectedEmail(p: { firstName: string; churchName: string; reason?: string; contactEmail: string }): Rendered {
+  return {
+    subject: `About your account request — ${esc(p.churchName)}`,
+    html:
+      `<h2>Hello ${esc(p.firstName)}</h2>` +
+      `<p>We're sorry, but we weren't able to approve your member account request at this time.</p>` +
+      (p.reason ? `<p>${esc(p.reason)}</p>` : "") +
+      `<p>If you believe this is a mistake, please contact <a href="mailto:${esc(p.contactEmail)}">${esc(p.contactEmail)}</a>.</p>`,
+  };
+}

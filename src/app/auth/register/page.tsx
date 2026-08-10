@@ -10,6 +10,7 @@ export const metadata = {
 };
 
 const ERRORS: Record<string, string> = {
+  name: "Please enter your first and last name.",
   invalid: "Please enter a valid email address.",
   short: "Please choose a password of at least 8 characters.",
   match: "Those passwords didn’t match. Please try again.",
@@ -30,18 +31,24 @@ export default async function Register({ searchParams }: { searchParams: Promise
         <div className="card mt-8 p-8">
           {done ? (
             <>
-              <h1 className="font-serif text-2xl font-semibold text-fg">Thanks — you’re almost in</h1>
+              <h1 className="font-serif text-2xl font-semibold text-fg">Thanks — request received</h1>
               <p className="mt-4 text-muted">
-                Your account request has been received. A church administrator will review and
-                approve it shortly. You’ll be able to sign in once it’s approved.
+                We&rsquo;ve received your request for a member account. We&rsquo;ll confirm your
+                membership and email you as soon as your account is ready. If we can match you to
+                our records right away, that email arrives within a few minutes; otherwise a church
+                administrator reviews it first.
+              </p>
+              <p className="mt-3 text-sm text-muted">
+                Sign in with the email and password you chose once you receive the confirmation.
               </p>
               <Link href="/" className="btn btn-primary mt-6 w-full">Back home</Link>
             </>
           ) : (
             <>
-              <h1 className="font-serif text-2xl font-semibold text-fg">Create your account</h1>
+              <h1 className="font-serif text-2xl font-semibold text-fg">Request a member account</h1>
               <p className="mt-1 text-sm text-muted">
-                Accounts are reviewed by a church administrator before they go live.
+                We&rsquo;ll match your details to our membership records. A church administrator
+                reviews anything we can&rsquo;t confirm automatically.
               </p>
 
               {message && (
@@ -51,13 +58,29 @@ export default async function Register({ searchParams }: { searchParams: Promise
               )}
 
               <form action={registerMember} className="mt-6 space-y-4">
-                <div>
-                  <label htmlFor="name" className={`${labelClass} mb-1`}>Full name</label>
-                  <input id="name" name="name" autoComplete="name" required maxLength={120} className={fieldClass} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="firstName" className={`${labelClass} mb-1`}>First name</label>
+                    <input id="firstName" name="firstName" autoComplete="given-name" required maxLength={80} className={fieldClass} />
+                  </div>
+                  <div>
+                    <label htmlFor="lastName" className={`${labelClass} mb-1`}>Last name</label>
+                    <input id="lastName" name="lastName" autoComplete="family-name" required maxLength={80} className={fieldClass} />
+                  </div>
                 </div>
                 <div>
                   <label htmlFor="email" className={`${labelClass} mb-1`}>Email</label>
                   <input id="email" name="email" type="email" autoComplete="email" required className={fieldClass} />
+                </div>
+                <div>
+                  <label htmlFor="phone" className={`${labelClass} mb-1`}>Phone <span className="font-normal text-muted">(optional)</span></label>
+                  <input id="phone" name="phone" type="tel" autoComplete="tel" maxLength={30} className={fieldClass} />
+                </div>
+                <div>
+                  <label htmlFor="verification" className={`${labelClass} mb-1`}>
+                    Anything that helps us find you <span className="font-normal text-muted">(optional)</span>
+                  </label>
+                  <input id="verification" name="verification" maxLength={200} placeholder="e.g. the year you joined" className={fieldClass} />
                 </div>
                 <div>
                   <label htmlFor="password" className={`${labelClass} mb-1`}>Password</label>
