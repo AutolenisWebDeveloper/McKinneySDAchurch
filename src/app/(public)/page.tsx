@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getServiceTimes, getSetting } from "@/lib/site";
+import { getBlocks } from "@/lib/cms";
 import { getApprovedAnnouncements, getUpcomingEvents, getLatestSermon } from "@/lib/public-content";
 import { raisedPct, formatUsd } from "@/lib/construction";
 import { churchJsonLd } from "@/lib/structured-data";
@@ -36,6 +37,9 @@ export default async function Home() {
   ]);
   const locale = await getLocale();
   const giveUrl = env.ADVENTIST_GIVING_URL ?? null;
+  const heroBlocks = await safe(getBlocks(["home_hero_title", "home_hero_subtitle"]), { home_hero_title: "", home_hero_subtitle: "" });
+  const heroTitle = heroBlocks.home_hero_title?.trim() || t(locale, "home.title");
+  const heroSubtitle = heroBlocks.home_hero_subtitle?.trim();
 
   const jsonLd = churchJsonLd({
     name: church.name,
@@ -75,12 +79,11 @@ export default async function Home() {
             </div>
 
             <h1 className="animate-rise-2 mt-6 text-hero font-serif font-semibold text-white">
-              {t(locale, "home.title")}
+              {heroTitle}
             </h1>
 
             <p className="animate-rise-3 mt-6 max-w-2xl text-lg leading-relaxed text-white/80 sm:text-xl">
-              {t(locale, "home.subtitle")} A place to belong, to grow in Christ,
-              and to worship together each Sabbath.
+              {heroSubtitle ? heroSubtitle : <>{t(locale, "home.subtitle")} A place to belong, to grow in Christ, and to worship together each Sabbath.</>}
             </p>
 
             <div className="animate-rise-4 mt-9 flex flex-wrap items-center gap-3">
