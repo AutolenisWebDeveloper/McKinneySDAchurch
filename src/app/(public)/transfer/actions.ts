@@ -1,11 +1,9 @@
 "use server";
 import { z } from "zod";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
-import { newToken } from "@/lib/crypto";
+import { createIncomingTransfer } from "@/lib/membership-transfers";
 
 const schema = z.object({
-  direction: z.enum(["INCOMING", "OUTGOING"]),
   personName: z.string().trim().min(1).max(120),
   personEmail: z.string().trim().email().optional().or(z.literal("").transform(() => undefined)),
   personPhone: z.string().trim().max(40).optional(),
@@ -15,20 +13,18 @@ const schema = z.object({
   website: z.string().max(0).optional(), // honeypot
 });
 
+/** Public Transfer IN only (§29). Outgoing self-service now lives in the Member Portal. */
 export async function submitTransfer(formData: FormData) {
+  if (String(formData.get("website") ?? "")) redirect("/transfer"); // honeypot
   const data = schema.parse({
-    direction: formData.get("direction"), personName: formData.get("personName"),
-    personEmail: formData.get("personEmail") ?? "", personPhone: formData.get("personPhone") ?? undefined,
-    otherChurchName: formData.get("otherChurchName"), otherChurchContact: formData.get("otherChurchContact") ?? undefined,
-    note: formData.get("note") ?? undefined, website: formData.get("website") ?? "",
+    personName: formData.get("personName"),
+    personEmail: formData.get("personEmail") ?? "",
+    personPhone: formData.get("personPhone") ?? undefined,
+    otherChurchName: formData.get("otherChurchName"),
+    otherChurchContact: formData.get("otherChurchContact") ?? undefined,
+    note: formData.get("note") ?? undefined,
+    website: formData.get("website") ?? "",
   });
-  const { raw, digest } = newToken(); // raw shown once to the requester; only the digest is stored
-  await prisma.membershipTransfer.create({
-    data: {
-      direction: data.direction, personName: data.personName, personEmail: data.personEmail, personPhone: data.personPhone,
-      otherChurchName: data.otherChurchName, otherChurchContact: data.otherChurchContact, note: data.note,
-      initiatedVia: "PUBLIC", statusTokenDigest: digest, status: "SUBMITTED",
-    },
-  });
-  redirect(`/transfer?ref=${encodeURIComponent(raw)}`);
+  const { statusToken } = await createIncomingTransfer(data);
+  redirect(`/transfer?ref=${encodeURIComponent(statusToken)}`);
 }

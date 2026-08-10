@@ -14,6 +14,7 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
       return [
         { href: PORTAL_ROUTE.member, label: "My Dashboard" },
         { href: "/dashboard/member/message", label: "Message Leadership" },
+        { href: "/dashboard/member/transfer", label: "Membership Transfer" },
         { href: "/dashboard/directory", label: "Directory" },
         { href: "/dashboard/household", label: "My Household" },
         { href: "/dashboard/profile", label: "My Profile" },

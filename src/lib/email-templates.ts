@@ -174,3 +174,58 @@ export function packetPublishedEmail(p: { sabbathDate: string; url: string }): R
       `<p><a href="${esc(p.url)}">View this week's bulletin and order of service</a>.</p>`,
   };
 }
+
+/* ===== Phase 5: Membership transfers (§29) ===== */
+
+export function transferReceivedEmail(p: { name: string; direction: "INCOMING" | "OUTGOING"; churchName: string; statusUrl?: string }): Rendered {
+  const dir = p.direction === "INCOMING" ? "into" : "out of";
+  return {
+    subject: `We received your membership transfer request`,
+    html:
+      `<h2>Hello ${esc(p.name)}</h2>` +
+      `<p>We've received your request to transfer your membership ${dir} ${esc(p.churchName)}. ` +
+      `Our church secretary will process it through the official Adventist membership system (eAdventist).</p>` +
+      (p.statusUrl ? `<p><a href="${esc(p.statusUrl)}">Check the status of your transfer</a></p>` : ""),
+  };
+}
+
+export function transferConfirmationRequestEmail(p: { name: string; churchName: string; otherChurch: string; confirmUrl: string }): Rendered {
+  return {
+    subject: `Please confirm your membership transfer`,
+    html:
+      `<h2>Hello ${esc(p.name)}</h2>` +
+      `<p>${esc(p.churchName)} has begun a request to transfer your membership to <strong>${esc(p.otherChurch)}</strong> on your behalf.</p>` +
+      `<p>Please confirm this is your wish — nothing is processed until you do.</p>` +
+      `<p><a href="${esc(p.confirmUrl)}">Confirm or decline this transfer</a></p>` +
+      `<p style="font-size:12px;color:#666">If you did not expect this, please decline and contact the church office.</p>`,
+  };
+}
+
+export function transferConfirmedEmail(p: { name: string; churchName: string }): Rendered {
+  return {
+    subject: `Thank you — your transfer is confirmed`,
+    html:
+      `<h2>Hello ${esc(p.name)}</h2>` +
+      `<p>Thank you for confirming. ${esc(p.churchName)}'s secretary will now process your transfer through eAdventist.</p>`,
+  };
+}
+
+export function transferDisputedNotice(p: { name: string; otherChurch: string }): Rendered {
+  return {
+    subject: `Transfer declined by member — needs review`,
+    html:
+      `<h2>Member declined a transfer</h2>` +
+      `<p><strong>${esc(p.name)}</strong> declined the on-behalf transfer to <strong>${esc(p.otherChurch)}</strong>. ` +
+      `Ordinary processing is locked until leadership reviews it.</p>`,
+  };
+}
+
+export function transferCompletedEmail(p: { name: string; churchName: string }): Rendered {
+  return {
+    subject: `Your membership transfer is complete`,
+    html:
+      `<h2>Hello ${esc(p.name)}</h2>` +
+      `<p>Your membership transfer has been completed in the official Adventist record. God bless you.</p>` +
+      `<p style="font-size:12px;color:#666">— ${esc(p.churchName)}</p>`,
+  };
+}

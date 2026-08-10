@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { canTransferTransition } from "@/lib/transfers";
+import {
+  canTransferTransition, requiresMemberConfirmation, initialTransferStatus,
+  isOrdinaryProcessingLocked, isTransferTerminal,
+} from "@/lib/transfers";
 import { reconcile, parseMemberCsv } from "@/lib/reconcile";
 import { toMemberCsv } from "@/lib/minors";
 
@@ -10,6 +13,42 @@ describe("transfer pipeline", () => {
     expect(canTransferTransition("HANDED_TO_EADVENTIST", "COMPLETED")).toBe(true);
     expect(canTransferTransition("SUBMITTED", "COMPLETED")).toBe(false);
     expect(canTransferTransition("COMPLETED", "IN_REVIEW")).toBe(false);
+  });
+
+  it("member confirmation: awaiting → confirm(IN_REVIEW) or deny(DISPUTED)", () => {
+    expect(canTransferTransition("AWAITING_MEMBER_CONFIRMATION", "IN_REVIEW")).toBe(true);
+    expect(canTransferTransition("AWAITING_MEMBER_CONFIRMATION", "DISPUTED")).toBe(true);
+    // may not jump straight to handing off before confirmation
+    expect(canTransferTransition("AWAITING_MEMBER_CONFIRMATION", "HANDED_TO_EADVENTIST")).toBe(false);
+  });
+
+  it("DISPUTED locks ordinary processing; only resolvable to review/declined/withdrawn", () => {
+    expect(isOrdinaryProcessingLocked("DISPUTED")).toBe(true);
+    expect(isOrdinaryProcessingLocked("IN_REVIEW")).toBe(false);
+    expect(canTransferTransition("DISPUTED", "IN_REVIEW")).toBe(true);
+    expect(canTransferTransition("DISPUTED", "HANDED_TO_EADVENTIST")).toBe(false);
+    expect(canTransferTransition("DISPUTED", "COMPLETED")).toBe(false);
+  });
+
+  it("NEEDS_INFO can return to review or intake", () => {
+    expect(canTransferTransition("IN_REVIEW", "NEEDS_INFO")).toBe(true);
+    expect(canTransferTransition("NEEDS_INFO", "IN_REVIEW")).toBe(true);
+  });
+
+  it("only a leadership-on-behalf OUTGOING transfer needs member confirmation", () => {
+    expect(requiresMemberConfirmation({ direction: "OUTGOING", onBehalf: true })).toBe(true);
+    expect(requiresMemberConfirmation({ direction: "OUTGOING", onBehalf: false })).toBe(false);
+    expect(requiresMemberConfirmation({ direction: "INCOMING", onBehalf: true })).toBe(false);
+    expect(initialTransferStatus({ direction: "OUTGOING", onBehalf: true })).toBe("AWAITING_MEMBER_CONFIRMATION");
+    expect(initialTransferStatus({ direction: "OUTGOING", onBehalf: false })).toBe("SUBMITTED");
+    expect(initialTransferStatus({ direction: "INCOMING", onBehalf: false })).toBe("SUBMITTED");
+  });
+
+  it("terminal states are terminal", () => {
+    expect(isTransferTerminal("COMPLETED")).toBe(true);
+    expect(isTransferTerminal("DECLINED")).toBe(true);
+    expect(isTransferTerminal("WITHDRAWN")).toBe(true);
+    expect(isTransferTerminal("IN_REVIEW")).toBe(false);
   });
 });
 

@@ -6,6 +6,51 @@ now being extended to the merged Master Directive (Phases 1–10) starting with 
 
 ---
 
+## Phase 5 — Membership Transfers rework (this pass)
+
+Corrects the transfer intake architecture (§29) and adds member confirmation for on-behalf transfers.
+eAdventist stays the record of truth. **Transfer IN** remains public; **Transfer OUT** self-service
+moves to the authenticated Member Portal; **leadership-on-behalf** outgoing transfers require a
+consent attestation and the member's confirmation before processing.
+
+**Verified end-to-end on real Postgres (smoke test):** public incoming (token issued); member
+self-service outgoing (SUBMITTED, initiatedVia MEMBER); leadership on-behalf →
+AWAITING_MEMBER_CONFIRMATION with consent attested + confirmation token; member **denies** → DISPUTED,
+which **blocks an ordinary clerk** but a **pastor can override** to review; a stranger **cannot**
+confirm someone else's transfer; member **confirms** → IN_REVIEW → HANDED_TO_EADVENTIST (ref) →
+COMPLETED.
+
+- ✅ `src/lib/transfers.ts` — expanded pure state machine with `AWAITING_MEMBER_CONFIRMATION`,
+  `NEEDS_INFO`, `DISPUTED` + guards (`requiresMemberConfirmation`, `initialTransferStatus`,
+  `isOrdinaryProcessingLocked`, `isTransferTerminal`). Table-tested (9 cases).
+- 🟡 Schema: `TransferStatus` gains the three states; `MembershipTransfer` gains consent-attestation
+  fields (`onBehalf`, `consentAttested`, `consentMethod`, `consentDate`, `consentNotes`,
+  `consentDocumentId`, `attestedById`), `requesterUserId`, `confirmationTokenDigest` (unique),
+  `memberConfirmedAt`, `disputedAt`. Additive migration.
+- 🟡 `src/lib/membership-transfers.ts` — service: `createIncomingTransfer` (public), `createOutgoingSelf`
+  (member), `createOnBehalf` (leadership + consent → AWAITING + confirm token), `memberConfirmTransfer`
+  / `memberDenyTransfer` (portal **or** tokenized link; **requires actor-or-token**; DISPUTED on deny),
+  `advanceTransfer` (clerk pipeline; **DISPUTED is leadership-only**). Transactional, audited, notifies
+  Secretary/leadership, emails at each step.
+- 🟡 **Public `/transfer`** is now INCOMING-only (anonymous outgoing removed) and points members to the
+  portal. **Public `/transfer/confirm/[token]`** lets an account-less member confirm/decline.
+- 🟡 **Member Portal `/dashboard/member/transfer`** — outgoing self-service, "awaiting your
+  confirmation" (confirm/deny), and "my transfers" with status; nav entry.
+- 🟡 **Secretary/clerk pipeline** — new statuses in the queue, a **DISPUTED lock** (leadership-only
+  override), and a **leadership on-behalf** form with a required consent attestation checkbox +
+  method/notes.
+- 🟡 Emails: incoming/outgoing received, confirmation request, confirmed, disputed notice, completed —
+  HTML-escaped.
+- 🟢 **Security fix (found via smoke):** member confirm/deny now requires either a valid confirmation
+  token or the member's own session, and a token-only (account-less) confirmation records no audit FK
+  (previously a transfer id was mis-used as `actorId`).
+
+**Verified:** typecheck clean; **169/169 tests**; production build clean; migration applies on real
+Postgres; all transfer flows (incoming, self-service, on-behalf, confirm, deny/dispute, override,
+authorization, completion) smoke-tested end-to-end.
+
+---
+
 ## Phase 3 — Weekly Communications engine (this pass)
 
 Implements the §22/§23 weekly bulletin pipeline: one `WeeklyPacket` per Sabbath collects ministry
