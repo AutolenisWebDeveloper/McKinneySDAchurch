@@ -54,6 +54,8 @@ export type CreateWorkItemInput = {
   requesterEmail?: string | null;
   subjectName?: string | null;
   ministryId?: string | null;
+  /** Skip the role fan-out notification (e.g. bulk auto-generated items from a scan). */
+  silent?: boolean;
 };
 
 /**
@@ -96,6 +98,7 @@ export async function createWorkItem(input: CreateWorkItemInput): Promise<WorkIt
   });
 
   // Fan-out notifications after commit (best-effort; a notify failure never voids the item).
+  if (input.silent) return item;
   try {
     await notifyRoles(
       route.roles,

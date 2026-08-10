@@ -6,6 +6,49 @@ now being extended to the merged Master Directive (Phases 1–10) starting with 
 
 ---
 
+## Phase 4 — Care, Contact, Message Leadership on the WorkItem spine (this pass)
+
+Activates the WorkItem spine end-to-end (§25/§27/§28): public/member submission forms create
+WorkItems, and a leadership **triage inbox** works them through their lifecycle. No schema change —
+this is pure wiring onto the Phase-1 spine. The WorkItem deep links the portal homes already
+pointed at now resolve to real, actionable pages.
+
+**Verified end-to-end on real Postgres (smoke test):** a CARE intake creates a NEW item, encrypts
+the body, and notifies the pastor; triage runs TRIAGED → ASSIGNED (assign-to-me) → note → RESOLVED;
+a member's LEADERSHIP_MESSAGE is visible only to them as requester and a staff reply notifies them;
+a member attempting to triage someone else's care item is denied.
+
+- 🟡 **Care (§25):** public `/care` "Report a Care Need" (categories, urgency→priority, who-needs-care,
+  optional contact; honeypot). Sensitive detail is encrypted at rest via the spine; confidentiality
+  = SENSITIVE (pastor/elders only). Acknowledgement email + confirmation journey (§43). Fixes the
+  previously-dead `/care` links from the member/leadership homes; added to the public "Connect" nav.
+- 🟡 **Attendance → Care (§25):** the weekly `care-scan` cron now mirrors each new `CareAlert` into a
+  CARE WorkItem (silent, to avoid a per-member notification flood) and sends **one summary
+  notification** to pastor/elders linking the inbox.
+- 🟡 **Contact (§28):** `/contact` gains a real form → CONTACT WorkItem (routed to Admin),
+  acknowledgement email, confirmation state.
+- 🟡 **Message Leadership (§27):** member portal `/dashboard/member/message` → LEADERSHIP_MESSAGE
+  WorkItem tied to the member; "My messages" list; nav + home quick action.
+- 🟡 **Leadership triage inbox:** `/dashboard/leadership/workitems` (type/status filters, read
+  authorization enforced per item, confidentiality-aware) + an inline **Triage panel** on the shared
+  `WorkItemDetail` — assign-to-me, mark triaged / start, schedule follow-up, needs-info, resolve,
+  close, add encrypted internal note, and reply to the requester. Only shown to staff who
+  `canManageWorkItem`; requesters see only status + their message thread. Every action goes through
+  the tested `transitionWorkItem`/`addWorkItemNote`/`addWorkItemMessage` (guards + optimistic
+  concurrency + immutable events + audit + notifications). Resolution emails the requester when an
+  address is on file.
+- 🟢 `createWorkItem` gains a `silent` option (bulk auto-generated items skip the role fan-out).
+
+**Remaining:** Prayer's operational management is still on the existing encrypted `PrayerRequest`
+model (public wall + approval intact); backing it additionally with a PRAYER WorkItem inbox is a
+focused follow-up. The leadership inbox reads care/prayer/messages; prayer items appear once that
+wiring lands.
+
+**Verified:** typecheck clean; **148/148 tests**; production build clean (new routes present);
+full intake→triage→resolve + messaging + authorization smoke-tested on real Postgres.
+
+---
+
 ## Phase 2 — member account request + membership matching (this pass)
 
 Adds the §20 request-and-match flow on top of the existing open registration: a public request

@@ -13,6 +13,7 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
     case "member":
       return [
         { href: PORTAL_ROUTE.member, label: "My Dashboard" },
+        { href: "/dashboard/member/message", label: "Message Leadership" },
         { href: "/dashboard/directory", label: "Directory" },
         { href: "/dashboard/household", label: "My Household" },
         { href: "/dashboard/profile", label: "My Profile" },
@@ -30,7 +31,8 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
     case "leadership":
       return [
         { href: PORTAL_ROUTE.leadership, label: "Pastoral Overview" },
-        { href: "/dashboard/admin/care", label: "Care" },
+        { href: "/dashboard/leadership/workitems", label: "Work Items" },
+        { href: "/dashboard/admin/care", label: "Care Alerts" },
         { href: "/dashboard/admin/approvals", label: "Approvals" },
       ];
 
