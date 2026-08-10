@@ -1554,3 +1554,21 @@ model EmailTemplateVersion {
 
   @@index([templateId, createdAt])
 }
+
+// ===== Phase 9: lightweight CMS (§44) =====
+
+/// Admin-managed content for public surfaces (hero, banners, About, etc.). Public pages read the
+/// block and fall back to safe coded defaults when absent. Rich HTML is sanitized on write.
+model ContentBlock {
+  id          String   @id @default(cuid())
+  key         String
+  locale      String   @default("en")
+  content     String
+  version     Int      @default(1)
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([key, locale])
+  @@index([key])
+}

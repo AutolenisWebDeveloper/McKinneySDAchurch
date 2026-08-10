@@ -15,6 +15,8 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
         { href: PORTAL_ROUTE.member, label: "My Dashboard" },
         { href: "/dashboard/member/message", label: "Message Leadership" },
         { href: "/dashboard/member/transfer", label: "Membership Transfer" },
+        { href: "/dashboard/member/preferences", label: "Communication Preferences" },
+        { href: "/dashboard/search", label: "Search" },
         { href: "/dashboard/directory", label: "Directory" },
         { href: "/dashboard/household", label: "My Household" },
         { href: "/dashboard/profile", label: "My Profile" },
@@ -36,6 +38,7 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
       return [
         { href: PORTAL_ROUTE.leadership, label: "Pastoral Overview" },
         { href: "/dashboard/leadership/workitems", label: "Work Items" },
+        { href: "/dashboard/search", label: "Search" },
         { href: "/dashboard/admin/care", label: "Care Alerts" },
         { href: "/dashboard/admin/approvals", label: "Approvals" },
         { href: "/dashboard/manual", label: "Church Manual" },
@@ -45,6 +48,7 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
       return [
         { href: PORTAL_ROUTE.clerk, label: "Secretary Home" },
         { href: "/dashboard/clerk/transfers", label: "Transfers" },
+        { href: "/dashboard/search", label: "Search" },
         { href: "/dashboard/clerk/reconcile", label: "eAdventist Reconcile" },
         { href: "/dashboard/admin/board", label: "Board & Minutes" },
         { href: "/dashboard/admin/committees", label: "Committees" },
@@ -82,6 +86,8 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
         { href: "/dashboard/admin/committees", label: "Committees" },
         { href: "/dashboard/admin/manual", label: "Manage Manual" },
         { href: "/dashboard/admin/construction", label: "Building Project" },
+        { href: "/dashboard/admin/content", label: "Website Content" },
+        { href: "/dashboard/search", label: "Search" },
         { href: "/dashboard/admin/ministries", label: "Departments" },
         { href: "/dashboard/admin/bulletin", label: "Bulletins" },
         { href: "/dashboard/manual", label: "Church Manual" },

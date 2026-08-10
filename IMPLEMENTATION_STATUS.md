@@ -6,6 +6,49 @@ now being extended to the merged Master Directive (Phases 1–10) starting with 
 
 ---
 
+## Phase 9 — CMS, RBAC-aware search, communication preferences (this pass)
+
+Delivers three §44/§45/§47 subsystems: an admin-managed lightweight CMS for public surfaces,
+role-scoped portal search that authorizes before exposing any result, and member communication
+preferences backed by the existing suppression-aware subscription infrastructure.
+
+**Verified end-to-end on real Postgres (smoke test):** a CMS block returns its **coded fallback**
+when unset and its value once set; HTML blocks are **sanitized** (a `<script>` is stripped, text
+kept); a **member cannot edit** CMS; a member's preference opt-out flips the subscription to
+UNSUBSCRIBED (records `unsubscribedAt`) and re-subscribe records `consentAt`; CMS edits are audited.
+
+**CMS (§44)**
+- 🟡 Schema: `ContentBlock` (key+locale unique, versioned). Additive migration.
+- 🟡 `src/lib/cms.ts` — key catalog with coded fallbacks; `getBlock`/`getBlocks` (graceful DB-failure
+  fallback) and `setBlock` (ADMIN/PASTOR only, HTML **sanitized**, versioned + audited).
+- 🟡 Admin editor `/dashboard/admin/content`; the **emergency alert banner** renders site-wide on the
+  public layout when set; the homepage hero title/subtitle read from CMS with coded fallbacks.
+
+**RBAC-aware search (§45)**
+- ✅ `src/lib/rbac-search.ts` — pure `searchScopesForRoles` / `canSearchScope`. A plain member gets
+  only announcements/events/bulletins/manual; leadership adds care/prayer/members; the secretary adds
+  members/transfers/committees; elders do **not** get governance scopes. Table-tested (5 cases).
+- 🟡 `/dashboard/search` — queries **only** the actor's permitted scopes (authorization *before* any
+  title/snippet is produced), bounded per scope; links to public site search.
+
+**Communication preferences (§47)**
+- 🟡 `src/lib/preferences.ts` — five categories (Weekly bulletin, Announcements, Events, Building
+  project, Ministry updates) over `EmailSubscription`; read (opt-out model) + set with consent/
+  unsubscribe timestamps. Never bypasses suppression, one-click unsubscribe, or transactional rules.
+- 🟡 Member `/dashboard/member/preferences` — per-category toggles + confirmation; nav entry.
+
+**Nav:** Search added to member/leadership/secretary/admin portals; Communication Preferences to the
+member portal; Website Content to the admin portal.
+
+**Deferred (documented):** **Reporting (§46)** (weekly-packet compliance, response times, pipelines +
+CSV export) and the **extended member profile (§48)** (skills/interests/emergency contact/completeness
++ leadership-role display) are focused follow-ups — both stand alone on the data already in place.
+
+**Verified:** typecheck clean; **186/186 tests** (+5); production build clean; migration applies on real
+Postgres; CMS fallback/sanitize/authorization + preferences opt-out/consent smoke-tested end-to-end.
+
+---
+
 ## Phase 8 — Volunteer, Sponsor, Support + confirmation journeys (this pass)
 
 Lights up the remaining WorkItem types (VOLUNTEER / SPONSOR / SUPPORT) with public/portal intake,
