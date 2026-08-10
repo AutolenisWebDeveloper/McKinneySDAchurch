@@ -21,6 +21,8 @@ export function dashboardNav(role: Role): { href: string; label: string }[] {
     items.push({ href: "/dashboard/admin/baptism", label: "Baptism" });
     items.push({ href: "/dashboard/admin/board", label: "Board" });
     items.push({ href: "/dashboard/admin/construction", label: "Building Project" });
+    items.push({ href: "/dashboard/admin/ministries", label: "Departments" });
+    items.push({ href: "/dashboard/admin/accounts", label: "Accounts" });
   }
   if (["ADMIN", "PASTOR", "TREASURER"].includes(role)) {
     items.push({ href: "/dashboard/admin/offerings", label: "Offerings" });

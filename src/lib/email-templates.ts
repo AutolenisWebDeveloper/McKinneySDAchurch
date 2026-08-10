@@ -58,3 +58,15 @@ export function constructionUpdateEmail(p: { title: string; body: string; url: s
       `<p style="font-size:12px;color:#666">To stop receiving building updates, <a href="${esc(p.unsubscribeUrl)}">unsubscribe</a>.</p>`,
   };
 }
+
+export function inviteEmail(p: { roleLabel: string; ministryName?: string; acceptUrl: string; churchName: string }): Rendered {
+  const where = p.ministryName ? ` for ${esc(p.ministryName)}` : "";
+  return {
+    subject: `You're invited to ${esc(p.churchName)} — ${esc(p.roleLabel)}`,
+    html:
+      `<h2>Welcome to ${esc(p.churchName)}</h2>` +
+      `<p>You've been invited to create an account as <strong>${esc(p.roleLabel)}</strong>${where}.</p>` +
+      `<p><a href="${esc(p.acceptUrl)}">Set up your account</a>. This link expires in 7 days.</p>` +
+      `<p style="font-size:12px;color:#666">If you weren't expecting this, you can ignore this email.</p>`,
+  };
+}
