@@ -23,6 +23,7 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
     case "ministry":
       return [
         { href: PORTAL_ROUTE.ministry, label: "This Week" },
+        { href: "/dashboard/ministry/submit", label: "Submit to Bulletin" },
         { href: "/dashboard/ministry/announcements", label: "My Announcements" },
         { href: "/dashboard/ministry/events", label: "My Events" },
         { href: "/dashboard/admin/bulletin", label: "Bulletins" },
@@ -58,6 +59,7 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
     case "admin":
       return [
         { href: PORTAL_ROUTE.admin, label: "Operations" },
+        { href: "/dashboard/admin/weekly", label: "Weekly Bulletin" },
         { href: "/dashboard/admin/approvals", label: "Approvals" },
         { href: "/dashboard/admin/account-requests", label: "Account Requests" },
         { href: "/dashboard/admin/accounts", label: "Accounts & Roles" },

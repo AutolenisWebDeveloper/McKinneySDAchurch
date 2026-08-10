@@ -3,7 +3,9 @@ import { timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { env } from "@/env";
 import { sendEmail } from "@/lib/email";
-import { deptHeadReminderEmail } from "@/lib/email-templates";
+import { weeklyRequestEmail } from "@/lib/email-templates";
+import { getOrCreatePacket } from "@/lib/weekly-packets";
+import { upcomingSabbath } from "@/lib/weekly-packet";
 
 function authorized(req: NextRequest): boolean {
   const header = req.headers.get("authorization") ?? "";
@@ -28,8 +30,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, data: { skipped: true, reason: "already-ran-this-period" } });
   }
 
-  const heads = await prisma.user.findMany({ where: { role: "MINISTRY_HEAD" }, select: { email: true } });
-  const { subject, html } = deptHeadReminderEmail({ submitUrl: `${env.NEXT_PUBLIC_SITE_URL}/dashboard/ministry/announcements/new` });
+  // Ensure this week's packet exists so ministry heads have somewhere to submit (§22).
+  await getOrCreatePacket();
+  const sabbath = upcomingSabbath(now);
+
+  // Ministry heads are the active MINISTRY_HEAD role holders (multi-role source of truth).
+  const headRoles = await prisma.userRole.findMany({ where: { active: true, role: "MINISTRY_HEAD" }, select: { userId: true } });
+  const heads = await prisma.user.findMany({ where: { id: { in: [...new Set(headRoles.map((h) => h.userId))] } }, select: { email: true } });
+  const { subject, html } = weeklyRequestEmail({
+    sabbathDate: sabbath.toISOString().slice(0, 10),
+    submitUrl: `${env.NEXT_PUBLIC_SITE_URL}/dashboard/ministry/submit`,
+  });
   let sent = 0, failed = 0;
   for (const h of heads) {
     if (!h.email) continue;

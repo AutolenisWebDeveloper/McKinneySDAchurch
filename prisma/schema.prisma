@@ -192,19 +192,20 @@ model PasswordResetToken {
 
 // ===== Directory =====
 model Ministry {
-  id            String         @id @default(cuid())
-  name          String
-  slug          String         @unique
-  description   String?
-  leaderId      String?        @unique
-  leader        User?          @relation("MinistryLeader", fields: [leaderId], references: [id])
-  members       User[]         @relation("MinistryMembers")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  announcements Announcement[]
-  events        Event[]
-  userRoles     UserRole[]     @relation("UserRoleMinistry")
-  workItems     WorkItem[]     @relation("WorkItemMinistry")
+  id                String             @id @default(cuid())
+  name              String
+  slug              String             @unique
+  description       String?
+  leaderId          String?            @unique
+  leader            User?              @relation("MinistryLeader", fields: [leaderId], references: [id])
+  members           User[]             @relation("MinistryMembers")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  announcements     Announcement[]
+  events            Event[]
+  userRoles         UserRole[]         @relation("UserRoleMinistry")
+  workItems         WorkItem[]         @relation("WorkItemMinistry")
+  packetSubmissions PacketSubmission[] @relation("PacketSubmissionMinistry")
 }
 
 model Household {
@@ -866,6 +867,7 @@ model Bulletin {
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
   items         OrderOfServiceItem[]
+  weeklyPacket  WeeklyPacket?        @relation("PacketBulletin")
 }
 
 model OrderOfServiceItem {
@@ -1300,4 +1302,75 @@ model AccountRequest {
 
   @@index([status, createdAt])
   @@index([emailNormalized])
+}
+
+// ===== Phase 3: Weekly Communications engine (§22/§23) =====
+
+enum WeeklyPacketStatus {
+  COLLECTING
+  IN_REVIEW
+  READY
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PacketSubmissionKind {
+  ANNOUNCEMENT
+  EVENT
+  SABBATH_PROGRAM_ITEM
+  PARTICIPANT
+  MINISTRY_UPDATE
+  NOTHING_THIS_WEEK
+}
+
+enum PacketSubmissionStatus {
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+  NEEDS_INFO
+}
+
+/// One weekly communications packet per Sabbath. Aggregates ministry submissions and links the
+/// existing Bulletin as its order-of-service component (§23). Readiness is a pure calculation
+/// persisted here for display; version guards concurrent review/publish.
+model WeeklyPacket {
+  id             String             @id @default(cuid())
+  sabbathDate    DateTime           @unique
+  status         WeeklyPacketStatus @default(COLLECTING)
+  readinessScore Int                @default(0)
+  deadlineAt     DateTime?
+  publishedAt    DateTime?
+  version        Int                @default(0)
+  bulletinId     String?            @unique
+  bulletin       Bulletin?          @relation("PacketBulletin", fields: [bulletinId], references: [id])
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  submissions    PacketSubmission[]
+
+  @@index([status, sabbathDate])
+}
+
+/// A single contribution to a weekly packet from a ministry (announcement, event, Sabbath program
+/// item, participant, ministry update, or an explicit "nothing this week"). Submitter/reviewer are
+/// stored as scalar ids for audit/display (no FK, matching the AccountRequest pattern).
+model PacketSubmission {
+  id              String                 @id @default(cuid())
+  packetId        String
+  packet          WeeklyPacket           @relation(fields: [packetId], references: [id], onDelete: Cascade)
+  ministryId      String?
+  ministry        Ministry?              @relation("PacketSubmissionMinistry", fields: [ministryId], references: [id])
+  submittedById   String?
+  kind            PacketSubmissionKind
+  status          PacketSubmissionStatus @default(SUBMITTED)
+  title           String?
+  body            String?
+  participantName String?
+  reviewNote      String?
+  reviewedById    String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([packetId, status])
+  @@index([ministryId])
+  @@index([submittedById])
 }

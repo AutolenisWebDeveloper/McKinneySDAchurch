@@ -6,6 +6,48 @@ now being extended to the merged Master Directive (Phases 1–10) starting with 
 
 ---
 
+## Phase 3 — Weekly Communications engine (this pass)
+
+Implements the §22/§23 weekly bulletin pipeline: one `WeeklyPacket` per Sabbath collects ministry
+submissions, a pure readiness score tracks completeness, admins review submissions and assemble the
+Sabbath program (the existing **Bulletin** is linked as the order-of-service component, §60), and
+the packet moves COLLECTING → IN_REVIEW → READY → PUBLISHED → ARCHIVED.
+
+**Verified end-to-end on real Postgres (smoke test):** a ministry head submits to their own ministry
+(cross-ministry submission is **forbidden**); "nothing this week" is recorded; readiness recomputes
+(53% with 2/3 ministries responded → 73% once an order-of-service item exists); an admin accepts a
+submission and the submitter is notified; the version-guarded lifecycle reaches PUBLISHED (the linked
+Bulletin is auto-approved, `publishedAt` set); a stale-version transition is rejected.
+
+- ✅ `src/lib/weekly-packet.ts` — pure `computeReadiness` (department response 80% + order-of-service
+  20%; NOTHING_THIS_WEEK counts, REJECTED doesn't, de-dupes) + `canPacketTransition` state machine +
+  `upcomingSabbath`. Table-tested (9 cases).
+- 🟡 Schema: `WeeklyPacket` (sabbathDate-unique, status, readinessScore, version, optional 1:1
+  `Bulletin` link) + `PacketSubmission` (kind, status, ministry, submitter). Additive migration.
+- 🟡 `src/lib/weekly-packets.ts` — service: `getOrCreatePacket`, `submitToPacket` (ministry-scoped,
+  audited, notifies admins), `reviewSubmission` (accept/reject/needs-info → notify + email submitter),
+  `markNothingThisWeek`, `linkBulletinForPacket`, `recomputeReadiness`, `transitionPacket`
+  (version-guarded; publish approves the Bulletin + emails ministry heads). All transactional/audited.
+- 🟡 **Ministry Head:** `/dashboard/ministry/submit` — submit announcement/event/Sabbath-program-item/
+  participant/ministry-update or "nothing this week"; "my submissions this week" with status; home
+  quick action + nav.
+- 🟡 **Admin console:** `/dashboard/admin/weekly` (list + readiness bars) and `/dashboard/admin/weekly/[id]`
+  — readiness meter, **department checklist** (missing highlighted), per-submission accept/reject/
+  needs-info, create/link order-of-service, bulletin preview of accepted items, and the lifecycle
+  buttons. Nav + admin home stat card ("Bulletin readiness").
+- 🟡 **Weekly request cron:** `ministry-head-reminder` now ensures the packet exists and emails active
+  ministry heads a link to submit (uses `weeklyRequestEmail`; queries the multi-role `UserRole`).
+- 🟡 Emails: weekly request, submission accepted/rejected/needs-info, packet published — HTML-escaped.
+
+**Remaining:** professional **PDF brochure generation** (§37, P1) — the console shows a web preview of
+the assembled program; PDF export is a focused follow-up. Public brochure rendering stays on the
+existing `/bulletin` page (order of service) for now.
+
+**Verified:** typecheck clean; **157/157 tests** (+9); production build clean; migration applies on
+real Postgres; full submit → review → assemble → publish lifecycle smoke-tested end-to-end.
+
+---
+
 ## Phase 4 — Care, Contact, Message Leadership on the WorkItem spine (this pass)
 
 Activates the WorkItem spine end-to-end (§25/§27/§28): public/member submission forms create
