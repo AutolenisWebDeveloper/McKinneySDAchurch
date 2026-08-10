@@ -1,7 +1,77 @@
 # Implementation Status — McKinney SDA Platform
 
 This is the honest manifest. It exists so nothing is *hidden*, even where it isn't yet *built*.
-Read it before assuming any part is production-ready. Aligns to Master Plan v4 phases P0–P8.
+Read it before assuming any part is production-ready. Aligns to Master Plan v4 phases P0–P8,
+now being extended to the merged Master Directive (Phases 1–10) starting with the Phase 1 keystone.
+
+---
+
+## Phase 1 keystone — data + logic + integration layer (this pass)
+
+Implements the foundation every later phase depends on (Directive §13–§17): multi-role RBAC,
+the shared WorkItem communication spine, and the shared notification service. **Fully verified
+in this environment against a real Postgres 16 instance** (not just compiled).
+
+**Verified (evidence executed here):**
+- ✅ `prisma migrate deploy` applies BOTH migrations to a fresh Postgres 16 cleanly
+  (`00000000000000_init` → `20260810000000_phase1_keystone`). Confirmed `Role` enum now has
+  `ELDER`; tables `UserRole`, `WorkItem`, `WorkItemNote`, `WorkItemEvent`, `WorkItemMessage`,
+  `WorkItemAttachment`, `Notification` created; partial unique indexes present.
+- ✅ **Partial unique indexes proven with real data:** a duplicate *active* global role is
+  rejected (`UserRole_active_global_key`), while revoke-then-reassign succeeds and preserves
+  history — the exact PostgreSQL nullable-uniqueness trap called out in §13A is handled.
+- ✅ **Backfill proven:** existing single-role users mirror into an active `UserRole`
+  (MINISTRY_HEAD carries ministry scope); `primaryRole` seeded from `role`.
+- ✅ `npm run typecheck` clean; `npm test` **131/131 green** (was 86; +45 new: roles, workflow,
+  routing, multi-role RBAC + WorkItem authorization); `npm run build` clean; `npx prisma validate`
+  clean; `npx prisma generate` clean.
+
+**1A — Multi-role RBAC (§13A/§14):**
+- 🟡 Schema: `ELDER` added to `Role`; new `UserRole { userId, role, ministryId?, active,
+  assignedById?, assignedAt, revokedAt? }`; `User.primaryRole` (default-portal preference,
+  never the security decision). Migration is additive + backfilled.
+- ✅ `src/lib/rbac.ts` — Actor is now multi-role (`roles[]`, `ministryIds[]`) and **back-compat**
+  (legacy single-`role` callers still work). `hasRole`/`ministryScope` are multi-role aware.
+  Central `can(actor, action, resource)` policy, **deny by default**. New WorkItem policies
+  (`canReadWorkItem`/`canManageWorkItem`/`canMessageWorkItem`) enforce requester/assignee/
+  routing-role access + confidentiality (LEADERSHIP_ONLY excludes non-leadership).
+- 🟡 `src/auth/actor.ts` — resolves the FULL active role set from `UserRole` (revoked excluded);
+  active rows are authoritative (revocation actually drops a role); MEMBER always included.
+- ✅ `src/lib/roles.ts` — pure role→portal mapping, portal eligibility, primary-portal
+  selection, role ranking. **Portal context ≠ authorization** is encoded as a pure function.
+
+**1B — WorkItem spine (§15/§16):**
+- 🟡 Schema: `WorkItem` (+ `Note`/`Event`/`Message`/`Attachment`) with type/status/priority/
+  confidentiality; sensitive bodies + notes encrypted at rest (AES-256-GCM). Attachments bind to
+  the secured `Document` model.
+- ✅ `src/lib/workflow.ts` — pure lifecycle state machine (NEW→…→CLOSED) with guards (assignee
+  required for ASSIGNED, date for FOLLOW_UP, reason for NEEDS_INFO, close reason for
+  RESOLVED/CLOSED), fully table-tested.
+- ✅ `src/lib/routing.ts` — pure `routeWorkItem(type, ctx)` policy (CARE/PRAYER→Pastor+Elders,
+  SUPPORT/CONTACT/SPONSOR→Admin, LEADERSHIP_MESSAGE→Pastor/Elder/Admin, ministry-scoped
+  VOLUNTEER→ministry head). A future care-specific role is a one-line table edit.
+- 🟡 `src/lib/workitems.ts` — transactional server service: create (routes + CREATED event +
+  role fan-out), transition (authz + guards + optimistic concurrency + immutable event + audit +
+  notifications), encrypted notes, requester↔staff messages.
+
+**1C — Notifications (§17):**
+- 🟡 Schema: `Notification { userId, category, title, body, deepLink, readAt?, archivedAt? }`.
+- 🟡 `src/lib/notify.ts` — one shared service: `notify`, `notifyRoles` (role-/ministry-scoped
+  fan-out, de-duped, self-excludable), `unreadCount`, `markRead`, `markAllRead`, `archive`.
+
+**Remaining in Phase 1 (NOT built this pass — honest scope):**
+- ⬜ **1D — the six portal UIs** (`/dashboard/{member,ministry,leadership,clerk,treasurer,admin}`),
+  shared `PortalShell`/`PortalSwitcher`/`NotificationBell`, and migrating existing dashboard
+  pages into them. The `lib/roles.ts` routing + `notify.ts` service are the ready foundation;
+  the deep-links emitted by `workitems.ts` (e.g. `/dashboard/leadership/workitems/:id`) are
+  forward references that resolve once those portals exist.
+- ⬜ Admin role-management UI (assign/revoke/scope with audit) on `/dashboard/admin/accounts`.
+- ⬜ Wiring the existing Care/Prayer/Contact/Attendance flows onto the WorkItem spine (Phases 4–8).
+
+> Service-times seed is now a clearly-marked **placeholder** (`placeholder: true`, values `TBD`)
+> per §67.3 — the previous 9:30/11:00 values were unverified and must not be treated as fact.
+
+---
 
 ## Legend
 - ✅ **Verified** — built here and proven by an executed check in this repo.

@@ -47,10 +47,21 @@ async function main() {
     await prisma.ministry.upsert({ where: { slug: ministrySlug(name) }, update: {}, create: { name, slug: ministrySlug(name) } });
   }
 
+  // Service times are UNVERIFIED (§67.3): seed a clearly-marked placeholder that the church
+  // edits via the CMS/admin. Do NOT treat these values as confirmed fact.
   await prisma.siteSetting.upsert({
     where: { key: "service_times" },
     update: {},
-    create: { key: "service_times", value: JSON.stringify({ sabbathSchool: "9:30", divineWorship: "11:00", prayerMeeting: "Wed 19:00" }) },
+    create: {
+      key: "service_times",
+      value: JSON.stringify({
+        placeholder: true,
+        note: "Placeholder times — confirm with the church before publishing.",
+        sabbathSchool: "TBD",
+        divineWorship: "TBD",
+        prayerMeeting: "TBD",
+      }),
+    },
   });
 
   console.log(`Seeded ${BELIEF_TITLES.length} belief entries + ${STARTER_MINISTRIES.length} departments + site settings.`);
