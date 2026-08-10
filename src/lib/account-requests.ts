@@ -4,15 +4,9 @@ import { env } from "@/env";
 import { hashPassword } from "./crypto";
 import { writeAudit } from "./audit";
 import { notify, notifyRoles } from "./notify";
-import { sendEmail } from "./email";
+import { sendTemplated } from "./email-templated";
 import { church } from "@/components/site-info";
 import { matchMembership, type MatchMember } from "./membership-match";
-import {
-  accountRequestReceivedEmail,
-  accountApprovedEmail,
-  accountNeedsInfoEmail,
-  accountRejectedEmail,
-} from "./email-templates";
 import { type Actor, canReadMember, ForbiddenError } from "./rbac";
 
 /**
@@ -99,7 +93,7 @@ export async function submitAccountRequest(input: SubmitInput): Promise<{ ok: tr
       await createUserFromRequest(tx, created.id, match.memberId!, null);
       return created;
     });
-    await safeEmail(email, accountApprovedEmail({ firstName, churchName: CHURCH, loginUrl: loginUrl(), auto: true }));
+    await sendTemplated("account.approved", email, { firstName, churchName: CHURCH, loginUrl: loginUrl() });
     void req;
     return { ok: true };
   }
@@ -119,7 +113,7 @@ export async function submitAccountRequest(input: SubmitInput): Promise<{ ok: tr
     body: existingUser ? "An account with this email already exists — review for duplicate." : `Match confidence ${match.confidence}% (${match.band}).`,
     deepLink: "/dashboard/admin/account-requests",
   });
-  await safeEmail(email, accountRequestReceivedEmail({ firstName, churchName: CHURCH }));
+  await sendTemplated("account.request_received", email, { firstName, churchName: CHURCH });
   void created;
   return { ok: true };
 }
@@ -204,7 +198,7 @@ export async function approveAccountRequest(
     }
     throw e;
   }
-  if (email) await safeEmail(email, accountApprovedEmail({ firstName, churchName: CHURCH, loginUrl: loginUrl(), auto: false }));
+  if (email) await sendTemplated("account.approved", email, { firstName, churchName: CHURCH, loginUrl: loginUrl() });
   return { ok: true };
 }
 
@@ -225,7 +219,7 @@ export async function rejectAccountRequest(
     await writeAudit(tx, { actorId: admin.userId, action: "account_request.reject", entity: "AccountRequest", entityId: requestId });
     return r;
   });
-  if (req) await safeEmail(req.email, accountRejectedEmail({ firstName: req.firstName, churchName: CHURCH, reason, contactEmail: CONTACT }));
+  if (req) await sendTemplated("account.rejected", req.email, { firstName: req.firstName, churchName: CHURCH, reason, contactEmail: CONTACT });
   return { ok: true };
 }
 
@@ -246,14 +240,8 @@ export async function needsInfoAccountRequest(
     await writeAudit(tx, { actorId: admin.userId, action: "account_request.needs_info", entity: "AccountRequest", entityId: requestId });
     return r;
   });
-  if (req) await safeEmail(req.email, accountNeedsInfoEmail({ firstName: req.firstName, churchName: CHURCH, note: note.trim(), contactEmail: CONTACT }));
+  if (req) await sendTemplated("account.needs_info", req.email, { firstName: req.firstName, churchName: CHURCH, note: note.trim(), contactEmail: CONTACT });
   return { ok: true };
 }
 
-async function safeEmail(to: string, tpl: { subject: string; html: string }): Promise<void> {
-  try {
-    await sendEmail({ to, subject: tpl.subject, html: tpl.html, type: "TRANSACTIONAL" });
-  } catch {
-    /* best-effort: never let an email failure void the state change */
-  }
-}
+

@@ -6,6 +6,45 @@ now being extended to the merged Master Directive (Phases 1–10) starting with 
 
 ---
 
+## Phase 7 — Email template administration + diagnostics (this pass)
+
+Adds an admin-managed email template system (§38/§39) on top of the existing suppression-aware
+Resend pipeline. Templates are safe `{{variable}}` documents — never code. A code **registry** is
+the catalog of known keys/defaults; an admin **override** (stored in the DB, versioned) takes
+precedence when active. The account-request lifecycle emails are wired through it.
+
+**Verified end-to-end on real Postgres (smoke test):** a key resolves to its registry **default**;
+an admin **override** takes precedence; rendering **escapes** variable values (`Jane <b>` →
+`&lt;b&gt;`) while substituting links; a **deactivated** override falls back to the default; a
+**version** snapshot is recorded; an unknown key resolves to null.
+
+- ✅ `src/lib/email-render.ts` — pure safe renderer: `{{variable}}` substitution only (no expression
+  evaluation), HTML-escaped into subject/HTML, verbatim into plain-text, missing vars render empty
+  (never leaks `{{…}}`), HTML→text fallback. Table-tested (8 cases: substitution, escaping/injection,
+  missing vars, no-eval, text body, variable extraction).
+- 🟡 Schema: `EmailTemplate` (key-unique override: subject/html/text, category, channel, active) +
+  `EmailTemplateVersion` (edit history). Additive migration.
+- 🟡 `src/lib/email-registry.ts` — catalog of transactional templates (account ×4 wired, system.test,
+  plus care/transfer/weekly catalog entries) with documented variables and code defaults.
+- 🟡 `src/lib/email-templated.ts` — `resolveTemplate(key)` (active DB override → registry default) and
+  `sendTemplated(key, to, vars)` through the existing `sendEmail` (suppression + RFC 8058 preserved);
+  **best-effort** so an email failure never voids a caller's state change.
+- 🟢 Account-request emails (received / approved / needs-info / rejected) now send via
+  `sendTemplated` — so editing those templates has a live effect.
+- 🟡 **Admin catalog** `/dashboard/admin/email/templates` (grouped by category; In-use / Customized /
+  active badges) + **editor** `/[key]` — subject/HTML/text editing, documented variables, **live
+  preview** (rendered with sample vars), **send test to me**, activate/deactivate override, reset to
+  default, and **version history**. All edits audited.
+- 🟡 **Diagnostics** `/dashboard/admin/email/diagnostics` — sent/failure counts (30d), provider
+  status, recent per-recipient messages with status (failures highlighted), and a **sender-domain
+  check** that warns when `MAIL_FROM` is a `vercel.app` address (SPF/DKIM/DMARC launch-gate, §38/§64).
+- 🟡 Nav: Email Templates added to the Admin portal.
+
+**Verified:** typecheck clean; **181/181 tests** (+8); production build clean; migration applies on
+real Postgres; template resolution / override / escaping / fallback / versioning smoke-tested end-to-end.
+
+---
+
 ## Phase 6 — Governance: committees, motions, action items, Church Manual (this pass)
 
 Extends the existing ChurchOffice/BoardMeeting foundation into a working governance system
