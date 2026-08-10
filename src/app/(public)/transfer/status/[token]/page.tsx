@@ -8,12 +8,15 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Transfer Status" };
 
 const LABEL: Record<string, string> = {
-  SUBMITTED: "Received — waiting for our clerk to review.",
-  IN_REVIEW: "Under review by our clerk.",
+  SUBMITTED: "Received — waiting for our secretary to review.",
+  AWAITING_MEMBER_CONFIRMATION: "Waiting for the member to confirm.",
+  IN_REVIEW: "Under review by our secretary.",
+  NEEDS_INFO: "We need a little more information — please contact the church office.",
   HANDED_TO_EADVENTIST: "Submitted to the official Adventist membership system.",
   COMPLETED: "Completed.",
   DECLINED: "Not able to be processed — please contact the church office.",
   WITHDRAWN: "Withdrawn.",
+  DISPUTED: "On hold — please contact the church office.",
 };
 
 const DONE = new Set(["COMPLETED"]);

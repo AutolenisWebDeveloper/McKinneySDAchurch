@@ -716,11 +716,14 @@ enum TransferDirection {
 
 enum TransferStatus {
   SUBMITTED
+  AWAITING_MEMBER_CONFIRMATION
   IN_REVIEW
+  NEEDS_INFO
   HANDED_TO_EADVENTIST
   COMPLETED
   DECLINED
   WITHDRAWN
+  DISPUTED
 }
 
 enum ReferenceType {
@@ -739,7 +742,7 @@ model MembershipTransfer {
   member             Member?           @relation("MemberTransfers", fields: [memberId], references: [id])
   otherChurchName    String
   otherChurchContact String?
-  initiatedVia       String // PUBLIC | CLERK | MEMBER
+  initiatedVia       String // PUBLIC | CLERK | MEMBER | LEADERSHIP
   statusTokenDigest  String            @unique
   assignedClerkId    String?
   assignedClerk      User?             @relation("TransferClerk", fields: [assignedClerkId], references: [id])
@@ -750,7 +753,21 @@ model MembershipTransfer {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
+  // ----- Phase 5: self-service + leadership-on-behalf + member confirmation (§29) -----
+  requesterUserId         String? // the member who self-initiated an OUTGOING transfer (portal)
+  onBehalf                Boolean   @default(false) // created by leadership on behalf of a member
+  consentAttested         Boolean   @default(false)
+  consentMethod           String? // e.g. verbal | written | email
+  consentDate             DateTime?
+  consentNotes            String?
+  consentDocumentId       String? // optional link to a stored consent document (scalar; no FK)
+  attestedById            String? // the leader who attested consent (scalar; no FK)
+  confirmationTokenDigest String?   @unique // member confirm/deny link (digest only)
+  memberConfirmedAt       DateTime?
+  disputedAt              DateTime?
+
   @@index([direction, status])
+  @@index([requesterUserId])
 }
 
 model ReferenceDocument {
