@@ -37,9 +37,9 @@ export default async function MinistryPortal() {
 
       <PortalSection title="Submit to this week">
         <QuickActionGrid>
+          <QuickAction href="/dashboard/ministry/submit" title="Submit to the bulletin" description="Announcements, events, program items, or “nothing this week”" />
           <QuickAction href="/dashboard/ministry/announcements/new" title="Submit an announcement" description="Sent to admins for approval" />
           <QuickAction href="/dashboard/ministry/events/new" title="Submit an event" description="Added to the calendar once approved" />
-          <QuickAction href="/dashboard/admin/bulletin" title="Bulletins" description="Weekly order of service" />
         </QuickActionGrid>
       </PortalSection>
 

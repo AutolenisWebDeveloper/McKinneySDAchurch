@@ -140,3 +140,37 @@ export function workItemResolvedEmail(p: { firstName: string; kind: string; chur
       `<p>If you need anything further, simply reply and we'll be glad to help.</p>`,
   };
 }
+
+/* ===== Phase 3: Weekly Communications (§22/§23) ===== */
+
+export function weeklyRequestEmail(p: { sabbathDate: string; submitUrl: string; deadline?: string }): Rendered {
+  return {
+    subject: `This week's bulletin — please send your ministry's items`,
+    html:
+      `<h2>Weekly communications for Sabbath ${esc(p.sabbathDate)}</h2>` +
+      `<p>Please submit your ministry's announcements, events, Sabbath program items, and updates —` +
+      ` or let us know there's nothing this week.</p>` +
+      (p.deadline ? `<p><strong>Deadline:</strong> ${esc(p.deadline)}.</p>` : "") +
+      `<p><a href="${esc(p.submitUrl)}">Submit this week's items</a></p>`,
+  };
+}
+
+export function packetSubmissionDecisionEmail(p: { title: string; decision: "accepted" | "rejected" | "needs_info"; note?: string }): Rendered {
+  const word = p.decision === "accepted" ? "accepted" : p.decision === "rejected" ? "not included" : "needs a little more information";
+  return {
+    subject: `Your bulletin submission was ${word}`,
+    html:
+      `<h2>Bulletin submission update</h2>` +
+      `<p>Your submission <strong>${esc(p.title)}</strong> was <strong>${esc(word)}</strong>.</p>` +
+      (p.note ? `<blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#444">${esc(p.note)}</blockquote>` : ""),
+  };
+}
+
+export function packetPublishedEmail(p: { sabbathDate: string; url: string }): Rendered {
+  return {
+    subject: `This week's bulletin is ready — Sabbath ${esc(p.sabbathDate)}`,
+    html:
+      `<h2>The bulletin for Sabbath ${esc(p.sabbathDate)} is published</h2>` +
+      `<p><a href="${esc(p.url)}">View this week's bulletin and order of service</a>.</p>`,
+  };
+}
