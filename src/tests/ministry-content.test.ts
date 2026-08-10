@@ -3,6 +3,12 @@ import {
   formatServiceTime,
   resolveMeets,
   getMinistryContent,
+  resolveHeadRole,
+  initialsFromName,
+  DEFAULT_HEAD_ROLE,
+  MINISTRY_CATEGORY_STYLE,
+  MINISTRY_CATEGORY_BLURB,
+  MINISTRY_CATEGORY_ORDER,
   type MinistryContent,
 } from "@/lib/ministry-content";
 
@@ -53,5 +59,46 @@ describe("resolveMeets", () => {
       activities: [],
     };
     expect(resolveMeets(bare, { anything: "1:00" })).toBeNull();
+  });
+});
+
+describe("resolveHeadRole", () => {
+  it("returns the curated head title for a known ministry", () => {
+    expect(resolveHeadRole("sabbath-school")).toBe("Sabbath School Superintendent");
+    expect(resolveHeadRole("deacons")).toBe("Head Deacon");
+  });
+
+  it("prefers an explicit headRole on the content over the slug map", () => {
+    const content = getMinistryContent("sabbath-school");
+    expect(resolveHeadRole("sabbath-school", { ...content, headRole: "Custom Title" })).toBe("Custom Title");
+  });
+
+  it("falls back to the default title for an unknown ministry", () => {
+    expect(resolveHeadRole("some-new-ministry")).toBe(DEFAULT_HEAD_ROLE);
+  });
+});
+
+describe("initialsFromName", () => {
+  it("uses first and last initials for multi-word names", () => {
+    expect(initialsFromName("Marlon Wilson")).toBe("MW");
+    expect(initialsFromName("Ada Grace Owusu")).toBe("AO");
+  });
+
+  it("uses the first two letters for a single name", () => {
+    expect(initialsFromName("Priscilla")).toBe("PR");
+  });
+
+  it("tolerates punctuation", () => {
+    expect(initialsFromName("O'Brien Smith")).toBe("OS");
+  });
+});
+
+describe("category presentation maps", () => {
+  it("has a style, blurb, and content bucket for every ordered category", () => {
+    for (const category of MINISTRY_CATEGORY_ORDER) {
+      expect(MINISTRY_CATEGORY_STYLE[category]).toBeDefined();
+      expect(MINISTRY_CATEGORY_STYLE[category].cover).toMatch(/from-/);
+      expect(MINISTRY_CATEGORY_BLURB[category]).toBeTruthy();
+    }
   });
 });
