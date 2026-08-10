@@ -114,6 +114,7 @@ export function SiteFooter({ livestream, giveUrl }: { livestream: string | null;
             <Link href="/privacy" className="hover:text-white/80">Privacy</Link>
             <Link href="/terms" className="hover:text-white/80">Terms</Link>
             <Link href="/contact" className="hover:text-white/80">Contact</Link>
+            <Link href="/auth/login" className="hover:text-white/80">Member sign in</Link>
           </div>
         </div>
       </div>

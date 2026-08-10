@@ -19,6 +19,9 @@ export const authOptions: NextAuthOptions = {
         if (!user) return null;
         const ok = await verifyPassword(creds.password, user.passwordHash);
         if (!ok) return null;
+        // Self-registered accounts stay pending until an admin approves them
+        // (activatedAt is set on approval, and on invite acceptance).
+        if (!user.activatedAt) throw new Error("ACCOUNT_PENDING");
         return { id: user.id, email: user.email, role: user.role, sessionVersion: user.sessionVersion } as never;
       },
     }),
