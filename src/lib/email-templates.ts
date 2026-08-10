@@ -116,3 +116,27 @@ export function accountRejectedEmail(p: { firstName: string; churchName: string;
       `<p>If you believe this is a mistake, please contact <a href="mailto:${esc(p.contactEmail)}">${esc(p.contactEmail)}</a>.</p>`,
   };
 }
+
+/* ===== Phase 4: WorkItem communications (care / contact / message / support) ===== */
+
+export function workItemReceivedEmail(p: { firstName: string; kind: string; churchName: string; reference: string }): Rendered {
+  return {
+    subject: `We received your ${esc(p.kind)} — ${esc(p.churchName)}`,
+    html:
+      `<h2>Thank you${p.firstName ? `, ${esc(p.firstName)}` : ""}</h2>` +
+      `<p>We've received your ${esc(p.kind)} and a member of our team will follow up with you personally.</p>` +
+      `<p>Your reference is <strong>${esc(p.reference)}</strong>.</p>` +
+      `<p style="font-size:12px;color:#666">If this wasn't you, please disregard this message.</p>`,
+  };
+}
+
+export function workItemResolvedEmail(p: { firstName: string; kind: string; churchName: string; note?: string }): Rendered {
+  return {
+    subject: `Update on your ${esc(p.kind)} — ${esc(p.churchName)}`,
+    html:
+      `<h2>Hello${p.firstName ? ` ${esc(p.firstName)}` : ""}</h2>` +
+      `<p>We've followed up on your ${esc(p.kind)} and marked it resolved.</p>` +
+      (p.note ? `<blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#444">${esc(p.note)}</blockquote>` : "") +
+      `<p>If you need anything further, simply reply and we'll be glad to help.</p>`,
+  };
+}

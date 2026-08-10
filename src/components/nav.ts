@@ -28,6 +28,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { href: "/ministries", label: "Ministries", desc: "Find your place to serve" },
       { href: "/prayer", label: "Prayer Requests", desc: "We would love to pray with you" },
+      { href: "/care", label: "Care & Support", desc: "Tell us if you or someone needs care" },
       { href: "/baptism", label: "Baptism", desc: "Take your next step in faith" },
       { href: "/transfer", label: "Membership Transfer", desc: "Moving your membership here" },
     ],

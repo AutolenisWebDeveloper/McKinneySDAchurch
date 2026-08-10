@@ -44,6 +44,7 @@ export default async function MemberPortal() {
           <QuickAction href="/dashboard/profile" title="Update my profile" description="Contact details and directory preferences" />
           <QuickAction href="/dashboard/household" title="My household" description="Add family members and dependents" />
           <QuickAction href="/dashboard/directory" title="Church directory" description="Find fellow members who opted in" />
+          <QuickAction href="/dashboard/member/message" title="Message leadership" description="Reach the pastor and elders privately" />
           <QuickAction href="/prayer" title="Request prayer" description="Share a prayer request with leadership" />
           <QuickAction href="/care" title="Report a care need" description="Let a pastor or elder know someone needs care" />
           {giving && <QuickAction href={giving} title="Give" description="Securely through AdventistGiving" external />}
