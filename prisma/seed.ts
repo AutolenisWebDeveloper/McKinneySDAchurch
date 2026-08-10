@@ -35,13 +35,25 @@ async function main() {
     });
   }
 
+  // Starter departments (ministries). Rename/extend from the admin UI as needed.
+  const STARTER_MINISTRIES = [
+    "Sabbath School", "Personal Ministries", "Children's Ministries", "Youth Ministries",
+    "Music Ministry", "Health Ministries", "Community Services", "Women's Ministries",
+    "Men's Ministries", "Family Ministries", "Deacons", "Deaconesses", "Prayer Ministry",
+    "Hospitality", "Media & Communication",
+  ];
+  const ministrySlug = (n: string) => n.toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-");
+  for (const name of STARTER_MINISTRIES) {
+    await prisma.ministry.upsert({ where: { slug: ministrySlug(name) }, update: {}, create: { name, slug: ministrySlug(name) } });
+  }
+
   await prisma.siteSetting.upsert({
     where: { key: "service_times" },
     update: {},
     create: { key: "service_times", value: JSON.stringify({ sabbathSchool: "9:30", divineWorship: "11:00", prayerMeeting: "Wed 19:00" }) },
   });
 
-  console.log(`Seeded ${BELIEF_TITLES.length} belief entries + site settings.`);
+  console.log(`Seeded ${BELIEF_TITLES.length} belief entries + ${STARTER_MINISTRIES.length} departments + site settings.`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); }).finally(() => prisma.$disconnect());
