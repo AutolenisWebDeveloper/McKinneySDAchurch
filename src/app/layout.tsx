@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { ReactNode } from "react";
 import { serif, sans } from "./fonts";
+import { getLocale } from "@/lib/i18n";
 
 // Vercel may provide NEXT_PUBLIC_SITE_URL / VERCEL_URL as a bare host (no scheme);
 // normalize so `new URL()` never throws during the build.
@@ -35,9 +36,10 @@ export const viewport = {
 const noFlash =
   "(function(){try{var m=document.cookie.match(/(?:^|; )theme=(dark|light)/);if(m&&m[1]==='dark')document.documentElement.classList.add('dark');}catch(e){}})();";
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const locale = await getLocale(); // reflect the chosen language for screen readers (WCAG 3.1.1)
   return (
-    <html lang="en" suppressHydrationWarning className={`${serif.variable} ${sans.variable}`}>
+    <html lang={locale} suppressHydrationWarning className={`${serif.variable} ${sans.variable}`}>
       <head><script dangerouslySetInnerHTML={{ __html: noFlash }} /></head>
       <body>{children}</body>
     </html>

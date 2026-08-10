@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Brand } from "./Brand";
 import { navGroups } from "./nav";
 import { church, addressOneLine } from "./site-info";
+import { t, type Locale } from "@/lib/i18n";
 
 const EXT = "noopener noreferrer";
 
@@ -19,25 +20,24 @@ function SocialLink({ href, label, children }: { href: string; label: string; ch
   );
 }
 
-export function SiteFooter({ livestream, giveUrl }: { livestream: string | null; giveUrl: string | null }) {
+export function SiteFooter({ livestream, giveUrl, locale = "en" }: { livestream: string | null; giveUrl: string | null; locale?: Locale }) {
   return (
     <footer className="bg-denim-950 text-white/80">
       {/* Invitation band */}
       <div className="bg-denim-900 border-b border-white/10">
         <div className="mx-auto flex max-w-content flex-col items-start gap-6 px-4 py-12 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="eyebrow text-denim-300">You’re welcome here</p>
+            <p className="eyebrow text-denim-300">{t(locale, "footer.welcome_eyebrow")}</p>
             <h2 className="mt-2 font-serif text-2xl font-semibold text-white sm:text-3xl">
-              Join us this Sabbath.
+              {t(locale, "footer.join_title")}
             </h2>
             <p className="mt-2 max-w-xl text-white/70">
-              Come as you are. You’ll find a warm welcome, honest worship, and a
-              community glad you came.
+              {t(locale, "footer.join_body")}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/plan-a-visit" className="btn btn-white">Plan a Visit</Link>
-            {giveUrl && <a href={giveUrl} target="_blank" rel={EXT} className="btn btn-ghost-light">Give</a>}
+            <Link href="/plan-a-visit" className="btn btn-white">{t(locale, "common.plan_visit")}</Link>
+            {giveUrl && <a href={giveUrl} target="_blank" rel={EXT} className="btn btn-ghost-light">{t(locale, "common.give")}</a>}
           </div>
         </div>
       </div>
@@ -106,7 +106,7 @@ export function SiteFooter({ livestream, giveUrl }: { livestream: string | null;
 
         {/* Bottom bar */}
         <div className="mt-14 flex flex-col gap-4 border-t border-white/10 pt-6 text-xs text-white/55 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} {church.name}. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {church.name}. {t(locale, "footer.rights")}</p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <Link href="/beliefs" className="hover:text-white/80">Beliefs</Link>
             <Link href="/church-manual" className="hover:text-white/80">Church Manual</Link>
