@@ -40,7 +40,7 @@ export async function sendCampaign(formData: FormData) {
     const msg = await prisma.emailMessage.create({ data: { identityId: identity.id, campaignId: campaign.id, type: "MARKETING", status: "QUEUED" } });
     const res = await sendEmail({ to: email, subject: data.subject, html, type: "MARKETING", listType: "MEMBER_UPDATES" }); // suppression + unsubscribe applied
     await prisma.emailMessage.update({ where: { id: msg.id }, data: { status: res.sent ? "ACCEPTED" : "SUPPRESSED" } });
-    res.sent ? sent++ : suppressed++;
+    if (res.sent) sent++; else suppressed++;
   }
   await prisma.emailCampaign.update({ where: { id: campaign.id }, data: { status: "SENT", sentAt: new Date() } });
   await writeAudit(prisma, { actorId: actor.userId, action: "campaign.send", entity: "EmailCampaign", entityId: campaign.id, metadata: { segment: data.segment, sent, suppressed } });

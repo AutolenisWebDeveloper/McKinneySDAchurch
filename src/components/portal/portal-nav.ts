@@ -8,7 +8,7 @@ export type NavItem = { href: string; label: string; external?: boolean };
  * portal-specific home routes are added as their pages ship. Visibility is filtered by the
  * actor's real roles — presentation only; authorization is still enforced in each page/action.
  */
-export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
+export function portalNav(portal: PortalKey, _actor: Actor): NavItem[] {
   switch (portal) {
     case "member":
       return [

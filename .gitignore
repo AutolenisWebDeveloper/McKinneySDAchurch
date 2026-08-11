@@ -10,3 +10,8 @@ prisma/*.db
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+# Playwright E2E artifacts
+playwright-report
+test-results
+/e2e/.auth

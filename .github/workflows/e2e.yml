@@ -1,13 +1,13 @@
-name: ci
+name: e2e
+
+# Cross-role security E2E suite (Playwright). Kept as its own workflow so the fast `ci` gate
+# (lint/typecheck/unit/build) stays independent of the heavier browser run.
 on: [push, pull_request]
 
 jobs:
-  build:
+  security-e2e:
     runs-on: ubuntu-latest
 
-    # Ephemeral Postgres so schema validation, the test suite, and the
-    # production build (which prerenders DB-backed pages) all have a real
-    # database. No external secret required for CI to pass.
     services:
       postgres:
         image: postgres:16
@@ -25,15 +25,16 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres@localhost:5432/mckinney
-      NEXT_PUBLIC_SITE_URL: https://example.com
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3100
+      NEXTAUTH_URL: http://127.0.0.1:3100
+      E2E_PORT: "3100"
 
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "22", cache: "npm" }
 
-      # Ephemeral, CI-only app secrets generated at runtime (nothing secret is
-      # committed). Real secrets live in the deployment environment, not here.
+      # Ephemeral, CI-only app secrets (nothing secret is committed). Lengths satisfy src/env.ts.
       - name: Generate CI env
         run: |
           {
@@ -44,10 +45,16 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - run: npm ci
-      - run: npx prisma validate      # authoritative schema check
       - run: npx prisma generate
-      - run: npx prisma migrate deploy # apply the committed migrations to the CI database
-      - run: npm run lint            # ESLint flat-config gate (real lint, replaces next lint)
-      - run: npm run typecheck
-      - run: npm run test
+      - run: npx prisma migrate deploy
+      - run: npx playwright install --with-deps chromium
       - run: npm run build
+      - run: npx playwright test            # webServer (next start) + fixtures seeded by globalSetup
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

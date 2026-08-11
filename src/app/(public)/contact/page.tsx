@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PageHeader, Card, Callout, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
+import { PageHeader, Card, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
 import { Section, Container } from "@/components/ui";
 import { church, addressOneLine } from "@/components/site-info";
 import { submitContact } from "./actions";

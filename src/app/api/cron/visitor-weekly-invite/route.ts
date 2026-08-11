@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       const { subject, html } = weeklyInviteEmail({ name: v.name, planVisitUrl: `${site}/plan-a-visit`, unsubscribeUrl });
       const res = await sendEmail({ to: v.email, subject, html, type: "MARKETING", listType: "VISITOR_UPDATES" }); // suppression + opt-in re-checked here
       await prisma.emailMessage.update({ where: { id: msg.id }, data: { status: res.sent ? "ACCEPTED" : "SUPPRESSED" } });
-      res.sent ? sent++ : failed++;
+      if (res.sent) sent++; else failed++;
     } catch { failed++; }
   }
 

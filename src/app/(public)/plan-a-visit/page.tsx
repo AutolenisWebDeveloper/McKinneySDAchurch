@@ -2,9 +2,9 @@ import Link from "next/link";
 import { getServiceTimes } from "@/lib/site";
 import { getLocale, t } from "@/lib/i18n";
 import { safe } from "@/lib/safe";
-import { PageHeader, Card, Callout } from "@/components/page-ui";
+import { PageHeader, Callout } from "@/components/page-ui";
 import { Section, Container } from "@/components/ui";
-import { church, addressOneLine } from "@/components/site-info";
+import { church } from "@/components/site-info";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -22,7 +22,7 @@ const steps = [
 ];
 
 export default async function PlanAVisit() {
-  const [times, locale] = await Promise.all([safe(getServiceTimes(), null), getLocale()]);
+  const [, locale] = await Promise.all([safe(getServiceTimes(), null), getLocale()]);
   return (
     <>
       <PageHeader

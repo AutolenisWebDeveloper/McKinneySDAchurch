@@ -1,6 +1,6 @@
 import { requireActor } from "@/auth/actor";
 import { getBlocks, CMS_KEYS } from "@/lib/cms";
-import { fieldClass, labelClass, Callout } from "@/components/page-ui";
+import { fieldClass, Callout } from "@/components/page-ui";
 import { PortalPage, PortalSection } from "@/components/portal/home-ui";
 import { saveBlockAction } from "./actions";
 

@@ -1,7 +1,7 @@
 import { prisma } from "./db";
 import { sanitize } from "./sanitize";
 import { writeAudit } from "./audit";
-import { type Actor, hasRole, ForbiddenError } from "./rbac";
+import { type Actor, canPublishCms, ForbiddenError } from "./rbac";
 
 /**
  * Lightweight CMS (§44). Admin-managed content blocks for public surfaces, read with safe coded
@@ -57,7 +57,7 @@ export async function getBlocks(keys: string[], locale = "en"): Promise<Record<s
 
 /** Admin write. HTML blocks are sanitized; unknown keys are rejected. Audited + versioned. */
 export async function setBlock(actor: Actor, key: string, content: string, locale = "en"): Promise<{ ok: boolean; error?: string }> {
-  if (!hasRole(actor, "ADMIN", "PASTOR")) throw new ForbiddenError();
+  if (!canPublishCms(actor)) throw new ForbiddenError();
   const def = CMS_BY_KEY[key];
   if (!def) return { ok: false, error: "Unknown content block." };
   const clean = def.format === "html" ? sanitize(content) : content.trim().slice(0, 5000);

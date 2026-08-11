@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { getActor } from "@/auth/actor";
-import { requireRole } from "@/lib/rbac";
+import { requireCan } from "@/lib/rbac";
 import { approveAccountRequest, rejectAccountRequest, needsInfoAccountRequest } from "@/lib/account-requests";
 
 async function admin() {
   const a = await getActor();
-  requireRole(a, "ADMIN", "PASTOR");
+  requireCan(a, "accountRequest.review");
   return a;
 }
 

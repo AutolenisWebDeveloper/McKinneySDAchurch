@@ -39,7 +39,7 @@ export default async function Transfers() {
           <div className="space-y-3">
             {transfers.map((t) => {
               const disputed = t.status === "DISPUTED";
-              const actions = (NEXT[t.status] ?? []).filter((n) => !disputed || isLeadership);
+              const actions = (NEXT[t.status] ?? []).filter(() => !disputed || isLeadership);
               return (
                 <div key={t.id} className={`card p-4 ${disputed ? "border-orange/50" : ""}`}>
                   <div className="flex flex-wrap items-start justify-between gap-2">
