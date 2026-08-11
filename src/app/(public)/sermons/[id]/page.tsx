@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSermon } from "@/lib/public-content";
+import { getSermon, getSermons } from "@/lib/public-content";
 import { safe } from "@/lib/safe";
+import { embedUrl, videoThumb } from "@/lib/video";
 import { Container } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -12,20 +13,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return { title: s?.title ?? "Sermon" };
 }
 
-function embed(url: string): string | null {
-  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
-  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
-  const vi = url.match(/vimeo\.com\/(\d+)/);
-  if (vi) return `https://player.vimeo.com/video/${vi[1]}`;
-  return null;
-}
+const EXT = "noopener noreferrer";
+const fmtDate = (d: Date) => new Date(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
 export default async function SermonDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const s = await safe(getSermon(id), null);
+  const [s, recent] = await Promise.all([safe(getSermon(id), null), safe(getSermons(9), [])]);
   if (!s) notFound();
-  const src = embed(s.videoUrl);
-  const EXT = "noopener noreferrer";
+  const src = embedUrl(s.videoUrl);
+  const more = recent.filter((r) => r.id !== s.id).slice(0, 3);
 
   return (
     <Container size="narrow" className="py-12 sm:py-16">
@@ -38,13 +34,13 @@ export default async function SermonDetail({ params }: { params: Promise<{ id: s
         <p className="eyebrow mb-3">Message</p>
         <h1 className="text-display font-serif font-semibold text-fg">{s.title}</h1>
         <p className="mt-3 text-muted">
-          {new Date(s.preachedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+          {fmtDate(s.preachedAt)}
           {s.speaker ? ` · ${s.speaker}` : ""}
         </p>
 
         {src ? (
           <div className="mt-8 overflow-hidden rounded-xl border border-line shadow-md">
-            <div className="aspect-video"><iframe src={src} title={s.title} allowFullScreen className="h-full w-full" /></div>
+            <div className="aspect-video"><iframe src={src} title={s.title} allowFullScreen loading="lazy" className="h-full w-full" /></div>
           </div>
         ) : (
           <p className="mt-8">
@@ -61,6 +57,31 @@ export default async function SermonDetail({ params }: { params: Promise<{ id: s
           </p>
         ) : null}
       </article>
+
+      {more.length ? (
+        <section className="mt-14 border-t border-line pt-10">
+          <h2 className="font-serif text-xl font-semibold text-fg">More messages</h2>
+          <ul className="mt-6 grid gap-6 sm:grid-cols-3">
+            {more.map((m) => {
+              const poster = videoThumb(m.videoUrl);
+              return (
+                <li key={m.id}>
+                  <Link href={`/sermons/${m.id}`} className="card card-hover group block h-full overflow-hidden">
+                    <div className="relative flex aspect-video items-center justify-center overflow-hidden bg-hero-denim">
+                      {poster ? <img src={poster} alt={`${m.title} — video thumbnail`} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" /> : <div className="glow-denim absolute inset-0" aria-hidden="true" />}
+                      <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-denim-800 shadow"><svg className="ml-0.5 h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg></span>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-serif text-base font-semibold text-fg group-hover:text-primary">{m.title}</h3>
+                      <p className="mt-1 text-xs text-muted">{fmtDate(m.preachedAt)}</p>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
     </Container>
   );
 }
