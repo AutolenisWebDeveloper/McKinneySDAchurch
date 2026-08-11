@@ -63,7 +63,7 @@ export default async function Home() {
       <section className="relative overflow-hidden bg-hero-denim text-white">
         {/* Building rendering backdrop (decorative; the headline carries the meaning) */}
         <img
-          src="/renderings/exterior-day.jpg"
+          src="/renderings/exterior-dusk.jpg"
           alt=""
           aria-hidden="true"
           fetchPriority="high"
