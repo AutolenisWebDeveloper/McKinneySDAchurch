@@ -97,3 +97,18 @@ export function InfoRow({ label, children }: { label: string; children: ReactNod
     </div>
   );
 }
+
+/** Canonical empty state for public lists with no data yet (dashed, centered). */
+export function EmptyState({ title, body, className = "" }: { title: string; body?: ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-xl border border-dashed border-line-strong p-8 text-center ${className}`}>
+      <p className="font-serif text-base font-semibold text-fg">{title}</p>
+      {body ? <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">{body}</p> : null}
+    </div>
+  );
+}
+
+/** Shimmer placeholder for loading states (respects reduced motion — see globals.css). */
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`skeleton rounded-lg ${className}`} aria-hidden="true" />;
+}

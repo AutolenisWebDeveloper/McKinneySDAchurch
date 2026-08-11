@@ -9,6 +9,8 @@ import { getLocale, t } from "@/lib/i18n";
 import { safe } from "@/lib/safe";
 import { env } from "@/env";
 import { Container, Section, SectionHeading, Eyebrow, ArrowLink } from "@/components/ui";
+import { EmptyState } from "@/components/page-ui";
+import { Reveal } from "@/components/motion/Reveal";
 import { church, addressOneLine } from "@/components/site-info";
 
 export const dynamic = "force-dynamic";
@@ -293,13 +295,15 @@ export default async function Home() {
 
       {/* ================= LIFE AT MCKINNEY (events + announcements) ================= */}
       <Section>
-        <SectionHeading
-          eyebrow="Life together"
-          title="What’s happening"
-          description="Upcoming gatherings and news from our church family."
-          action={<ArrowLink href="/calendar">View calendar</ArrowLink>}
-          className="mb-10"
-        />
+        <Reveal>
+          <SectionHeading
+            eyebrow="Life together"
+            title="What’s happening"
+            description="Upcoming gatherings and news from our church family."
+            action={<ArrowLink href="/calendar">View calendar</ArrowLink>}
+            className="mb-10"
+          />
+        </Reveal>
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Events */}
@@ -410,20 +414,22 @@ export default async function Home() {
 
       {/* ================= WAYS TO CONNECT ================= */}
       <Section>
-        <SectionHeading
-          eyebrow="Take a next step"
-          title="Ways to connect"
-          align="center"
-          className="mb-12"
-        />
+        <Reveal>
+          <SectionHeading
+            eyebrow="Take a next step"
+            title="Ways to connect"
+            align="center"
+            className="mb-12"
+          />
+        </Reveal>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <ConnectCard href="/ministries" title="Find a ministry" body="From kids to music to community service — discover where you belong and how to serve.">
+          <ConnectCard href="/ministries" title="Find a ministry" body="From kids to music to community service — discover where you belong and how to serve." delay={0}>
             <path d="M12 21a9 9 0 100-18 9 9 0 000 18zM12 8v8M8 12h8" />
           </ConnectCard>
-          <ConnectCard href="/prayer" title="Request prayer" body="Share what’s on your heart. Our team would be honored to pray with and for you.">
+          <ConnectCard href="/prayer" title="Request prayer" body="Share what’s on your heart. Our team would be honored to pray with and for you." delay={90}>
             <path d="M12 21s-7-4.35-9.5-8.5A5.5 5.5 0 0112 6a5.5 5.5 0 019.5 6.5C19 16.65 12 21 12 21z" />
           </ConnectCard>
-          <ConnectCard href="/give" title="Give" body="Return tithe and support the mission and the building fund — securely through AdventistGiving.">
+          <ConnectCard href="/give" title="Give" body="Return tithe and support the mission and the building fund — securely through AdventistGiving." delay={180}>
             <path d="M20 12v7a1 1 0 01-1 1H5a1 1 0 01-1-1v-7M3 7h18v5H3zM12 7v13M12 7S9 3 6.5 4.5 8 8 12 7zM12 7s3-4 5.5-2.5S16 8 12 7z" />
           </ConnectCard>
         </div>
@@ -478,29 +484,22 @@ function VisitFact({
   );
 }
 
-function EmptyState({ title, body }: { title: string; body: string }) {
+function ConnectCard({ href, title, body, delay = 0, children }: { href: string; title: string; body: string; delay?: number; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-line-strong p-8 text-center">
-      <p className="font-serif text-base font-semibold text-fg">{title}</p>
-      <p className="mx-auto mt-1.5 max-w-xs text-sm text-muted">{body}</p>
-    </div>
-  );
-}
-
-function ConnectCard({ href, title, body, children }: { href: string; title: string; body: string; children: React.ReactNode }) {
-  return (
-    <Link href={href} className="card card-hover group flex flex-col p-7">
-      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-denim-50 text-denim-600 dark:bg-white/10 dark:text-denim-300">
-        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          {children}
-        </svg>
-      </span>
-      <h3 className="mt-5 font-serif text-lg font-semibold text-fg">{title}</h3>
-      <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{body}</p>
-      <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary">
-        Learn more
-        <svg className="h-4 w-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.17 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" /></svg>
-      </span>
-    </Link>
+    <Reveal as="div" delayMs={delay} className="h-full">
+      <Link href={href} className="card card-hover group flex h-full flex-col p-7">
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-denim-50 text-denim-600 dark:bg-white/10 dark:text-denim-300">
+          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {children}
+          </svg>
+        </span>
+        <h3 className="mt-5 font-serif text-lg font-semibold text-fg">{title}</h3>
+        <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{body}</p>
+        <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary">
+          Learn more
+          <svg className="h-4 w-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.17 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" /></svg>
+        </span>
+      </Link>
+    </Reveal>
   );
 }
