@@ -5,6 +5,7 @@ import { subscribeBuilding, createPledge } from "./actions";
 import { PageHeader, Card, Callout, fieldClass, Honeypot } from "@/components/page-ui";
 import { Section, Container, Eyebrow } from "@/components/ui";
 import { BuildingPlans } from "@/components/BuildingPlans";
+import { BuildingRenderings } from "@/components/BuildingRenderings";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -39,6 +40,7 @@ export default async function Construction({ searchParams }: { searchParams: Pro
           lede="We’re raising funds to build a permanent home for the McKinney SDA Church. Here is the vision — with more to come as the campaign takes shape."
           tone="denim"
         />
+        <BuildingRenderings />
         <BuildingPlans />
       </>
     );
@@ -91,6 +93,9 @@ export default async function Construction({ searchParams }: { searchParams: Pro
           </div>
         </Container>
       </section>
+
+      {/* ARCHITECTURAL RENDERINGS (church-supplied) */}
+      <BuildingRenderings />
 
       {/* SITE & BUILDING PLANS (church-supplied drawings) */}
       <BuildingPlans />
