@@ -1,0 +1,27 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "mckinney-vendored",
+  "metadata": {
+    "description": "Vendored, version-pinned copies of the Superpowers (engineering execution) and Impeccable (frontend/UX design) plugins, committed into this repo so every clone can enable the same tooling. See .claude/plugins/README.md for provenance, licenses, and how to enable."
+  },
+  "owner": {
+    "name": "McKinney SDA Platform",
+    "email": "noreply@mckinneysda.org"
+  },
+  "plugins": [
+    {
+      "name": "superpowers",
+      "source": "./superpowers",
+      "description": "Core skills library: TDD, systematic debugging, planning, verification-before-completion, code-review, git worktrees. Vendored from github.com/obra/superpowers @ 6.2.0 (MIT).",
+      "version": "6.2.0",
+      "category": "workflow"
+    },
+    {
+      "name": "impeccable",
+      "source": "./impeccable",
+      "description": "Design fluency for frontend development: 1 skill with 23 commands (/impeccable polish, audit, critique, ...). Vendored from github.com/pbakaus/impeccable @ 4.0.4 (Apache-2.0).",
+      "version": "4.0.4",
+      "category": "design"
+    }
+  ]
+}
