@@ -47,6 +47,7 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
     case "clerk":
       return [
         { href: PORTAL_ROUTE.clerk, label: "Secretary Home" },
+        { href: "/dashboard/admin/members", label: "Members" },
         { href: "/dashboard/clerk/transfers", label: "Transfers" },
         { href: "/dashboard/search", label: "Search" },
         { href: "/dashboard/clerk/reconcile", label: "eAdventist Reconcile" },
@@ -75,6 +76,8 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
         { href: "/dashboard/admin/approvals", label: "Approvals" },
         { href: "/dashboard/admin/account-requests", label: "Account Requests" },
         { href: "/dashboard/admin/accounts", label: "Accounts & Roles" },
+        { href: "/dashboard/admin/members", label: "Members" },
+        { href: "/dashboard/admin/calendar", label: "Calendar" },
         { href: "/dashboard/admin/visitors", label: "Visitors" },
         { href: "/dashboard/admin/email", label: "Member Email" },
         { href: "/dashboard/admin/email/templates", label: "Email Templates" },
