@@ -15,7 +15,7 @@ import { createElement, useEffect, useRef, useState, type ReactNode } from "reac
  * Server components can render <Reveal> around server-rendered children; the
  * children pass straight through. Use `delayMs` to stagger siblings.
  */
-type RevealTag = "div" | "section" | "article" | "li" | "figure" | "span" | "ul" | "ol";
+type RevealTag = "div" | "section" | "article" | "aside" | "li" | "figure" | "span" | "ul" | "ol";
 
 export function Reveal({
   as = "div",
