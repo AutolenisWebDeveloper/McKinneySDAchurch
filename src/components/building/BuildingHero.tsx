@@ -3,35 +3,40 @@ import { Container } from "@/components/ui";
 
 /**
  * Cinematic hero for the Building Project flagship page. Stages the architectural
- * film when a source is provided (muted, looping, poster fallback) and otherwise
- * the church-supplied rendering, under a denim scrim that keeps the headline at
- * WCAG AA. When the commissioned cinematic sequence is delivered, pass `videoSrc`
- * (and a poster) — no layout change required.
+ * film when one or more sources are provided (muted, looping, poster fallback) and
+ * otherwise the church-supplied rendering, under a denim scrim that keeps the
+ * headline at WCAG AA. The film is wired to /public/video (see the README there);
+ * the page passes `videoSources` only once the file exists, so it degrades to the
+ * poster with no broken request until then — no layout change required.
  */
 export function BuildingHero({
   projectTitle,
   targetLabel,
-  videoSrc,
+  videoSources,
   poster = "/image/rendering-approach.jpg",
 }: {
   projectTitle?: string | null;
   targetLabel?: string | null;
-  videoSrc?: string | null;
+  videoSources?: { src: string; type: string }[];
   poster?: string;
 }) {
+  const hasVideo = !!videoSources?.length;
   return (
     <section className="relative overflow-hidden bg-denim-950 text-white">
-      {videoSrc ? (
+      {hasVideo ? (
         <video
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
           autoPlay
           muted
           loop
           playsInline
+          preload="metadata"
           poster={poster}
           aria-hidden="true"
         >
-          <source src={videoSrc} />
+          {videoSources!.map((s) => (
+            <source key={s.src} src={s.src} type={s.type} />
+          ))}
         </video>
       ) : (
         <img src={poster} alt="" aria-hidden="true" fetchPriority="high" className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center" />

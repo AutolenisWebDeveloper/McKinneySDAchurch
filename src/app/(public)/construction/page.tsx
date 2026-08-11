@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { raisedPct, formatUsd, campaignRollup, phaseRollup } from "@/lib/construction";
@@ -24,6 +26,33 @@ export const metadata = {
 };
 
 const EXT = "noopener noreferrer";
+
+/**
+ * Resolve the cinematic hero media. Priority:
+ *  1. BUILDING_CINEMATIC_URL env var (externally hosted film), else
+ *  2. local file(s) in /public/video (see the README there).
+ * Sources are only returned when they exist, so the hero degrades to the poster
+ * rendering with no broken request until a film is added.
+ */
+function resolveHeroMedia(): { videoSources: { src: string; type: string }[]; poster: string } {
+  const posterFile = path.join(process.cwd(), "public", "video", "building-cinematic-poster.jpg");
+  const poster = fs.existsSync(posterFile) ? "/video/building-cinematic-poster.jpg" : "/image/rendering-approach.jpg";
+
+  if (env.BUILDING_CINEMATIC_URL) {
+    const url = env.BUILDING_CINEMATIC_URL;
+    const type = url.toLowerCase().endsWith(".webm") ? "video/webm" : "video/mp4";
+    return { videoSources: [{ src: url, type }], poster };
+  }
+
+  const candidates: { file: string; src: string; type: string }[] = [
+    { file: "building-cinematic.webm", src: "/video/building-cinematic.webm", type: "video/webm" },
+    { file: "building-cinematic.mp4", src: "/video/building-cinematic.mp4", type: "video/mp4" },
+  ];
+  const videoSources = candidates
+    .filter((c) => fs.existsSync(path.join(process.cwd(), "public", "video", c.file)))
+    .map(({ src, type }) => ({ src, type }));
+  return { videoSources, poster };
+}
 
 /** A slim band promoting the immersive 3D experience. */
 function ExploreBand() {
@@ -54,6 +83,7 @@ function ExploreBand() {
 export default async function Construction({ searchParams }: { searchParams: Promise<{ subscribed?: string; pledged?: string }> }) {
   const { subscribed, pledged } = await searchParams;
   const giveUrl = env.ADVENTIST_GIVING_URL ?? null;
+  const heroMedia = resolveHeroMedia();
 
   const project = await safe(prisma.constructionProject.findFirst({
     where: { active: true }, orderBy: { createdAt: "desc" },
@@ -72,7 +102,7 @@ export default async function Construction({ searchParams }: { searchParams: Pro
   if (!project) {
     return (
       <>
-        <BuildingHero />
+        <BuildingHero videoSources={heroMedia.videoSources} poster={heroMedia.poster} />
         <ExploreBand />
         <ArchitectureShowcase />
         <InteractivePlan />
@@ -107,7 +137,7 @@ export default async function Construction({ searchParams }: { searchParams: Pro
   return (
     <>
       {/* 1 — CINEMATIC HERO */}
-      <BuildingHero projectTitle={project.title} targetLabel={targetLabel} />
+      <BuildingHero projectTitle={project.title} targetLabel={targetLabel} videoSources={heroMedia.videoSources} poster={heroMedia.poster} />
 
       {/* 2 — VISION */}
       <Section>
