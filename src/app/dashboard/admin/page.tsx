@@ -44,7 +44,8 @@ export default async function AdminPortal() {
           <QuickAction href="/dashboard/admin/approvals" title="Approvals" description="Announcements and events awaiting review" />
           <QuickAction href="/dashboard/admin/accounts" title="Accounts & roles" description="Provision logins and manage roles" />
           <QuickAction href="/dashboard/admin/members" title="Members" description="Create and manage member profiles" />
-          <QuickAction href="/dashboard/admin/member-info" title="Member info forms" description="Household details submitted from the website" />
+          <QuickAction href="/dashboard/admin/households" title="Households" description="Family profiles and their members" />
+          <QuickAction href="/dashboard/admin/member-info" title="Member info forms" description="Review, approve, and provision from submissions" />
           <QuickAction href="/dashboard/admin/visitors" title="Visitors" description="Follow-up and convert to members" />
           <QuickAction href="/dashboard/admin/workitems" title="Requests inbox" description="Volunteer, sponsor, support, and contact" />
         </QuickActionGrid>

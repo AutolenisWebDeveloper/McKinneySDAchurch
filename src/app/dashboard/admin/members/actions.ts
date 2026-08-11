@@ -8,6 +8,8 @@ import { getActor } from "@/auth/actor";
 import { requireRole } from "@/lib/rbac";
 import { hashPassword } from "@/lib/crypto";
 import { writeAudit } from "@/lib/audit";
+import { blankToUndef, EMPLOYMENT_STATUSES } from "@/lib/member-info";
+import { parseYear } from "@/lib/member-provision";
 
 const STATUSES = ["ACTIVE", "MISSING", "REMOVED", "TRANSFERRED_OUT", "DECEASED"] as const;
 
@@ -28,6 +30,14 @@ const updateSchema = z.object({
   membershipStatus: z.enum(STATUSES),
   directoryVisible: z.boolean().optional(),
   showAddress: z.boolean().optional(),
+  baptismYear: z.string().trim().optional(),
+  joinedYear: z.string().trim().optional(),
+  currentMinistries: z.string().trim().max(2000).optional(),
+  ministryInterests: z.string().trim().max(2000).optional(),
+  occupation: z.string().trim().max(200).optional(),
+  employer: z.string().trim().max(200).optional(),
+  employmentStatus: z.string().trim().optional(),
+  skills: z.string().trim().max(2000).optional(),
 });
 
 /**
@@ -110,7 +120,17 @@ export async function updateMember(formData: FormData) {
     membershipStatus: formData.get("membershipStatus"),
     directoryVisible: formData.get("directoryVisible") === "on",
     showAddress: formData.get("showAddress") === "on",
+    baptismYear: blankToUndef(formData.get("baptismYear")),
+    joinedYear: blankToUndef(formData.get("joinedYear")),
+    currentMinistries: blankToUndef(formData.get("currentMinistries")),
+    ministryInterests: blankToUndef(formData.get("ministryInterests")),
+    occupation: blankToUndef(formData.get("occupation")),
+    employer: blankToUndef(formData.get("employer")),
+    employmentStatus: blankToUndef(formData.get("employmentStatus")),
+    skills: blankToUndef(formData.get("skills")),
   });
+  const employmentStatus =
+    d.employmentStatus && (EMPLOYMENT_STATUSES as readonly string[]).includes(d.employmentStatus) ? d.employmentStatus : null;
   await prisma.member.update({
     where: { id: d.id },
     data: {
@@ -120,6 +140,14 @@ export async function updateMember(formData: FormData) {
       membershipStatus: d.membershipStatus,
       directoryVisible: d.directoryVisible ?? false,
       showAddress: d.showAddress ?? false,
+      baptismYear: parseYear(d.baptismYear),
+      joinedYear: parseYear(d.joinedYear),
+      currentMinistries: d.currentMinistries ?? null,
+      ministryInterests: d.ministryInterests ?? null,
+      occupation: d.occupation ?? null,
+      employer: d.employer ?? null,
+      employmentStatus,
+      skills: d.skills ?? null,
     },
   });
   // Keep the linked login's display name in step with the member's name.

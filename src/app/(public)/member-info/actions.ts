@@ -1,6 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { sha256 } from "@/lib/crypto";
 import {
   memberInfoSchema,
   encodeMemberInfo,
@@ -61,11 +62,23 @@ export async function submitMemberInfo(formData: FormData) {
   });
   if (!parsed.success) redirect("/member-info?error=1");
 
+  // If opened from an emailed invite, tie the submission back to that invite's address.
+  let invitedEmail: string | null = null;
+  const inviteToken = blankToUndef(formData.get("invite"));
+  if (inviteToken) {
+    const invite = await prisma.memberInfoInvite.findUnique({
+      where: { tokenDigest: sha256(inviteToken) },
+      select: { email: true },
+    });
+    invitedEmail = invite?.email ?? null;
+  }
+
   const payload = parsed.data;
   await prisma.memberInfoSubmission.create({
     data: {
       householdName: payload.householdName,
-      contactEmail: pickContactEmail(payload),
+      contactEmail: pickContactEmail(payload) ?? invitedEmail ?? undefined,
+      invitedEmail,
       consent: true,
       status: "NEW",
       payloadEnc: encodeMemberInfo(payload),

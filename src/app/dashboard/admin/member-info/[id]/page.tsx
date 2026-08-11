@@ -9,7 +9,7 @@ import {
   type Adult,
   type EmploymentStatus,
 } from "@/lib/member-info";
-import { setSubmissionStatus, deleteSubmission } from "../actions";
+import { setSubmissionStatus, deleteSubmission, approveSubmission } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -60,11 +60,19 @@ function StatusButton({ id, status, label }: { id: string; status: string; label
   );
 }
 
-export default async function SubmissionDetail({ params }: { params: Promise<{ id: string }> }) {
+export default async function SubmissionDetail({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
+}) {
   await requireActor("ADMIN", "PASTOR", "CLERK");
   const { id } = await params;
+  const { error } = await searchParams;
   const sub = await prisma.memberInfoSubmission.findUnique({ where: { id } });
   if (!sub) notFound();
+  const approved = sub.status === "APPROVED" || !!sub.createdHouseholdId;
 
   let data;
   try {
@@ -84,11 +92,40 @@ export default async function SubmissionDetail({ params }: { params: Promise<{ i
         <span className="rounded-full bg-line px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-muted">{sub.status}</span>
         <span className="text-sm text-muted">Submitted {fmt(sub.createdAt)}</span>
         <div className="ml-auto flex flex-wrap gap-2">
-          {sub.status !== "REVIEWED" ? <StatusButton id={sub.id} status="REVIEWED" label="Mark reviewed" /> : null}
+          {!approved ? <StatusButton id={sub.id} status="REVIEWED" label="Mark reviewed" /> : null}
           {sub.status !== "ARCHIVED" ? <StatusButton id={sub.id} status="ARCHIVED" label="Archive" /> : null}
-          {sub.status !== "NEW" ? <StatusButton id={sub.id} status="NEW" label="Mark new" /> : null}
         </div>
       </div>
+
+      {error === "already" ? (
+        <p className="rounded-lg border border-accent-strong/30 bg-accent-strong/10 px-3.5 py-2.5 text-sm text-accent-strong">This submission has already been approved.</p>
+      ) : null}
+      {error === "decrypt" ? (
+        <p className="rounded-lg border border-accent-strong/30 bg-accent-strong/10 px-3.5 py-2.5 text-sm text-accent-strong">This submission couldn't be decrypted, so it can't be approved.</p>
+      ) : null}
+
+      {approved ? (
+        <div className="card flex flex-wrap items-center justify-between gap-3 border-primary/30 bg-denim-50 p-5 dark:bg-white/5">
+          <div>
+            <p className="font-medium text-fg">Approved — records created</p>
+            <p className="mt-0.5 text-sm text-muted">A household and individual profiles were provisioned from this submission.</p>
+          </div>
+          {sub.createdHouseholdId ? (
+            <Link href={`/dashboard/admin/households/${sub.createdHouseholdId}`} className="btn btn-primary shrink-0">View household</Link>
+          ) : null}
+        </div>
+      ) : (
+        <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
+          <div>
+            <p className="font-medium text-fg">Approve &amp; create records</p>
+            <p className="mt-0.5 text-sm text-muted">Creates a household profile and an individual profile for each adult and child, all linked together.</p>
+          </div>
+          <form action={approveSubmission}>
+            <input type="hidden" name="id" value={sub.id} />
+            <button className="btn btn-primary shrink-0">Approve &amp; create</button>
+          </form>
+        </div>
+      )}
 
       {data ? (
         <>

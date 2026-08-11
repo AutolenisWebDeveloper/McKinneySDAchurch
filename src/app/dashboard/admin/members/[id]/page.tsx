@@ -4,6 +4,7 @@ import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
 import { PortalPage, PortalSection } from "@/components/portal/home-ui";
 import { fieldClass, labelClass } from "@/components/page-ui";
+import { EMPLOYMENT_STATUSES, EMPLOYMENT_STATUS_LABEL } from "@/lib/member-info";
 import { updateMember } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +34,7 @@ export default async function ManageMember({
     include: {
       user: { select: { email: true, activatedAt: true, roles: { where: { active: true }, select: { role: true } } } },
       offices: { where: { active: true }, select: { title: true, role: true } },
+      household: { select: { id: true, familyName: true } },
     },
   });
   if (!member) notFound();
@@ -87,8 +89,68 @@ export default async function ManageMember({
                 Show address in the directory
               </label>
             </div>
+
+            <div className="grid gap-4 border-t border-line pt-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="baptismYear" className={labelClass}>Baptism year</label>
+                <input id="baptismYear" name="baptismYear" inputMode="numeric" maxLength={4} defaultValue={member.baptismYear ?? ""} className={`mt-1 ${fieldClass}`} />
+              </div>
+              <div>
+                <label htmlFor="joinedYear" className={labelClass}>Year joined McKinney SDA</label>
+                <input id="joinedYear" name="joinedYear" inputMode="numeric" maxLength={4} defaultValue={member.joinedYear ?? ""} className={`mt-1 ${fieldClass}`} />
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="currentMinistries" className={labelClass}>Current ministry involvement</label>
+                <textarea id="currentMinistries" name="currentMinistries" rows={2} maxLength={2000} defaultValue={member.currentMinistries ?? ""} className={`mt-1 ${fieldClass}`} />
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="ministryInterests" className={labelClass}>Ministries / activities of interest</label>
+                <textarea id="ministryInterests" name="ministryInterests" rows={2} maxLength={2000} defaultValue={member.ministryInterests ?? ""} className={`mt-1 ${fieldClass}`} />
+              </div>
+            </div>
+
+            <details className="rounded-xl border border-line p-4" open={!!(member.occupation || member.employer || member.employmentStatus || member.skills)}>
+              <summary className="cursor-pointer text-sm font-semibold text-fg">Employment <span className="font-normal text-muted">(optional)</span></summary>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="occupation" className={labelClass}>Occupation / title</label>
+                  <input id="occupation" name="occupation" maxLength={200} defaultValue={member.occupation ?? ""} className={`mt-1 ${fieldClass}`} />
+                </div>
+                <div>
+                  <label htmlFor="employer" className={labelClass}>Employer</label>
+                  <input id="employer" name="employer" maxLength={200} defaultValue={member.employer ?? ""} className={`mt-1 ${fieldClass}`} />
+                </div>
+                <div>
+                  <label htmlFor="employmentStatus" className={labelClass}>Employment status</label>
+                  <select id="employmentStatus" name="employmentStatus" defaultValue={member.employmentStatus ?? ""} className={`mt-1 ${fieldClass}`}>
+                    <option value="">—</option>
+                    {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{EMPLOYMENT_STATUS_LABEL[s]}</option>)}
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label htmlFor="skills" className={labelClass}>Skills / services offered</label>
+                  <textarea id="skills" name="skills" rows={2} maxLength={2000} defaultValue={member.skills ?? ""} className={`mt-1 ${fieldClass}`} />
+                </div>
+              </div>
+            </details>
+
             <button type="submit" className="btn btn-primary">Save changes</button>
           </form>
+        </div>
+      </PortalSection>
+
+      <PortalSection title="Household">
+        <div className="card p-5 sm:p-6 text-sm">
+          {member.household ? (
+            <p className="text-fg">
+              Part of{" "}
+              <Link href={`/dashboard/admin/households/${member.household.id}`} className="font-semibold text-primary hover:underline">
+                {member.household.familyName || "a household"}
+              </Link>.
+            </p>
+          ) : (
+            <p className="text-muted">Not linked to a household.</p>
+          )}
         </div>
       </PortalSection>
 

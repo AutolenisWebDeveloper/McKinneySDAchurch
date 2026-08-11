@@ -229,3 +229,15 @@ export function transferCompletedEmail(p: { name: string; churchName: string }):
       `<p style="font-size:12px;color:#666">— ${esc(p.churchName)}</p>`,
   };
 }
+
+export function memberInfoInviteEmail(p: { churchName: string; url: string; note?: string }): Rendered {
+  return {
+    subject: `${p.churchName} — Member Information Form`,
+    html:
+      `<p>Hello,</p>` +
+      `<p>${esc(p.churchName)} invites you to fill out our Member Information Form so we can keep our church family records up to date.</p>` +
+      (p.note ? `<p>${esc(p.note)}</p>` : "") +
+      `<p><a href="${esc(p.url)}">Open the Member Information Form</a></p>` +
+      `<p>Your information is submitted securely and used only for church administration.</p>`,
+  };
+}

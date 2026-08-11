@@ -76,8 +76,8 @@ function AdultFields({ prefix, heading }: { prefix: string; heading: string }) {
   );
 }
 
-export default async function MemberInfoForm({ searchParams }: { searchParams: Promise<{ thanks?: string; error?: string }> }) {
-  const { thanks, error } = await searchParams;
+export default async function MemberInfoForm({ searchParams }: { searchParams: Promise<{ thanks?: string; error?: string; invite?: string }> }) {
+  const { thanks, error, invite } = await searchParams;
 
   if (thanks) {
     return (
@@ -112,6 +112,7 @@ export default async function MemberInfoForm({ searchParams }: { searchParams: P
         <Card className="mt-6">
           <form action={submitMemberInfo} className="space-y-10">
             <Honeypot />
+            {invite ? <input type="hidden" name="invite" value={invite} /> : null}
 
             {/* Household */}
             <fieldset className="space-y-4">
