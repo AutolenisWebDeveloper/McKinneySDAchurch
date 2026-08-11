@@ -1,11 +1,14 @@
-import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
-import { PortalPage, PortalSection, EmptyState } from "@/components/portal/home-ui";
 import { fieldClass, labelClass } from "@/components/page-ui";
+import { StatusBadge } from "@/components/portal/dashboard-ui";
+import { RecordHeader, FilterBar, SearchField, FilterSelect, RecordTable, Pagination, type RecordRow } from "@/components/portal/record-ui";
 import { createMember } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+const PAGE_SIZE = 20;
 
 const STATUSES = ["ACTIVE", "MISSING", "REMOVED", "TRANSFERRED_OUT", "DECEASED"] as const;
 const STATUS_LABEL: Record<string, string> = {
@@ -15,27 +18,109 @@ const STATUS_LABEL: Record<string, string> = {
   TRANSFERRED_OUT: "Transferred out",
   DECEASED: "Deceased",
 };
+function statusTone(s: string): "success" | "warn" | "default" {
+  if (s === "ACTIVE") return "success";
+  if (s === "MISSING") return "warn";
+  return "default";
+}
 
-export default async function AdminMembers({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+type SP = { q?: string; status?: string; login?: string; sort?: string; page?: string; error?: string };
+
+export default async function AdminMembers({ searchParams }: { searchParams: Promise<SP> }) {
   await requireActor("ADMIN", "PASTOR", "CLERK");
-  const { error } = await searchParams;
+  const sp = await searchParams;
 
-  const members = await prisma.member.findMany({
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    include: {
-      user: { select: { id: true, email: true } },
-      offices: { where: { active: true }, select: { title: true }, orderBy: { electedAt: "desc" } },
-    },
-  });
+  const q = (sp.q ?? "").trim();
+  const status = sp.status && STATUSES.includes(sp.status as (typeof STATUSES)[number]) ? sp.status : "all";
+  const login = sp.login === "yes" || sp.login === "no" ? sp.login : "all";
+  const sort = sp.sort === "recent" ? "recent" : "name";
+  const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1);
+
+  const where: Prisma.MemberWhereInput = {};
+  if (q) {
+    where.OR = [
+      { firstName: { contains: q, mode: "insensitive" } },
+      { lastName: { contains: q, mode: "insensitive" } },
+      { email: { contains: q, mode: "insensitive" } },
+    ];
+  }
+  if (status !== "all") where.membershipStatus = status as (typeof STATUSES)[number];
+  if (login === "yes") where.userId = { not: null };
+  if (login === "no") where.userId = null;
+
+  const orderBy: Prisma.MemberOrderByWithRelationInput[] =
+    sort === "recent" ? [{ updatedAt: "desc" }] : [{ lastName: "asc" }, { firstName: "asc" }];
+
+  const [total, members] = await Promise.all([
+    prisma.member.count({ where }),
+    prisma.member.findMany({
+      where,
+      orderBy,
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        isMinor: true,
+        membershipStatus: true,
+        updatedAt: true,
+        userId: true,
+        household: { select: { familyName: true } },
+        offices: { where: { active: true }, orderBy: { electedAt: "desc" }, take: 1, select: { title: true } },
+      },
+    }),
+  ]);
+
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const qs = (over: Partial<SP>) => {
+    const p = new URLSearchParams();
+    const merged = { q, status, login, sort, page: String(page), ...over };
+    for (const [k, v] of Object.entries(merged)) if (v && v !== "all" && !(k === "page" && v === "1")) p.set(k, String(v));
+    const s = p.toString();
+    return s ? `/dashboard/admin/members?${s}` : "/dashboard/admin/members";
+  };
+
+  const rows: RecordRow[] = members.map((m) => ({
+    id: m.id,
+    href: `/dashboard/admin/members/${m.id}`,
+    cells: [
+      <>
+        <span className="flex items-center gap-2">
+          <span className="truncate font-medium text-fg">
+            {m.lastName}, {m.firstName}
+          </span>
+          {m.isMinor && (
+            <span className="rounded-full bg-line px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-muted">Minor</span>
+          )}
+        </span>
+        <span className="mt-0.5 block truncate text-xs text-muted md:hidden">
+          {m.household?.familyName ? `${m.household.familyName} · ` : ""}
+          {STATUS_LABEL[m.membershipStatus]}
+          {m.userId ? "" : " · no login"}
+        </span>
+      </>,
+      <span className="hidden truncate text-sm text-muted md:block">{m.household?.familyName ?? "—"}</span>,
+      <span className="hidden md:block">
+        <StatusBadge tone={statusTone(m.membershipStatus)}>{STATUS_LABEL[m.membershipStatus]}</StatusBadge>
+      </span>,
+      <span className="hidden truncate text-sm text-muted md:block">{m.offices[0]?.title ?? "—"}</span>,
+      <span className="hidden text-xs text-muted md:block">{m.updatedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>,
+    ],
+  }));
 
   return (
-    <PortalPage
-      title="Members"
-      intro="Create and manage member profiles. Each member gets a login they can sign in with — they set their password with “Forgot password.” Give a member a title on the Officers page to mark them as a church officer."
-    >
-      <PortalSection title="Add a member">
-        <div className="card p-5 sm:p-6">
-          {error === "email" ? (
+    <div className="space-y-5">
+      <RecordHeader
+        title="Members"
+        subtitle="Search, filter, and manage member profiles. Each member has a login they activate via “Forgot password.”"
+      />
+
+      <details className="rounded-xl border border-line bg-surface shadow-sm">
+        <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-fg">Add a member</summary>
+        <div className="border-t border-line p-5">
+          {sp.error === "email" ? (
             <p className="mb-4 rounded-lg border border-accent-strong/30 bg-accent-strong/10 px-3.5 py-2.5 text-sm text-accent-strong">
               That email is already in use by another member or account. Use a different email.
             </p>
@@ -76,40 +161,45 @@ export default async function AdminMembers({ searchParams }: { searchParams: Pro
             <button type="submit" className="btn btn-primary">Create member &amp; login</button>
           </form>
         </div>
-      </PortalSection>
+      </details>
 
-      <PortalSection title={`All members${members.length ? ` (${members.length})` : ""}`}>
-        {members.length ? (
-          <ul className="card divide-y divide-line px-5">
-            {members.map((m) => (
-              <li key={m.id} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="flex flex-wrap items-center gap-2 font-medium text-fg">
-                    <span className="truncate">{m.lastName}, {m.firstName}</span>
-                    {m.offices.length ? (
-                      <span className="rounded-full bg-denim-50 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary dark:bg-white/10">
-                        {m.offices[0]!.title}
-                      </span>
-                    ) : null}
-                    {m.membershipStatus !== "ACTIVE" ? (
-                      <span className="rounded-full bg-line px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-muted">
-                        {STATUS_LABEL[m.membershipStatus]}
-                      </span>
-                    ) : null}
-                  </p>
-                  <p className="mt-0.5 text-sm text-muted">
-                    {m.email ?? "no email"}
-                    {m.user ? " · has login" : " · no login"}
-                  </p>
-                </div>
-                <Link href={`/dashboard/admin/members/${m.id}`} className="btn btn-outline shrink-0 px-3 py-1.5 text-sm">Manage</Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState title="No members yet" hint="Add your first member above." />
-        )}
-      </PortalSection>
-    </PortalPage>
+      <FilterBar>
+        <SearchField defaultValue={q} placeholder="Search name or email" />
+        <FilterSelect
+          name="status"
+          label="Status"
+          defaultValue={status}
+          options={[{ value: "all", label: "All statuses" }, ...STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s]! }))]}
+        />
+        <FilterSelect
+          name="login"
+          label="Login"
+          defaultValue={login}
+          options={[
+            { value: "all", label: "Any" },
+            { value: "yes", label: "Has login" },
+            { value: "no", label: "No login" },
+          ]}
+        />
+        <FilterSelect
+          name="sort"
+          label="Sort"
+          defaultValue={sort}
+          options={[
+            { value: "name", label: "Name (A–Z)" },
+            { value: "recent", label: "Recently updated" },
+          ]}
+        />
+      </FilterBar>
+
+      <RecordTable
+        head={["Member", "Household", "Status", "Office", "Updated"]}
+        gridClass="md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_7rem_minmax(0,1fr)_6.5rem]"
+        rows={rows}
+        empty={{ title: q || status !== "all" || login !== "all" ? "No members match these filters" : "No members yet", hint: q ? "Try a different search or clear the filters." : "Add your first member above." }}
+      />
+
+      <Pagination page={page} pageCount={pageCount} total={total} hrefFor={(p) => qs({ page: String(p) })} />
+    </div>
   );
 }
