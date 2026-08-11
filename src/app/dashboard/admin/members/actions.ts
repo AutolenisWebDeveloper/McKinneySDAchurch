@@ -8,6 +8,9 @@ import { getActor } from "@/auth/actor";
 import { requireRole } from "@/lib/rbac";
 import { hashPassword } from "@/lib/crypto";
 import { writeAudit } from "@/lib/audit";
+import { requestPasswordReset } from "@/auth/reset";
+import { sendEmail } from "@/lib/email";
+import { church } from "@/components/site-info";
 import { blankToUndef, EMPLOYMENT_STATUSES } from "@/lib/member-info";
 import { parseYear } from "@/lib/member-provision";
 
@@ -159,4 +162,41 @@ export async function updateMember(formData: FormData) {
   revalidatePath("/dashboard/admin/members");
   revalidatePath(`/dashboard/admin/members/${d.id}`);
   redirect(`/dashboard/admin/members/${d.id}?saved=1`);
+}
+
+/**
+ * Email a member a secure link to set their own password. Reuses the standard
+ * password-reset token flow (valid one hour). Delivery requires Resend to be
+ * configured; the result is surfaced to the admin via a redirect flag.
+ */
+export async function sendPasswordSetup(formData: FormData) {
+  const actor = await getActor();
+  requireRole(actor, "ADMIN", "PASTOR", "CLERK");
+  const id = String(formData.get("id"));
+  const member = await prisma.member.findUnique({
+    where: { id },
+    select: { user: { select: { email: true } } },
+  });
+  const email = member?.user?.email;
+  if (!email) redirect(`/dashboard/admin/members/${id}?pw=nouser`);
+
+  const res = await requestPasswordReset(email!);
+  let sent = false;
+  if (res) {
+    const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+    const link = `${base}/auth/reset/${res.rawToken}`;
+    try {
+      const r = await sendEmail({
+        to: email!,
+        subject: `Set up your ${church.shortName} account`,
+        type: "TRANSACTIONAL",
+        html: `<p>Hello,</p><p>An account has been created for you at ${church.name}. Set your password to sign in:</p><p><a href="${link}">Set your password</a> — this link expires in one hour.</p><p>If you didn't expect this, you can ignore this email.</p>`,
+      });
+      sent = r.sent;
+    } catch {
+      sent = false;
+    }
+  }
+  await writeAudit(prisma, { actorId: actor.userId, action: "member.password_setup", entity: "Member", entityId: id, metadata: { sent } });
+  redirect(`/dashboard/admin/members/${id}?pw=${sent ? "sent" : "failed"}`);
 }

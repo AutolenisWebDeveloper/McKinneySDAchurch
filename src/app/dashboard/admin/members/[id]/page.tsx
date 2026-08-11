@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { PortalPage, PortalSection } from "@/components/portal/home-ui";
 import { fieldClass, labelClass } from "@/components/page-ui";
 import { EMPLOYMENT_STATUSES, EMPLOYMENT_STATUS_LABEL } from "@/lib/member-info";
-import { updateMember } from "../actions";
+import { updateMember, sendPasswordSetup } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,11 +23,11 @@ export default async function ManageMember({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string; created?: string }>;
+  searchParams: Promise<{ saved?: string; created?: string; pw?: string }>;
 }) {
   await requireActor("ADMIN", "PASTOR", "CLERK");
   const { id } = await params;
-  const { saved, created } = await searchParams;
+  const { saved, created, pw } = await searchParams;
 
   const member = await prisma.member.findUnique({
     where: { id },
@@ -164,6 +164,15 @@ export default async function ManageMember({
             <span className="text-muted">Roles</span>
             <span className="text-fg">{member.user?.roles.length ? member.user.roles.map((r) => r.role).join(", ") : "MEMBER"}</span>
           </div>
+          {pw === "sent" ? <p className="rounded-lg border border-primary/30 bg-denim-50 px-3 py-2 text-primary dark:bg-white/5">Set-password email sent.</p> : null}
+          {pw === "failed" ? <p className="rounded-lg border border-accent-strong/30 bg-accent-strong/10 px-3 py-2 text-accent-strong">Couldn't send — email isn't configured yet (set up Resend).</p> : null}
+          {pw === "nouser" ? <p className="rounded-lg border border-accent-strong/30 bg-accent-strong/10 px-3 py-2 text-accent-strong">This member has no linked login.</p> : null}
+          {member.user?.email ? (
+            <form action={sendPasswordSetup}>
+              <input type="hidden" name="id" value={member.id} />
+              <button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-fg transition-colors hover:border-primary hover:text-primary">Email set-password link</button>
+            </form>
+          ) : null}
           <p className="text-xs text-muted">
             Manage login roles on the <Link href="/dashboard/admin/accounts" className="text-primary hover:underline">Accounts &amp; Roles</Link> page.
           </p>
