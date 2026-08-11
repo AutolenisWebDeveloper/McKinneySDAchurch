@@ -2,11 +2,11 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getActor } from "@/auth/actor";
-import { requireRole } from "@/lib/rbac";
+import { requireCan } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
 
-async function admin() { const a = await getActor(); requireRole(a, "ADMIN", "PASTOR"); return a; }
+async function admin() { const a = await getActor(); requireCan(a, "manual.manage"); return a; }
 
 /** Add a Church Manual version (authorized PDF link or official URL — never scraped text, §35). */
 export async function addManualVersion(formData: FormData) {

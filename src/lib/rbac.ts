@@ -1,4 +1,4 @@
-import type { Role, WorkItemType, WorkItemConfidentiality } from "@prisma/client";
+import type { Role, WorkItemType, WorkItemConfidentiality, DocumentVisibility } from "@prisma/client";
 import { routeWorkItem } from "./routing";
 
 /**
@@ -68,6 +68,41 @@ export const canReadBoardMinutes = (a: Actor) => isAdmin(a) || hasRole(a, "CLERK
 export const canManageTransfer = (a: Actor) => isAdmin(a) || hasRole(a, "CLERK");
 export const canManageScreening = (a: Actor) => isAdmin(a) || hasRole(a, "CLERK");
 export const canManageGiving = (a: Actor) => isAdmin(a) || hasRole(a, "TREASURER");
+
+/* ---- Governance & official records (mirror the checks currently inlined at call sites) ---- */
+/** Committees are managed by the church office (Admin/Pastor/Clerk). */
+export const canManageCommittee = (a: Actor) => isAdmin(a) || hasRole(a, "CLERK");
+/** Board/business-meeting minutes are approved by Admin/Pastor. */
+export const canApproveMinutes = (a: Actor) => isAdmin(a);
+/** Leadership creates an OUTGOING transfer on behalf of a member (§29). */
+export const canCreateTransferOnBehalf = (a: Actor) => isLeadership(a) || hasRole(a, "CLERK");
+/** A DISPUTED transfer may only be resolved by leadership, never an ordinary clerk. */
+export const canOverrideTransferDispute = (a: Actor) => isLeadership(a);
+
+/* ---- Admin surfaces (Church Manual, email templates, CMS, account requests) ---- */
+export const canManageManual = (a: Actor) => isAdmin(a);
+export const canManageEmailTemplate = (a: Actor) => isAdmin(a);
+export const canPublishCms = (a: Actor) => isAdmin(a);
+export const canReviewAccountRequest = (a: Actor) => isAdmin(a);
+
+/* ---- Documents: read is visibility-gated; management is Admin/Pastor (§34) ---- */
+export type DocumentRef = { visibility: DocumentVisibility };
+/** Read/download a stored document. PUBLIC → any actor; MEMBERS_ONLY → any member/staff;
+ *  ADMIN_ONLY → Admin/Pastor. (Download signs a URL only after this returns true.) */
+export function canReadDocument(a: Actor, doc: DocumentRef): boolean {
+  switch (doc.visibility) {
+    case "PUBLIC":
+      return true;
+    case "MEMBERS_ONLY":
+      return hasRole(a, "MEMBER", "MINISTRY_HEAD", "ELDER", "CLERK", "TREASURER", "ADMIN", "PASTOR");
+    case "ADMIN_ONLY":
+      return isAdmin(a);
+    default:
+      return false;
+  }
+}
+/** Upload / replace / archive / delete a document. */
+export const canManageDocument = (a: Actor) => isAdmin(a);
 
 /* ---- Minors: only a guardian in the same household (or admin/pastor) ---- */
 export function canManageDependent(
@@ -161,30 +196,62 @@ export type Action =
   | "announcement.approve"
   | "member.manage"
   | "transfer.manage"
-  | "minutes.read"
+  | "transfer.createOnBehalf" | "transfer.overrideDispute"
+  | "minutes.read" | "minutes.approve"
+  | "committee.manage"
+  | "manual.manage"
+  | "emailTemplate.manage"
+  | "cms.publish"
+  | "accountRequest.review"
+  | "document.read" | "document.download" | "document.manage"
   | "role.manage"
   | "giving.manage";
 
-export function can(actor: Actor, action: Action, resource?: WorkItemRef): boolean {
+/** Resource shape depends on the action: WorkItem actions take a WorkItemRef; document
+ *  actions take a DocumentRef; role-only actions take no resource. */
+export type Resource = WorkItemRef | DocumentRef;
+
+export function can(actor: Actor, action: Action, resource?: Resource): boolean {
   switch (action) {
     case "care.read":
     case "prayer.read":
     case "workitem.read":
-      return resource ? canReadWorkItem(actor, resource) : false;
+      return resource ? canReadWorkItem(actor, resource as WorkItemRef) : false;
     case "care.manage":
     case "prayer.manage":
     case "workitem.manage":
-      return resource ? canManageWorkItem(actor, resource) : false;
+      return resource ? canManageWorkItem(actor, resource as WorkItemRef) : false;
     case "workitem.message":
-      return resource ? canMessageWorkItem(actor, resource) : false;
+      return resource ? canMessageWorkItem(actor, resource as WorkItemRef) : false;
     case "announcement.approve":
       return canReviewContent(actor);
     case "member.manage":
       return canReadMember(actor);
     case "transfer.manage":
       return canManageTransfer(actor);
+    case "transfer.createOnBehalf":
+      return canCreateTransferOnBehalf(actor);
+    case "transfer.overrideDispute":
+      return canOverrideTransferDispute(actor);
     case "minutes.read":
       return canReadBoardMinutes(actor);
+    case "minutes.approve":
+      return canApproveMinutes(actor);
+    case "committee.manage":
+      return canManageCommittee(actor);
+    case "manual.manage":
+      return canManageManual(actor);
+    case "emailTemplate.manage":
+      return canManageEmailTemplate(actor);
+    case "cms.publish":
+      return canPublishCms(actor);
+    case "accountRequest.review":
+      return canReviewAccountRequest(actor);
+    case "document.read":
+    case "document.download":
+      return resource ? canReadDocument(actor, resource as DocumentRef) : false;
+    case "document.manage":
+      return canManageDocument(actor);
     case "role.manage":
       return canManageRoles(actor);
     case "giving.manage":
@@ -192,4 +259,11 @@ export function can(actor: Actor, action: Action, resource?: WorkItemRef): boole
     default:
       return false;
   }
+}
+
+/** Deny-by-default guard: throw ForbiddenError unless the action is permitted. Prefer this
+ *  in server actions/route handlers over scattering role literals, so authorization stays
+ *  centralized in this module. */
+export function requireCan(actor: Actor, action: Action, resource?: Resource): void {
+  if (!can(actor, action, resource)) throw new ForbiddenError();
 }

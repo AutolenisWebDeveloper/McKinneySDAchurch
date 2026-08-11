@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { decryptField } from "@/lib/crypto";
 import { adultWhere } from "@/lib/minors";
 import { fieldClass, labelClass } from "@/components/page-ui";
-import { PortalPage, PortalSection, EmptyState } from "@/components/portal/home-ui";
+import { PortalPage, PortalSection } from "@/components/portal/home-ui";
 import { addMemberAction, removeMemberAction } from "../actions";
 import { addActionItem, setActionItemStatus, addSecretaryNote } from "../../board/actions";
 

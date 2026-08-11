@@ -13,7 +13,7 @@ import {
   transferReceivedEmail, transferConfirmationRequestEmail, transferConfirmedEmail,
   transferDisputedNotice, transferCompletedEmail,
 } from "./email-templates";
-import { type Actor, hasRole, canManageTransfer, ForbiddenError } from "./rbac";
+import { type Actor, canManageTransfer, canCreateTransferOnBehalf, canOverrideTransferDispute, ForbiddenError } from "./rbac";
 
 /**
  * Membership-transfer service (§29). eAdventist stays the record of truth; this orchestrates
@@ -87,7 +87,7 @@ export type OnBehalfInput = {
 /** Leadership creates an OUTGOING transfer on behalf of a member. Requires consent attestation and
  *  member confirmation before processing (§29). */
 export async function createOnBehalf(leader: Actor, input: OnBehalfInput): Promise<{ ok: boolean; error?: string }> {
-  if (!(hasRole(leader, "PASTOR", "ADMIN", "ELDER") || hasRole(leader, "CLERK"))) throw new ForbiddenError();
+  if (!canCreateTransferOnBehalf(leader)) throw new ForbiddenError();
   if (!input.consentMethod?.trim()) return { ok: false, error: "Record how consent was obtained." };
 
   const status = initialTransferStatus({ direction: "OUTGOING", onBehalf: true }); // AWAITING_MEMBER_CONFIRMATION
@@ -192,7 +192,7 @@ export async function advanceTransfer(
   const result = await prisma.$transaction(async (tx) => {
     const t = await tx.membershipTransfer.findUniqueOrThrow({ where: { id } });
     // DISPUTED may only be resolved by leadership (Pastor/Admin/Elder), not an ordinary clerk.
-    if (isOrdinaryProcessingLocked(t.status) && !hasRole(actor, "PASTOR", "ADMIN", "ELDER")) {
+    if (isOrdinaryProcessingLocked(t.status) && !canOverrideTransferDispute(actor)) {
       return { ok: false as const, error: "This transfer is disputed and can only be resolved by leadership." };
     }
     if (!canTransferTransition(t.status, to)) return { ok: false as const, error: `Can't move from ${t.status} to ${to}.` };

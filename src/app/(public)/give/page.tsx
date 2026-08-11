@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { safe } from "@/lib/safe";
 import { env } from "@/env";
 import { PageHeader, Card, Callout } from "@/components/page-ui";
-import { Section, Container } from "@/components/ui";
+import { Section } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 export const metadata = {

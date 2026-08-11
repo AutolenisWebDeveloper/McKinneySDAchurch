@@ -2,14 +2,14 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getActor } from "@/auth/actor";
-import { requireRole } from "@/lib/rbac";
+import { requireCan } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
 import { sendTemplated } from "@/lib/email-templated";
 import { registryEntry } from "@/lib/email-registry";
 import { church } from "@/components/site-info";
 
-async function admin() { const a = await getActor(); requireRole(a, "ADMIN", "PASTOR"); return a; }
+async function admin() { const a = await getActor(); requireCan(a, "emailTemplate.manage"); return a; }
 
 /** Save (create/update) a template override for a key, snapshotting the prior version. */
 export async function saveTemplateAction(formData: FormData) {

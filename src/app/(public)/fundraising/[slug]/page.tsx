@@ -5,7 +5,7 @@ import { safe } from "@/lib/safe";
 import { formatUsd, campaignTotals, fundraiserTotals, rankFundraisers, confirmedTotal } from "@/lib/fundraising";
 import { DonateForm } from "@/components/DonateForm";
 import { Container } from "@/components/ui";
-import { Card, Callout } from "@/components/page-ui";
+import { Callout } from "@/components/page-ui";
 
 export const dynamic = "force-dynamic";
 

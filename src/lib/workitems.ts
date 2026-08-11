@@ -1,5 +1,4 @@
 import type {
-  Prisma,
   WorkItem,
   WorkItemStatus,
   WorkItemType,

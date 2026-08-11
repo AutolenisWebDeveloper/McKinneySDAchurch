@@ -1,7 +1,7 @@
 import { prisma } from "./db";
 import { writeAudit } from "./audit";
 import { committeeSlug } from "./governance";
-import { type Actor, hasRole, ForbiddenError } from "./rbac";
+import { type Actor, canManageCommittee, ForbiddenError } from "./rbac";
 
 /**
  * Committee administration (§32). Admins, pastors, and the church secretary (CLERK) manage
@@ -9,7 +9,7 @@ import { type Actor, hasRole, ForbiddenError } from "./rbac";
  */
 
 function assertGov(actor: Actor) {
-  if (!hasRole(actor, "ADMIN", "PASTOR", "CLERK")) throw new ForbiddenError();
+  if (!canManageCommittee(actor)) throw new ForbiddenError();
 }
 
 export async function createCommittee(actor: Actor, name: string, description?: string): Promise<{ ok: boolean; id?: string; error?: string }> {

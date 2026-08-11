@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
   for (const h of heads) {
     if (!h.email) continue;
     const res = await sendEmail({ to: h.email, subject, html, type: "TRANSACTIONAL" }); // internal notice
-    res.sent ? sent++ : failed++;
+    if (res.sent) sent++; else failed++;
   }
   await prisma.scheduledJobRun.update({ where: { idempotencyKey }, data: { status: "COMPLETED", completedAt: new Date(), processedCount: heads.length, failedCount: failed } });
   return NextResponse.json({ ok: true, data: { processed: heads.length, sent, failed } });

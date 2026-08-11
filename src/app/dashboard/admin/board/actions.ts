@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getActor } from "@/auth/actor";
-import { requireRole } from "@/lib/rbac";
+import { requireRole, requireCan } from "@/lib/rbac";
 import { sanitize } from "@/lib/sanitize";
 import { encryptField } from "@/lib/crypto";
 import { writeAudit } from "@/lib/audit";
@@ -35,7 +35,7 @@ export async function saveMinutes(formData: FormData) {
 
 export async function approveMinutes(formData: FormData) {
   const actor = await getActor();
-  requireRole(actor, "ADMIN", "PASTOR");
+  requireCan(actor, "minutes.approve");
   const id = String(formData.get("id"));
   await prisma.$transaction(async (tx) => {
     const m = await tx.boardMeeting.findUniqueOrThrow({ where: { id } });

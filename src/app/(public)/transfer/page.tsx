@@ -2,7 +2,7 @@ import Link from "next/link";
 import { env } from "@/env";
 import { submitTransfer } from "./actions";
 import { PageHeader, Card, Callout, fieldClass, Honeypot } from "@/components/page-ui";
-import { Section, Container } from "@/components/ui";
+import { Section } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
