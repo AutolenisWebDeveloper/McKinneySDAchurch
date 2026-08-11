@@ -3,6 +3,7 @@ import { submitMemberInfo } from "./actions";
 import { ChildrenFields } from "./ChildrenFields";
 import { PageHeader, Card, Callout, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
 import { Section } from "@/components/ui";
+import { Reveal } from "@/components/motion/Reveal";
 import { EMPLOYMENT_STATUSES, EMPLOYMENT_STATUS_LABEL } from "@/lib/member-info";
 
 export const dynamic = "force-dynamic";
@@ -82,7 +83,7 @@ export default async function MemberInfoForm({ searchParams }: { searchParams: P
   if (thanks) {
     return (
       <>
-        <PageHeader eyebrow="Thank you" title="Your information has been received" lede="Thank you for helping us keep our church family records up to date. Our office will be in touch if anything needs confirming." />
+        <PageHeader eyebrow="Thank you" title="Your information has been received" lede="Thank you for helping us keep our church family records up to date. Our office will be in touch if anything needs confirming." tone="denim" />
         <Section container size="narrow">
           <div className="flex flex-wrap gap-3">
             <Link href="/" className="btn btn-primary">Back home</Link>
@@ -99,6 +100,7 @@ export default async function MemberInfoForm({ searchParams }: { searchParams: P
         eyebrow="Members"
         title="McKinney SDA Member Information Form"
         lede="Please share your household and membership details so we can care for and stay connected with your family. Your information is transmitted over a secure connection and stored encrypted — used only for church administration."
+        tone="denim"
       />
       <Section container size="narrow">
         {error ? (
@@ -109,7 +111,7 @@ export default async function MemberInfoForm({ searchParams }: { searchParams: P
           </Callout>
         ) : null}
 
-        <Card className="mt-6">
+        <Reveal as="div" className="mt-6"><Card>
           <form action={submitMemberInfo} className="space-y-10">
             <Honeypot />
             {invite ? <input type="hidden" name="invite" value={invite} /> : null}
@@ -155,7 +157,7 @@ export default async function MemberInfoForm({ searchParams }: { searchParams: P
               <button type="submit" className="btn btn-primary mt-6">Submit information</button>
             </div>
           </form>
-        </Card>
+        </Card></Reveal>
       </Section>
     </>
   );
