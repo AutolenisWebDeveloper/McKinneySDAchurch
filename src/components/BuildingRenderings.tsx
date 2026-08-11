@@ -1,17 +1,15 @@
 import { Container } from "./ui";
 
 /**
- * Architect renderings of the future McKinney SDA Church. These are fixed,
- * church-supplied assets (like the drawings in BuildingPlans), served as static
- * files from /public/renderings — not the admin-managed ProjectPhoto gallery.
- * Drop the image files in /public/renderings (see that folder's README).
+ * Architect renderings of the future McKinney SDA Church. Fixed, church-supplied
+ * assets (like the drawings in BuildingPlans), served as static web-optimized
+ * files from /public/image. Add more by dropping a web JPG in /public/image and
+ * appending it here (front-elevation day/dusk/night shots still to come).
  */
 const RENDERINGS: { src: string; caption: string; alt: string }[] = [
-  { src: "/renderings/exterior-day.jpg", caption: "Front elevation", alt: "McKinney SDA Church — front elevation in daylight" },
-  { src: "/renderings/exterior-dusk.jpg", caption: "Dusk", alt: "McKinney SDA Church — front elevation at dusk" },
-  { src: "/renderings/exterior-night.jpg", caption: "Evening", alt: "McKinney SDA Church — entrance illuminated at night" },
-  { src: "/renderings/exterior-approach.jpg", caption: "The approach", alt: "McKinney SDA Church — the approach and parking" },
-  { src: "/renderings/site-aerial.jpg", caption: "Site & parking", alt: "McKinney SDA Church — aerial view of the building and parking" },
+  { src: "/image/rendering-approach.jpg", caption: "The approach", alt: "McKinney SDA Church — the approach, with parking and landscaping" },
+  { src: "/image/rendering-aerial.jpg", caption: "Aerial view", alt: "Aerial view of the McKinney SDA Church building and parking" },
+  { src: "/image/rendering-aerial-2.jpg", caption: "Aerial view — grounds", alt: "Aerial view of the McKinney SDA Church showing the entrance and grounds" },
 ];
 
 export function BuildingRenderings() {

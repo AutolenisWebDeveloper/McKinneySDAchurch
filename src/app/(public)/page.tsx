@@ -61,9 +61,10 @@ export default async function Home() {
 
       {/* ================= HERO ================= */}
       <section className="relative overflow-hidden bg-hero-denim text-white">
-        {/* Building rendering backdrop (decorative; the headline carries the meaning) */}
+        {/* Building rendering backdrop (decorative; the headline carries the meaning).
+            Interim: the daytime approach shot until a front-elevation dusk render is added. */}
         <img
-          src="/renderings/exterior-dusk.jpg"
+          src="/image/rendering-approach.jpg"
           alt=""
           aria-hidden="true"
           fetchPriority="high"
