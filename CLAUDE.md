@@ -100,6 +100,66 @@ These encode **domain-specific invariants only**. Generic Next.js/React/TypeScri
 debugging/accessibility engineering is covered by Claude Code's built-in capabilities — use
 those alongside these Skills rather than expecting the Skills to repeat generic advice.
 
+## Capability hierarchy & Skill composition
+
+Work here draws on layered capabilities. Higher layers set **intent**; the **bottom layer is
+the only one that actually enforces anything.**
+
+1. **Authoritative Master Implementation Directive** — defines the target product (see *Source
+   of truth*).
+2. **Project invariants & requirements** — the boundaries/architecture in this file and the
+   McKinney SDA Skills. Govern **what** must be preserved.
+3. **Superpowers** — engineering execution layer (repo exploration, requirements analysis,
+   planning, TDD, systematic debugging, root-cause analysis, implementation, verification/
+   independent review). Governs **how** engineering work is executed. **Not installed in this
+   environment as of 2026-08-11** — a session must **re-verify** (search `~/.claude/skills`,
+   project `.claude/skills`, `~/.claude/plugins`) and use it only if actually present, per its
+   own instructions. Never invent its Skill names or claim to have used it when absent.
+4. **Impeccable** — frontend/UX/design-quality layer (information architecture, visual
+   hierarchy, layout, typography, spacing, responsive, navigation, forms, tables, dialogs,
+   states, a11y, critique). Governs **frontend/UX execution quality**, working **inside** the
+   McKinney SDA design system and tokens. **Not installed in this environment as of
+   2026-08-11** — re-verify each session; use only if present. It may raise implementation
+   quality but must never change brand tokens, portal architecture, navigation
+   responsibilities, RBAC, workflows, communication architecture, safeguarding, the
+   AdventistGiving boundary, or approved terminology — and must not change business logic for
+   visual convenience.
+5. **McKinney SDA project Skills** (`.claude/skills/`) — repository-specific architecture,
+   RBAC, privacy, safeguarding, workflows, communications, governance, database, testing, and
+   production rules.
+6. **Automated controls** — TypeScript (`npm run typecheck`), tests (`npm run test`), Prisma
+   schema constraints + migrations, server-side authorization (`src/lib/rbac.ts`), and CI
+   (`.github/workflows/ci.yml`). **This layer is the actual enforcement.**
+
+Superpowers and Impeccable govern *execution quality*; they do **not** override McKinney
+invariants. When installed, compose them **with** the project Skills — they are not mutually
+exclusive.
+
+### Skill selection (before every substantial task)
+
+1. **Classify** the task. 2. **Inspect** which verified Skills apply. 3. **Read** the applicable
+Skill instructions when needed. 4. **Select the smallest effective combination.** 5. **Execute.**
+6. Use a **separate review/verification** capability where available. Don't invoke every Skill
+mechanically; don't skip a relevant security, safeguarding, database, or verification Skill just
+because an execution-layer package is active.
+
+Common combinations (add the relevant Superpowers/Impeccable Skills **when installed**):
+
+| Task | Project Skills to compose |
+|---|---|
+| Portal implementation/redesign | `architecture` + `rbac-security` + `frontend-design` + `testing-qa` |
+| Care / Prayer / Leadership Messages | `workflows` + `rbac-security` + `data-privacy` + `safeguarding` + `email-communications` + `testing-qa` |
+| Weekly comms / Sabbath brochure | `weekly-communications` + `email-communications` + `frontend-design` + `testing-qa` |
+| Prisma / schema migration | `architecture` + `database-prisma` + `rbac-security` (if authz data) + `testing-qa` |
+| Production-readiness review | `code-review` + `rbac-security` + `safeguarding` + `testing-qa` + `production-readiness` |
+
+### Enforcement honesty
+
+This file and the Skills are **guidance that shapes how work is done** — they do not by
+themselves block anything. Real enforcement lives in code, database constraints, tests,
+server-side authorization checks, and CI. Never describe a Skill or a CLAUDE.md instruction as
+an enforcement mechanism.
+
 ## Validation commands (CI parity — `.github/workflows/ci.yml`)
 
 ```bash
