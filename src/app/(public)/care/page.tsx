@@ -1,5 +1,7 @@
-import { PageHeader, Card, Callout, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
+import Link from "next/link";
+import { PageHeader, Card, Callout, FormError, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
 import { Section } from "@/components/ui";
+import { Reveal } from "@/components/motion/Reveal";
 import { church } from "@/components/site-info";
 import { submitCareRequest } from "./actions";
 
@@ -24,11 +26,13 @@ export default async function CarePage({ searchParams }: { searchParams: Promise
         eyebrow="We're here for you"
         title="Report a care need"
         lede="Sickness, hospitalization, a loss, a hard season, or someone you're worried about — let us know and a pastor or elder will reach out with care and confidentiality."
+        tone="denim"
+        actions={<Link href="/prayer" className="btn btn-ghost-light">Ask for prayer</Link>}
       />
 
       <Section size="narrow">
         {thanks ? (
-          <Card>
+          <Reveal as="div"><Card>
             <h2 className="font-serif text-2xl font-semibold text-fg">Thank you — we've got it</h2>
             <p className="mt-3 text-muted">
               Your care request has reached our pastoral team. A pastor or elder will follow up
@@ -36,19 +40,15 @@ export default async function CarePage({ searchParams }: { searchParams: Promise
               <a href={church.phoneHref} className="text-primary hover:text-primary-hover">{church.phone}</a> or 911.
             </p>
             <a href="/" className="btn btn-primary mt-6">Back home</a>
-          </Card>
+          </Card></Reveal>
         ) : (
-          <Card>
+          <Reveal as="div"><Card>
             <Callout tone="info" title="Handled with care and confidentiality">
               Care requests are private to our pastoral team (pastor and elders) and stored securely.
               They are never posted publicly.
             </Callout>
 
-            {error && (
-              <p role="alert" className="mt-4 rounded-lg border border-orange/40 bg-orange/10 px-4 py-3 text-sm text-fg">
-                Please add a few details about the need so we can help.
-              </p>
-            )}
+            {error && <div className="mt-4"><FormError>Please add a few details about the need so we can help.</FormError></div>}
 
             <form action={submitCareRequest} className="mt-6 space-y-4">
               <div>
@@ -100,7 +100,7 @@ export default async function CarePage({ searchParams }: { searchParams: Promise
               <p className="text-xs text-muted">Leaving contact details helps us follow up, but you may submit anonymously.</p>
               <button type="submit" className="btn btn-primary w-full">Send to our pastoral team</button>
             </form>
-          </Card>
+          </Card></Reveal>
         )}
       </Section>
     </>

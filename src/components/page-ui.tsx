@@ -83,6 +83,16 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
   return <div className={`card p-6 sm:p-8 ${className}`}>{children}</div>;
 }
 
+/** Inline form validation error (role=alert). Consolidates the hand-rolled
+ *  error markup that was duplicated across care/contact/sponsors forms. */
+export function FormError({ children }: { children: ReactNode }) {
+  return (
+    <p role="alert" className="rounded-lg border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-fg">
+      {children}
+    </p>
+  );
+}
+
 /** Anti-spam honeypot input (matches existing server-side "website" check). */
 export function Honeypot() {
   return <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />;
