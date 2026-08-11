@@ -196,10 +196,32 @@ h1, h2, h3, h4 { font-family: var(--font-serif); font-weight: 600; line-height: 
 .animate-rise-2 { animation: rise .7s cubic-bezier(.2,.7,.2,1) .08s both; }
 .animate-rise-3 { animation: rise .7s cubic-bezier(.2,.7,.2,1) .16s both; }
 .animate-rise-4 { animation: rise .7s cubic-bezier(.2,.7,.2,1) .24s both; }
+/* Loading skeleton shimmer (see Skeleton in page-ui.tsx). */
+.skeleton {
+  background: linear-gradient(90deg, rgb(var(--line) / 0.55) 25%, rgb(var(--line-strong) / 0.35) 37%, rgb(var(--line) / 0.55) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+/* Scroll-reveal entrance (see src/components/motion/Reveal.tsx). The hidden state
+   is gated behind `scripting: enabled`, so if JS is off the content is simply
+   visible — never trapped invisible. Reduced motion neutralizes it below. */
+@media (scripting: enabled) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(1.25rem);
+    transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1);
+  }
+  .reveal[data-shown="true"] { opacity: 1; transform: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-rise, .animate-rise-2, .animate-rise-3, .animate-rise-4 { animation: none; }
   .card-hover { transition: none; }
   .animate-ping { animation: none; }
+  .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .skeleton { animation: none; }
   * { scroll-behavior: auto !important; }
 }
 

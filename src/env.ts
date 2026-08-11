@@ -17,6 +17,10 @@ const schema = z.object({
   MAIL_FROM: z.string().default("McKinney SDA <noreply@mckinneysda.org>"),
   ADVENTIST_GIVING_URL: z.string().url().optional(),
   BLOB_READ_WRITE_TOKEN: z.string().optional(),
+  // Optional: URL of an externally hosted Building Project cinematic film. When set,
+  // it overrides the local /public/video file. Leave unset to use the local file
+  // (or the poster rendering until the film is added).
+  BUILDING_CINEMATIC_URL: z.string().url().optional(),
 });
 
 export const env = schema.parse(process.env);

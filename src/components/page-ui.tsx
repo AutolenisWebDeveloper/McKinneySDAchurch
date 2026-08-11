@@ -83,6 +83,16 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
   return <div className={`card p-6 sm:p-8 ${className}`}>{children}</div>;
 }
 
+/** Inline form validation error (role=alert). Consolidates the hand-rolled
+ *  error markup that was duplicated across care/contact/sponsors forms. */
+export function FormError({ children }: { children: ReactNode }) {
+  return (
+    <p role="alert" className="rounded-lg border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-fg">
+      {children}
+    </p>
+  );
+}
+
 /** Anti-spam honeypot input (matches existing server-side "website" check). */
 export function Honeypot() {
   return <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />;
@@ -96,4 +106,19 @@ export function InfoRow({ label, children }: { label: string; children: ReactNod
       <dd className="text-fg">{children}</dd>
     </div>
   );
+}
+
+/** Canonical empty state for public lists with no data yet (dashed, centered). */
+export function EmptyState({ title, body, className = "" }: { title: string; body?: ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-xl border border-dashed border-line-strong p-8 text-center ${className}`}>
+      <p className="font-serif text-base font-semibold text-fg">{title}</p>
+      {body ? <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">{body}</p> : null}
+    </div>
+  );
+}
+
+/** Shimmer placeholder for loading states (respects reduced motion — see globals.css). */
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`skeleton rounded-lg ${className}`} aria-hidden="true" />;
 }
