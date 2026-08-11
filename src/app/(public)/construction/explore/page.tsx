@@ -14,7 +14,7 @@ export default async function Explore({ searchParams }: { searchParams: Promise<
   return (
     <>
       {/* Minimal intro — keeps site nav (header/footer) so visitors never feel they left. */}
-      <section className="bg-denim-950 text-white">
+      <section data-dark-hero="true" className="hero-under-header bg-denim-950 text-white">
         <Container className="pt-8 sm:pt-10">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

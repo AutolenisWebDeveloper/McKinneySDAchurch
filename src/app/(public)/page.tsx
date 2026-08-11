@@ -62,7 +62,7 @@ export default async function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* ================= HERO ================= */}
-      <section className="relative overflow-hidden bg-hero-denim text-white">
+      <section data-dark-hero="true" className="hero-under-header relative overflow-hidden bg-hero-denim text-white">
         {/* Building rendering backdrop (decorative; the headline carries the meaning).
             Interim: the daytime approach shot until a front-elevation dusk render is added. */}
         <img

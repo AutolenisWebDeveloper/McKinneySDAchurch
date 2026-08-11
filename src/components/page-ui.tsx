@@ -28,7 +28,7 @@ export function PageHeader({
   const border = denim ? "" : "border-b border-line";
   const centered = align === "center";
   return (
-    <section className={`relative overflow-hidden ${bg} ${border}`}>
+    <section data-dark-hero={denim ? "true" : undefined} className={`relative overflow-hidden ${bg} ${border} ${denim ? "hero-under-header" : ""}`}>
       {denim && <div className="glow-denim absolute inset-0" aria-hidden="true" />}
       <Container className={`relative py-14 sm:py-20 ${centered ? "text-center" : ""}`}>
         <div className={centered ? "mx-auto max-w-2xl" : "max-w-3xl"}>

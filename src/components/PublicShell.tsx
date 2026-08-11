@@ -14,7 +14,8 @@ export async function PublicShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-col">
       <a href="#main" className="skip-link">{t(locale, "common.skip_to_content")}</a>
       <SiteHeader livestream={livestream} giveUrl={giveUrl} locale={locale} />
-      <main id="main" className="flex-1">{children}</main>
+      {/* pt clears the fixed header; dark heroes cancel it with .hero-under-header */}
+      <main id="main" className="flex-1 pt-[4.5rem]">{children}</main>
       <SiteFooter livestream={livestream} giveUrl={giveUrl} locale={locale} />
     </div>
   );

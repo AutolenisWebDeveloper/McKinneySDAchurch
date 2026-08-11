@@ -22,7 +22,7 @@ export function BuildingHero({
 }) {
   const hasVideo = !!videoSources?.length;
   return (
-    <section className="relative overflow-hidden bg-denim-950 text-white">
+    <section data-dark-hero="true" className="hero-under-header relative overflow-hidden bg-denim-950 text-white">
       {hasVideo ? (
         <video
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
