@@ -320,6 +320,104 @@ const CONTENT: Record<string, MinistryContent> = {
     ],
     scripture: { text: "How shall they hear without a preacher?", ref: "Romans 10:14" },
   },
+  administration: {
+    monogram: "AD",
+    category: "Care & Church Life",
+    tagline: "Keeping the life of the church organized and running well.",
+    about:
+      "Administration keeps the everyday work of the church in good order — records, correspondence, board and business meetings, and the many details that let every other ministry flourish. It's quiet, faithful service that holds the whole body together.",
+    activities: [
+      "Maintaining church membership and records",
+      "Preparing board and business meeting minutes",
+      "Handling correspondence and official documents",
+      "Coordinating the church calendar and communications",
+    ],
+    scripture: { text: "Let all things be done decently and in order.", ref: "1 Corinthians 14:40" },
+  },
+  finance: {
+    monogram: "FI",
+    category: "Care & Church Life",
+    tagline: "Stewarding the church's resources with integrity.",
+    about:
+      "Finance oversees the faithful handling of tithes, offerings, and church funds. With transparency and care, the treasury team ensures that what God's people give is received, recorded, and used to advance the mission of the church.",
+    activities: [
+      "Receiving and recording tithes and offerings",
+      "Paying church expenses and remitting to the conference",
+      "Providing regular financial reports to the board",
+      "Supporting ministries with budgeting and reimbursements",
+    ],
+    scripture: { text: "Moreover it is required in stewards, that a man be found faithful.", ref: "1 Corinthians 4:2" },
+  },
+  "adventurer-club": {
+    monogram: "AC",
+    category: "Discipleship & Age Groups",
+    tagline: "Adventure, discovery, and Jesus for our youngest explorers.",
+    about:
+      "The Adventurer Club helps children ages 4 to 9 — together with their parents — grow in their love for Jesus, nature, and their community. Through crafts, awards, nature study, and fun, our Adventurers take their first steps in a lifelong walk with God.",
+    activities: [
+      "Weekly club meetings and award activities",
+      "Nature study, crafts, and outdoor adventures",
+      "Family and parent-child involvement",
+      "Community service and fun outings",
+    ],
+    scripture: { text: "Train up a child in the way he should go.", ref: "Proverbs 22:6" },
+  },
+  "pathfinder-club": {
+    monogram: "PC",
+    category: "Discipleship & Age Groups",
+    tagline: "Building faith, character, and skills in our youth.",
+    about:
+      "Pathfinders is a Christ-centered club for youth ages 10 to 15, blending outdoor adventure, skill-building, and spiritual growth. Through camping, honors, drill, and service, our Pathfinders learn leadership, resilience, and a faith that stands.",
+    activities: [
+      "Weekly meetings, honors, and drill",
+      "Camping, hiking, and outdoor skills",
+      "Community service and mission projects",
+      "Camporees and area Pathfinder events",
+    ],
+    scripture: { text: "Let no man despise thy youth; but be thou an example of the believers.", ref: "1 Timothy 4:12" },
+  },
+  "safety-security": {
+    monogram: "SF",
+    category: "Care & Church Life",
+    tagline: "Keeping our church family safe as we worship.",
+    about:
+      "Safety & Security watches over our congregation so everyone can worship in peace. From greeting and monitoring entrances to emergency preparedness and child-safety support, this team quietly ensures our church is a secure and welcoming place.",
+    activities: [
+      "Monitoring entrances and parking during services",
+      "Emergency preparedness and response planning",
+      "Supporting child-safety and check-in procedures",
+      "Coordinating with local emergency services",
+    ],
+    scripture: { text: "The LORD shall preserve thy going out and thy coming in.", ref: "Psalm 121:8" },
+  },
+  "vacation-bible-school": {
+    monogram: "VB",
+    category: "Discipleship & Age Groups",
+    tagline: "A joyful week of Bible adventure for kids.",
+    about:
+      "Vacation Bible School is a highlight of our year — a week where children from the church and community dive into the Bible through stories, songs, crafts, games, and snacks. VBS plants seeds of faith and opens our doors wide to neighborhood families.",
+    activities: [
+      "Annual summer VBS program",
+      "Bible stories, music, crafts, and games",
+      "Outreach to community children and families",
+      "Recruiting and training volunteer helpers",
+    ],
+    scripture: { text: "Suffer the little children to come unto me, and forbid them not.", ref: "Mark 10:14" },
+  },
+  stewardship: {
+    monogram: "ST",
+    category: "Care & Church Life",
+    tagline: "Growing hearts of gratitude and faithful giving.",
+    about:
+      "Stewardship helps our church family see all of life — time, talents, and treasure — as a trust from God. Through teaching and encouragement, we grow together in gratitude, generosity, and faithful management of the gifts God has given.",
+    activities: [
+      "Teaching biblical principles of stewardship",
+      "Encouraging faithful tithing and giving",
+      "Promoting good management of time and talents",
+      "Supporting church financial and mission goals",
+    ],
+    scripture: { text: "Every man according as he purposeth in his heart, so let him give… for God loveth a cheerful giver.", ref: "2 Corinthians 9:7" },
+  },
 };
 
 /** Derive a 2-letter monogram from a name when no content entry exists. */
@@ -441,6 +539,13 @@ const HEAD_ROLES: Record<string, string> = {
   "prayer-ministry": "Prayer Ministry Coordinator",
   hospitality: "Hospitality Coordinator",
   "media-communication": "Communication Director",
+  administration: "Church Clerk",
+  finance: "Treasurer",
+  "adventurer-club": "Adventurer Club Director",
+  "pathfinder-club": "Pathfinder Club Director",
+  "safety-security": "Safety & Security Officer",
+  "vacation-bible-school": "VBS Coordinator",
+  stewardship: "Stewardship Director",
 };
 
 /** The default title used when a ministry has no curated head role. */

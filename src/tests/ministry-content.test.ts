@@ -102,3 +102,29 @@ describe("category presentation maps", () => {
     }
   });
 });
+
+describe("new departments", () => {
+  const NEW = [
+    { slug: "administration", role: "Church Clerk" },
+    { slug: "finance", role: "Treasurer" },
+    { slug: "adventurer-club", role: "Adventurer Club Director" },
+    { slug: "pathfinder-club", role: "Pathfinder Club Director" },
+    { slug: "safety-security", role: "Safety & Security Officer" },
+    { slug: "vacation-bible-school", role: "VBS Coordinator" },
+    { slug: "stewardship", role: "Stewardship Director" },
+  ];
+
+  it("resolves a curated head role for each new department", () => {
+    for (const { slug, role } of NEW) {
+      expect(resolveHeadRole(slug)).toBe(role);
+    }
+  });
+
+  it("has curated content with a valid category (not the generic fallback)", () => {
+    for (const { slug } of NEW) {
+      const content = getMinistryContent(slug);
+      expect(MINISTRY_CATEGORY_ORDER).toContain(content.category);
+      expect(content.about.length).toBeGreaterThan(40);
+    }
+  });
+});
