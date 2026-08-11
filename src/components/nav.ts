@@ -39,6 +39,7 @@ export const navGroups: NavGroup[] = [
     label: "Our Building",
     items: [
       { href: "/construction", label: "The Building Project", desc: "A home of our own" },
+      { href: "/construction/explore", label: "Explore in 3D", desc: "Tour our future home" },
       { href: "/fundraising", label: "Fundraising", desc: "Campaigns and ways to help" },
       { href: "/sponsors", label: "Sponsors & Partners", desc: "Partner with our mission" },
     ],
@@ -63,6 +64,7 @@ export const publicNav = [
   { href: "/sponsors", label: "Sponsors" },
   { href: "/plan-a-visit", label: "Visit" },
   { href: "/construction", label: "Building" },
+  { href: "/construction/explore", label: "Explore in 3D" },
   { href: "/fundraising", label: "Fundraising" },
   { href: "/give", label: "Give" },
 ] as const;

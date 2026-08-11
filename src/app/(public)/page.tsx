@@ -220,23 +220,29 @@ export default async function Home() {
         <Container className="relative py-16 sm:py-24">
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
             <div>
-              <p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-denim-300">Our building project</p>
+              <p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-denim-300">Our future home</p>
               <h2 className="text-display font-serif font-semibold text-white">
-                A home of our own
+                A place built for generations
               </h2>
               <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/75">
                 For now we gather in a borrowed space — and we’re grateful for it.
                 But God has given us a vision: a permanent home where our church
                 family can worship, teach our children, and welcome our neighbors
-                for generations to come. Every gift brings that day closer.
+                for generations to come. Explore it, and be part of the story.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/construction" className="btn btn-white">See the vision</Link>
-                {giveUrl && (
-                  <a href={giveUrl} target="_blank" rel={EXT} className="btn btn-accent">Give to the building</a>
+                <Link href="/construction" className="btn btn-white">Explore the building</Link>
+                {giveUrl ? (
+                  <a href={giveUrl} target="_blank" rel={EXT} className="btn btn-accent">Support the vision</a>
+                ) : (
+                  <Link href="/construction#build-with-us" className="btn btn-accent">Support the vision</Link>
                 )}
               </div>
+              <Link href="/construction/explore" className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-denim-300 hover:text-white">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 3l9 4.5v9L12 21l-9-4.5v-9L12 3zM12 3v18M3 7.5l9 4.5 9-4.5" /></svg>
+                Take the 3D tour →
+              </Link>
             </div>
 
             {/* Progress card — glass panel on the navy band */}
