@@ -2,10 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
-import { fieldClass, labelClass } from "@/components/page-ui";
 import { EMPLOYMENT_STATUSES, EMPLOYMENT_STATUS_LABEL } from "@/lib/member-info";
 import { StatusBadge, ActivityFeed, type ActivityItem } from "@/components/portal/dashboard-ui";
 import { RecordHeader, RecordTabs, DescList, DescItem, type RecordTab } from "@/components/portal/record-ui";
+import { Field, TextareaField, SelectField, CheckboxField, FormSection, FormGrid, StickyActions, SubmitButton, UnsavedGuard } from "@/components/portal/form-ui";
 import { EmptyState } from "@/components/portal/home-ui";
 import { updateMember, sendPasswordSetup } from "../actions";
 
@@ -19,6 +19,11 @@ const STATUS_LABEL: Record<string, string> = {
   TRANSFERRED_OUT: "Transferred out",
   DECEASED: "Deceased",
 };
+const STATUS_OPTIONS = STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s]! }));
+const EMPLOYMENT_OPTIONS = [
+  { value: "", label: "—" },
+  ...EMPLOYMENT_STATUSES.map((s) => ({ value: s, label: EMPLOYMENT_STATUS_LABEL[s]! })),
+];
 const TABS = ["overview", "household", "access", "activity"] as const;
 type Tab = (typeof TABS)[number];
 
@@ -113,88 +118,54 @@ export default async function ManageMember({
       {tab === "overview" && (
         <div className="space-y-5">
           <div className="rounded-xl border border-line bg-surface p-5 shadow-sm sm:p-6">
-            <form action={updateMember} className="space-y-4">
+            <form action={updateMember} className="space-y-6">
               <input type="hidden" name="id" value={member.id} />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="firstName" className={labelClass}>First name</label>
-                  <input id="firstName" name="firstName" required maxLength={80} defaultValue={member.firstName} className={`mt-1 ${fieldClass}`} />
-                </div>
-                <div>
-                  <label htmlFor="lastName" className={labelClass}>Last name</label>
-                  <input id="lastName" name="lastName" required maxLength={80} defaultValue={member.lastName} className={`mt-1 ${fieldClass}`} />
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="phone" className={labelClass}>Phone</label>
-                  <input id="phone" name="phone" maxLength={40} defaultValue={member.phone ?? ""} className={`mt-1 ${fieldClass}`} />
-                </div>
-                <div>
-                  <label htmlFor="membershipStatus" className={labelClass}>Membership status</label>
-                  <select id="membershipStatus" name="membershipStatus" defaultValue={member.membershipStatus} className={`mt-1 ${fieldClass}`}>
-                    {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="flex items-center gap-2.5 text-sm text-fg">
-                  <input type="checkbox" name="directoryVisible" defaultChecked={member.directoryVisible} className="h-4 w-4 rounded border-line-strong text-primary focus:ring-ring/30" />
-                  Show in the member directory
-                </label>
-                <label className="flex items-center gap-2.5 text-sm text-fg">
-                  <input type="checkbox" name="showAddress" defaultChecked={member.showAddress} className="h-4 w-4 rounded border-line-strong text-primary focus:ring-ring/30" />
-                  Show address in the directory
-                </label>
-              </div>
 
-              <div className="grid gap-4 border-t border-line pt-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="baptismYear" className={labelClass}>Baptism year</label>
-                  <input id="baptismYear" name="baptismYear" inputMode="numeric" maxLength={4} defaultValue={member.baptismYear ?? ""} className={`mt-1 ${fieldClass}`} />
-                </div>
-                <div>
-                  <label htmlFor="joinedYear" className={labelClass}>Year joined McKinney SDA</label>
-                  <input id="joinedYear" name="joinedYear" inputMode="numeric" maxLength={4} defaultValue={member.joinedYear ?? ""} className={`mt-1 ${fieldClass}`} />
-                </div>
-                <div className="sm:col-span-2">
-                  <label htmlFor="currentMinistries" className={labelClass}>Current ministry involvement</label>
-                  <textarea id="currentMinistries" name="currentMinistries" rows={2} maxLength={2000} defaultValue={member.currentMinistries ?? ""} className={`mt-1 ${fieldClass}`} />
-                </div>
-                <div className="sm:col-span-2">
-                  <label htmlFor="ministryInterests" className={labelClass}>Ministries / activities of interest</label>
-                  <textarea id="ministryInterests" name="ministryInterests" rows={2} maxLength={2000} defaultValue={member.ministryInterests ?? ""} className={`mt-1 ${fieldClass}`} />
-                </div>
-              </div>
+              <FormSection title="Identity & status">
+                <FormGrid>
+                  <Field name="firstName" label="First name" required maxLength={80} defaultValue={member.firstName} autoComplete="given-name" />
+                  <Field name="lastName" label="Last name" required maxLength={80} defaultValue={member.lastName} autoComplete="family-name" />
+                </FormGrid>
+                <FormGrid>
+                  <Field name="phone" label="Phone" maxLength={40} inputMode="tel" defaultValue={member.phone ?? ""} autoComplete="tel" />
+                  <SelectField
+                    name="membershipStatus"
+                    label="Membership status"
+                    defaultValue={member.membershipStatus}
+                    options={STATUS_OPTIONS}
+                    hint="Mirrors eAdventist — not the official membership record."
+                  />
+                </FormGrid>
+              </FormSection>
 
-              <details className="rounded-xl border border-line p-4" open={!!(member.occupation || member.employer || member.employmentStatus || member.skills)}>
-                <summary className="cursor-pointer text-sm font-semibold text-fg">Employment <span className="font-normal text-muted">(optional)</span></summary>
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="occupation" className={labelClass}>Occupation / title</label>
-                    <input id="occupation" name="occupation" maxLength={200} defaultValue={member.occupation ?? ""} className={`mt-1 ${fieldClass}`} />
-                  </div>
-                  <div>
-                    <label htmlFor="employer" className={labelClass}>Employer</label>
-                    <input id="employer" name="employer" maxLength={200} defaultValue={member.employer ?? ""} className={`mt-1 ${fieldClass}`} />
-                  </div>
-                  <div>
-                    <label htmlFor="employmentStatus" className={labelClass}>Employment status</label>
-                    <select id="employmentStatus" name="employmentStatus" defaultValue={member.employmentStatus ?? ""} className={`mt-1 ${fieldClass}`}>
-                      <option value="">—</option>
-                      {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{EMPLOYMENT_STATUS_LABEL[s]}</option>)}
-                    </select>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label htmlFor="skills" className={labelClass}>Skills / services offered</label>
-                    <textarea id="skills" name="skills" rows={2} maxLength={2000} defaultValue={member.skills ?? ""} className={`mt-1 ${fieldClass}`} />
-                  </div>
-                </div>
-              </details>
+              <FormSection title="Directory visibility" description="Controls what appears in the members-only church directory.">
+                <CheckboxField name="directoryVisible" label="Show in the member directory" defaultChecked={member.directoryVisible} />
+                <CheckboxField name="showAddress" label="Show address in the directory" defaultChecked={member.showAddress} />
+              </FormSection>
 
-              <div className="flex items-center justify-end border-t border-line pt-4">
-                <button type="submit" className="btn btn-primary">Save changes</button>
-              </div>
+              <FormSection title="Membership details">
+                <FormGrid>
+                  <Field name="baptismYear" label="Baptism year" inputMode="numeric" maxLength={4} defaultValue={member.baptismYear ?? ""} />
+                  <Field name="joinedYear" label="Year joined McKinney SDA" inputMode="numeric" maxLength={4} defaultValue={member.joinedYear ?? ""} />
+                </FormGrid>
+                <TextareaField name="currentMinistries" label="Current ministry involvement" rows={2} maxLength={2000} defaultValue={member.currentMinistries ?? ""} />
+                <TextareaField name="ministryInterests" label="Ministries / activities of interest" rows={2} maxLength={2000} defaultValue={member.ministryInterests ?? ""} />
+              </FormSection>
+
+              <FormSection title="Employment" description="Optional — captured from the Member Information Form.">
+                <FormGrid>
+                  <Field name="occupation" label="Occupation / title" maxLength={200} defaultValue={member.occupation ?? ""} />
+                  <Field name="employer" label="Employer" maxLength={200} defaultValue={member.employer ?? ""} />
+                </FormGrid>
+                <SelectField name="employmentStatus" label="Employment status" defaultValue={member.employmentStatus ?? ""} options={EMPLOYMENT_OPTIONS} className="sm:max-w-xs" />
+                <TextareaField name="skills" label="Skills / services offered" rows={2} maxLength={2000} defaultValue={member.skills ?? ""} />
+              </FormSection>
+
+              <StickyActions>
+                <UnsavedGuard />
+                <Link href="/dashboard/admin/members" className="btn btn-outline">Cancel</Link>
+                <SubmitButton />
+              </StickyActions>
             </form>
           </div>
 
