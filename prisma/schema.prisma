@@ -272,7 +272,6 @@ model Member {
   accountRequests      AccountRequest[]        @relation("AccountRequestMatch")
   mediaConsents        MediaConsent[]          @relation("MemberMediaConsent")
   offices              ChurchOffice[]          @relation("OfficerMember")
-  youthClubs           YouthClubRegistration[] @relation("YouthClubMinor")
   fundraisers          Fundraiser[]            @relation("MemberFundraisers")
   committeeMemberships CommitteeMember[]       @relation("CommitteeMemberMember")
 
@@ -1130,24 +1129,11 @@ model OfferingCalendarEntry {
   @@index([weekOf])
 }
 
-// ===== Youth clubs (Pathfinders / Adventurers / AY) (§14J) =====
-enum YouthClub {
-  PATHFINDERS
-  ADVENTURERS
-  AY
-}
-
-model YouthClubRegistration {
-  id                String    @id @default(cuid())
-  club              YouthClub
-  minorMemberId     String
-  minor             Member    @relation("YouthClubMinor", fields: [minorMemberId], references: [id])
-  guardianConsentId String // ties to GuardianConsent (§10)
-  registeredAt      DateTime  @default(now())
-  active            Boolean   @default(true)
-
-  @@index([club, active])
-}
+// Youth clubs (Pathfinders / Adventurers / AY) were retired: the model had no application
+// surface (no route, action, query, or seed ever wrote to it) and youth-club/minor-facing
+// functionality is out of scope unless separately authorized. Removing the unused
+// minor-PII table is a data-minimization win. See migration
+// 20260811140000_retire_youth_club_registration and docs/SAFEGUARDING_AUDIT.md.
 
 // ===== Config & audit =====
 model SiteSetting {
