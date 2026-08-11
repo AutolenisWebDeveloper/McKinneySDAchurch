@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { getActor } from "@/auth/actor";
-import { hasRole } from "@/lib/rbac";
+import { canReadMember } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { adultWhere, toMemberCsv } from "@/lib/minors";
 
 export async function GET() {
   const actor = await getActor().catch(() => null);
-  if (!actor || !hasRole(actor, "CLERK", "ADMIN", "PASTOR")) return new NextResponse("Forbidden", { status: 403 });
+  // Authorization is centralized: use the canReadMember policy (ADMIN/PASTOR/CLERK) rather
+  // than an inline role list, so this member-PII export can never drift from rbac.ts.
+  if (!actor || !canReadMember(actor)) return new NextResponse("Forbidden", { status: 403 });
   const rows = await prisma.member.findMany({
     where: adultWhere(), // minors excluded at query; toMemberCsv throws if any slips through
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],

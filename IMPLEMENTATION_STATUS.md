@@ -1,7 +1,490 @@
 # Implementation Status — McKinney SDA Platform
 
 This is the honest manifest. It exists so nothing is *hidden*, even where it isn't yet *built*.
-Read it before assuming any part is production-ready. Aligns to Master Plan v4 phases P0–P8.
+Read it before assuming any part is production-ready. Aligns to Master Plan v4 phases P0–P8,
+now being extended to the merged Master Directive (Phases 1–10) starting with the Phase 1 keystone.
+
+---
+
+## Phase 10 — EN/ES internationalization + accessibility polish (this pass)
+
+Extends the i18n foundation toward full English/Spanish coverage (§49) and tightens accessibility
+(§7, WCAG 2.2 AA). No schema change.
+
+- ✅ `src/lib/i18n.ts` — broadened EN/ES dictionaries (home, common actions, footer, Plan-a-Visit)
+  with a typed `MsgKey`, plus `makeT(locale)`. **A dictionary-parity test fails CI if EN and ES ever
+  drift** (identical key sets, no empty strings, genuine translations). Table-tested (5 cases).
+- 🟡 **`<html lang>` now reflects the chosen locale** (root layout) — WCAG 3.1.1.
+- 🟡 The **skip-to-content** link and the **footer invitation band + CTAs** (welcome / “Join us this
+  Sabbath” / Plan a Visit / Give / rights) are translated; the **Plan a Visit** header + CTAs read from
+  the dictionary. The site-wide EN/ES toggle (existing) drives all of it via the `locale` cookie.
+- Existing a11y foundation confirmed in place: skip link, `main#main` landmark, `aria-pressed` language
+  toggle, focus-visible styles, labelled forms.
+
+**Remaining (mechanical / documented):** page-by-page string extraction for the long-form bodies of the
+remaining public pages (about, beliefs, ministries, give, prayer, care, etc.) and the portal UI — the
+infrastructure, toggle, `<html lang>`, and CI parity gate are all in place, so this is additive
+dictionary work with no architectural risk. Portal-side strings can adopt `t()`/`makeT` the same way.
+
+**Verified:** typecheck clean; **191/191 tests** (+5); production build clean.
+
+> With this pass the directive's Phases 1–10 each have a landed, verified increment. Standing
+> follow-ups tracked above: Reporting (§46), extended member profile (§48), Document Management Center
+> (§34), Prayer→WorkItem inbox (§26), PDF brochure generation (§37), migrating the remaining code-driven
+> email sends onto the template system (§39), and completing per-page i18n extraction (§49).
+
+---
+
+## Phase 9 — CMS, RBAC-aware search, communication preferences (this pass)
+
+Delivers three §44/§45/§47 subsystems: an admin-managed lightweight CMS for public surfaces,
+role-scoped portal search that authorizes before exposing any result, and member communication
+preferences backed by the existing suppression-aware subscription infrastructure.
+
+**Verified end-to-end on real Postgres (smoke test):** a CMS block returns its **coded fallback**
+when unset and its value once set; HTML blocks are **sanitized** (a `<script>` is stripped, text
+kept); a **member cannot edit** CMS; a member's preference opt-out flips the subscription to
+UNSUBSCRIBED (records `unsubscribedAt`) and re-subscribe records `consentAt`; CMS edits are audited.
+
+**CMS (§44)**
+- 🟡 Schema: `ContentBlock` (key+locale unique, versioned). Additive migration.
+- 🟡 `src/lib/cms.ts` — key catalog with coded fallbacks; `getBlock`/`getBlocks` (graceful DB-failure
+  fallback) and `setBlock` (ADMIN/PASTOR only, HTML **sanitized**, versioned + audited).
+- 🟡 Admin editor `/dashboard/admin/content`; the **emergency alert banner** renders site-wide on the
+  public layout when set; the homepage hero title/subtitle read from CMS with coded fallbacks.
+
+**RBAC-aware search (§45)**
+- ✅ `src/lib/rbac-search.ts` — pure `searchScopesForRoles` / `canSearchScope`. A plain member gets
+  only announcements/events/bulletins/manual; leadership adds care/prayer/members; the secretary adds
+  members/transfers/committees; elders do **not** get governance scopes. Table-tested (5 cases).
+- 🟡 `/dashboard/search` — queries **only** the actor's permitted scopes (authorization *before* any
+  title/snippet is produced), bounded per scope; links to public site search.
+
+**Communication preferences (§47)**
+- 🟡 `src/lib/preferences.ts` — five categories (Weekly bulletin, Announcements, Events, Building
+  project, Ministry updates) over `EmailSubscription`; read (opt-out model) + set with consent/
+  unsubscribe timestamps. Never bypasses suppression, one-click unsubscribe, or transactional rules.
+- 🟡 Member `/dashboard/member/preferences` — per-category toggles + confirmation; nav entry.
+
+**Nav:** Search added to member/leadership/secretary/admin portals; Communication Preferences to the
+member portal; Website Content to the admin portal.
+
+**Deferred (documented):** **Reporting (§46)** (weekly-packet compliance, response times, pipelines +
+CSV export) and the **extended member profile (§48)** (skills/interests/emergency contact/completeness
++ leadership-role display) are focused follow-ups — both stand alone on the data already in place.
+
+**Verified:** typecheck clean; **186/186 tests** (+5); production build clean; migration applies on real
+Postgres; CMS fallback/sanitize/authorization + preferences opt-out/consent smoke-tested end-to-end.
+
+---
+
+## Phase 8 — Volunteer, Sponsor, Support + confirmation journeys (this pass)
+
+Lights up the remaining WorkItem types (VOLUNTEER / SPONSOR / SUPPORT) with public/portal intake,
+an Admin triage inbox, acknowledgement emails, and clear confirmation journeys (§40–§43). No schema
+change — pure wiring onto the Phase-1 spine.
+
+**Verified end-to-end on real Postgres (smoke test):** volunteer/sponsor/support intake routes to the
+**Admin** portal (staff deep links point at `/dashboard/admin/workitems/…`, while care→leadership);
+admins are notified; an admin can triage a volunteer item while a **pastor cannot** triage an
+admin-routed sponsor item; the support lifecycle runs assign → resolve.
+
+- 🟢 **Deep-link fix:** `staffWorkItemLink(type, id)` routes care/prayer/leadership-message triage to
+  the Leadership portal and volunteer/sponsor/support/contact triage to the **Admin** portal —
+  `createWorkItem`/`transitionWorkItem` now use it (previously all staff links hardcoded leadership).
+- 🟡 **Volunteer (§40):** public `/volunteer` — ministry directory + **adult-facing** application
+  (safeguarding note; no minor volunteer intake) → VOLUNTEER WorkItem (ministry-routed) + ack email +
+  confirmation journey.
+- 🟡 **Sponsor (§41):** public `/sponsors` — partnership info + inquiry → SPONSOR WorkItem + ack email +
+  confirmation.
+- 🟡 **Support (§42):** `/dashboard/support` "Help & support" reachable from **every portal** (a link in
+  the shared chrome that passes the current page) → SUPPORT WorkItem (category, priority, page context)
+  + ack email + "my requests" tracker.
+- 🟡 **Admin triage inbox:** `/dashboard/admin/workitems` (+ `/[id]`) — VOLUNTEER/SPONSOR/SUPPORT/CONTACT
+  with type/status filters and per-item read authorization, reusing the shared `WorkItemDetail` +
+  inline triage panel (assign/note/message/resolve). Nav + admin-home quick action.
+- 🟡 Email registry gains wired `volunteer.received`, `sponsor.received`, `support.received`
+  (sent via `sendTemplated`, admin-customizable). Public nav gains Volunteer + Sponsors.
+
+**Confirmation journeys (§43):** every public/portal submission now ends on a professional success
+page explaining what happens next — volunteer, sponsor, support (new) alongside care, contact, prayer,
+transfer-in, and account request (existing).
+
+**Verified:** typecheck clean; **181/181 tests**; production build clean; volunteer/sponsor/support
+intake → routing → admin triage → resolution (with authorization) smoke-tested end-to-end.
+
+---
+
+## Phase 7 — Email template administration + diagnostics (this pass)
+
+Adds an admin-managed email template system (§38/§39) on top of the existing suppression-aware
+Resend pipeline. Templates are safe `{{variable}}` documents — never code. A code **registry** is
+the catalog of known keys/defaults; an admin **override** (stored in the DB, versioned) takes
+precedence when active. The account-request lifecycle emails are wired through it.
+
+**Verified end-to-end on real Postgres (smoke test):** a key resolves to its registry **default**;
+an admin **override** takes precedence; rendering **escapes** variable values (`Jane <b>` →
+`&lt;b&gt;`) while substituting links; a **deactivated** override falls back to the default; a
+**version** snapshot is recorded; an unknown key resolves to null.
+
+- ✅ `src/lib/email-render.ts` — pure safe renderer: `{{variable}}` substitution only (no expression
+  evaluation), HTML-escaped into subject/HTML, verbatim into plain-text, missing vars render empty
+  (never leaks `{{…}}`), HTML→text fallback. Table-tested (8 cases: substitution, escaping/injection,
+  missing vars, no-eval, text body, variable extraction).
+- 🟡 Schema: `EmailTemplate` (key-unique override: subject/html/text, category, channel, active) +
+  `EmailTemplateVersion` (edit history). Additive migration.
+- 🟡 `src/lib/email-registry.ts` — catalog of transactional templates (account ×4 wired, system.test,
+  plus care/transfer/weekly catalog entries) with documented variables and code defaults.
+- 🟡 `src/lib/email-templated.ts` — `resolveTemplate(key)` (active DB override → registry default) and
+  `sendTemplated(key, to, vars)` through the existing `sendEmail` (suppression + RFC 8058 preserved);
+  **best-effort** so an email failure never voids a caller's state change.
+- 🟢 Account-request emails (received / approved / needs-info / rejected) now send via
+  `sendTemplated` — so editing those templates has a live effect.
+- 🟡 **Admin catalog** `/dashboard/admin/email/templates` (grouped by category; In-use / Customized /
+  active badges) + **editor** `/[key]` — subject/HTML/text editing, documented variables, **live
+  preview** (rendered with sample vars), **send test to me**, activate/deactivate override, reset to
+  default, and **version history**. All edits audited.
+- 🟡 **Diagnostics** `/dashboard/admin/email/diagnostics` — sent/failure counts (30d), provider
+  status, recent per-recipient messages with status (failures highlighted), and a **sender-domain
+  check** that warns when `MAIL_FROM` is a `vercel.app` address (SPF/DKIM/DMARC launch-gate, §38/§64).
+- 🟡 Nav: Email Templates added to the Admin portal.
+
+**Verified:** typecheck clean; **181/181 tests** (+8); production build clean; migration applies on
+real Postgres; template resolution / override / escaping / fallback / versioning smoke-tested end-to-end.
+
+---
+
+## Phase 6 — Governance: committees, motions, action items, Church Manual (this pass)
+
+Extends the existing ChurchOffice/BoardMeeting foundation into a working governance system
+(§31–§33, §35): committees with rosters, motions with vote tallies, tracked action items,
+encrypted secretary notes, and an authorized Church Manual accessible from every portal.
+
+**Verified end-to-end on real Postgres (smoke test):** committee create with authz (a plain member
+is **blocked**), roster add/remove (soft), archive; a motion tally computes **CARRIED** from a 6–2–1
+vote; action items and an **encrypted** secretary note round-trip; the Church Manual enforces
+**exactly one active version**; audit rows recorded.
+
+- ✅ `src/lib/governance.ts` — added pure `tallyMotion` (majority carries; abstentions don't count;
+  tie fails; no votes = pending), `canActionItemTransition` / `isActionItemClosed`, and
+  `committeeSlug`. Table-tested (8 governance cases total).
+- 🟡 Schema: `Committee` + `CommitteeMember` (archived, not deleted); `Motion` (aggregate vote
+  counts + result); `ActionItem` (meeting- or committee-linked, owner, due date, status);
+  `SecretaryNote` (encrypted at rest); `ChurchManualVersion`; `BoardMeeting` gains
+  location/attendees/excusedAbsences + optional committee link. Additive migration.
+- 🟡 `src/lib/committees.ts` — create / archive / add-member / remove-member (soft), gated to
+  ADMIN/PASTOR/CLERK, audited.
+- 🟡 **Committees** `/dashboard/admin/committees` (+ `/[id]` workspace) — roster (adult picker,
+  Chair/Secretary/Member roles), action items (add / mark done / reopen), encrypted notes; archive/restore.
+- 🟡 **Board meeting** `/dashboard/admin/board/[id]` rebuilt — meeting details (location/attendees/
+  excused), **motions** (add + record for/against/abstain → auto-tally, or table/withdraw), **action
+  items**, encrypted **minutes** (approval still locks), and **secretary notes**. CLERK (secretary)
+  now has access alongside ADMIN/PASTOR.
+- 🟡 **Church Manual** `/dashboard/admin/manual` (add version by official link + effective date +
+  release notes; make-current enforces one active) and `/dashboard/manual` viewer available to **every
+  authenticated portal** (§35). Copyright-safe: links the authorized PDF, never scrapes text.
+- 🟡 Nav: **Church Manual** added to all six portals; **Committees** to Secretary + Admin.
+
+**Deferred (documented):** the full **Document Management Center** (§34) — upload center/browser,
+categories/tags/folders, version history, and secure signed downloads via Vercel Blob — is a focused
+follow-up. The Church Manual and meeting/committee records use official links / encrypted text for now;
+attachment upload + authorized download will layer on the existing `Document` model + `lib/storage`.
+
+**Verified:** typecheck clean; **173/173 tests** (+4); production build clean; migration applies on real
+Postgres; committees / motions / action items / secretary notes / Church Manual smoke-tested end-to-end.
+
+---
+
+## Phase 5 — Membership Transfers rework (this pass)
+
+Corrects the transfer intake architecture (§29) and adds member confirmation for on-behalf transfers.
+eAdventist stays the record of truth. **Transfer IN** remains public; **Transfer OUT** self-service
+moves to the authenticated Member Portal; **leadership-on-behalf** outgoing transfers require a
+consent attestation and the member's confirmation before processing.
+
+**Verified end-to-end on real Postgres (smoke test):** public incoming (token issued); member
+self-service outgoing (SUBMITTED, initiatedVia MEMBER); leadership on-behalf →
+AWAITING_MEMBER_CONFIRMATION with consent attested + confirmation token; member **denies** → DISPUTED,
+which **blocks an ordinary clerk** but a **pastor can override** to review; a stranger **cannot**
+confirm someone else's transfer; member **confirms** → IN_REVIEW → HANDED_TO_EADVENTIST (ref) →
+COMPLETED.
+
+- ✅ `src/lib/transfers.ts` — expanded pure state machine with `AWAITING_MEMBER_CONFIRMATION`,
+  `NEEDS_INFO`, `DISPUTED` + guards (`requiresMemberConfirmation`, `initialTransferStatus`,
+  `isOrdinaryProcessingLocked`, `isTransferTerminal`). Table-tested (9 cases).
+- 🟡 Schema: `TransferStatus` gains the three states; `MembershipTransfer` gains consent-attestation
+  fields (`onBehalf`, `consentAttested`, `consentMethod`, `consentDate`, `consentNotes`,
+  `consentDocumentId`, `attestedById`), `requesterUserId`, `confirmationTokenDigest` (unique),
+  `memberConfirmedAt`, `disputedAt`. Additive migration.
+- 🟡 `src/lib/membership-transfers.ts` — service: `createIncomingTransfer` (public), `createOutgoingSelf`
+  (member), `createOnBehalf` (leadership + consent → AWAITING + confirm token), `memberConfirmTransfer`
+  / `memberDenyTransfer` (portal **or** tokenized link; **requires actor-or-token**; DISPUTED on deny),
+  `advanceTransfer` (clerk pipeline; **DISPUTED is leadership-only**). Transactional, audited, notifies
+  Secretary/leadership, emails at each step.
+- 🟡 **Public `/transfer`** is now INCOMING-only (anonymous outgoing removed) and points members to the
+  portal. **Public `/transfer/confirm/[token]`** lets an account-less member confirm/decline.
+- 🟡 **Member Portal `/dashboard/member/transfer`** — outgoing self-service, "awaiting your
+  confirmation" (confirm/deny), and "my transfers" with status; nav entry.
+- 🟡 **Secretary/clerk pipeline** — new statuses in the queue, a **DISPUTED lock** (leadership-only
+  override), and a **leadership on-behalf** form with a required consent attestation checkbox +
+  method/notes.
+- 🟡 Emails: incoming/outgoing received, confirmation request, confirmed, disputed notice, completed —
+  HTML-escaped.
+- 🟢 **Security fix (found via smoke):** member confirm/deny now requires either a valid confirmation
+  token or the member's own session, and a token-only (account-less) confirmation records no audit FK
+  (previously a transfer id was mis-used as `actorId`).
+
+**Verified:** typecheck clean; **169/169 tests**; production build clean; migration applies on real
+Postgres; all transfer flows (incoming, self-service, on-behalf, confirm, deny/dispute, override,
+authorization, completion) smoke-tested end-to-end.
+
+---
+
+## Phase 3 — Weekly Communications engine (this pass)
+
+Implements the §22/§23 weekly bulletin pipeline: one `WeeklyPacket` per Sabbath collects ministry
+submissions, a pure readiness score tracks completeness, admins review submissions and assemble the
+Sabbath program (the existing **Bulletin** is linked as the order-of-service component, §60), and
+the packet moves COLLECTING → IN_REVIEW → READY → PUBLISHED → ARCHIVED.
+
+**Verified end-to-end on real Postgres (smoke test):** a ministry head submits to their own ministry
+(cross-ministry submission is **forbidden**); "nothing this week" is recorded; readiness recomputes
+(53% with 2/3 ministries responded → 73% once an order-of-service item exists); an admin accepts a
+submission and the submitter is notified; the version-guarded lifecycle reaches PUBLISHED (the linked
+Bulletin is auto-approved, `publishedAt` set); a stale-version transition is rejected.
+
+- ✅ `src/lib/weekly-packet.ts` — pure `computeReadiness` (department response 80% + order-of-service
+  20%; NOTHING_THIS_WEEK counts, REJECTED doesn't, de-dupes) + `canPacketTransition` state machine +
+  `upcomingSabbath`. Table-tested (9 cases).
+- 🟡 Schema: `WeeklyPacket` (sabbathDate-unique, status, readinessScore, version, optional 1:1
+  `Bulletin` link) + `PacketSubmission` (kind, status, ministry, submitter). Additive migration.
+- 🟡 `src/lib/weekly-packets.ts` — service: `getOrCreatePacket`, `submitToPacket` (ministry-scoped,
+  audited, notifies admins), `reviewSubmission` (accept/reject/needs-info → notify + email submitter),
+  `markNothingThisWeek`, `linkBulletinForPacket`, `recomputeReadiness`, `transitionPacket`
+  (version-guarded; publish approves the Bulletin + emails ministry heads). All transactional/audited.
+- 🟡 **Ministry Head:** `/dashboard/ministry/submit` — submit announcement/event/Sabbath-program-item/
+  participant/ministry-update or "nothing this week"; "my submissions this week" with status; home
+  quick action + nav.
+- 🟡 **Admin console:** `/dashboard/admin/weekly` (list + readiness bars) and `/dashboard/admin/weekly/[id]`
+  — readiness meter, **department checklist** (missing highlighted), per-submission accept/reject/
+  needs-info, create/link order-of-service, bulletin preview of accepted items, and the lifecycle
+  buttons. Nav + admin home stat card ("Bulletin readiness").
+- 🟡 **Weekly request cron:** `ministry-head-reminder` now ensures the packet exists and emails active
+  ministry heads a link to submit (uses `weeklyRequestEmail`; queries the multi-role `UserRole`).
+- 🟡 Emails: weekly request, submission accepted/rejected/needs-info, packet published — HTML-escaped.
+
+**Remaining:** professional **PDF brochure generation** (§37, P1) — the console shows a web preview of
+the assembled program; PDF export is a focused follow-up. Public brochure rendering stays on the
+existing `/bulletin` page (order of service) for now.
+
+**Verified:** typecheck clean; **157/157 tests** (+9); production build clean; migration applies on
+real Postgres; full submit → review → assemble → publish lifecycle smoke-tested end-to-end.
+
+---
+
+## Phase 4 — Care, Contact, Message Leadership on the WorkItem spine (this pass)
+
+Activates the WorkItem spine end-to-end (§25/§27/§28): public/member submission forms create
+WorkItems, and a leadership **triage inbox** works them through their lifecycle. No schema change —
+this is pure wiring onto the Phase-1 spine. The WorkItem deep links the portal homes already
+pointed at now resolve to real, actionable pages.
+
+**Verified end-to-end on real Postgres (smoke test):** a CARE intake creates a NEW item, encrypts
+the body, and notifies the pastor; triage runs TRIAGED → ASSIGNED (assign-to-me) → note → RESOLVED;
+a member's LEADERSHIP_MESSAGE is visible only to them as requester and a staff reply notifies them;
+a member attempting to triage someone else's care item is denied.
+
+- 🟡 **Care (§25):** public `/care` "Report a Care Need" (categories, urgency→priority, who-needs-care,
+  optional contact; honeypot). Sensitive detail is encrypted at rest via the spine; confidentiality
+  = SENSITIVE (pastor/elders only). Acknowledgement email + confirmation journey (§43). Fixes the
+  previously-dead `/care` links from the member/leadership homes; added to the public "Connect" nav.
+- 🟡 **Attendance → Care (§25):** the weekly `care-scan` cron now mirrors each new `CareAlert` into a
+  CARE WorkItem (silent, to avoid a per-member notification flood) and sends **one summary
+  notification** to pastor/elders linking the inbox.
+- 🟡 **Contact (§28):** `/contact` gains a real form → CONTACT WorkItem (routed to Admin),
+  acknowledgement email, confirmation state.
+- 🟡 **Message Leadership (§27):** member portal `/dashboard/member/message` → LEADERSHIP_MESSAGE
+  WorkItem tied to the member; "My messages" list; nav + home quick action.
+- 🟡 **Leadership triage inbox:** `/dashboard/leadership/workitems` (type/status filters, read
+  authorization enforced per item, confidentiality-aware) + an inline **Triage panel** on the shared
+  `WorkItemDetail` — assign-to-me, mark triaged / start, schedule follow-up, needs-info, resolve,
+  close, add encrypted internal note, and reply to the requester. Only shown to staff who
+  `canManageWorkItem`; requesters see only status + their message thread. Every action goes through
+  the tested `transitionWorkItem`/`addWorkItemNote`/`addWorkItemMessage` (guards + optimistic
+  concurrency + immutable events + audit + notifications). Resolution emails the requester when an
+  address is on file.
+- 🟢 `createWorkItem` gains a `silent` option (bulk auto-generated items skip the role fan-out).
+
+**Remaining:** Prayer's operational management is still on the existing encrypted `PrayerRequest`
+model (public wall + approval intact); backing it additionally with a PRAYER WorkItem inbox is a
+focused follow-up. The leadership inbox reads care/prayer/messages; prayer items appear once that
+wiring lands.
+
+**Verified:** typecheck clean; **148/148 tests**; production build clean (new routes present);
+full intake→triage→resolve + messaging + authorization smoke-tested on real Postgres.
+
+---
+
+## Phase 2 — member account request + membership matching (this pass)
+
+Adds the §20 request-and-match flow on top of the existing open registration: a public request
+no longer creates a login directly — it creates an `AccountRequest`, runs a conservative membership
+matcher, and either **auto-approves** a single confident match to an eligible member or routes to an
+**admin exception queue**. A `User` is created and bound to the `Member` only on approval.
+
+**Verified end-to-end on real Postgres (smoke test):**
+- AUTO_APPROVED: an exact match creates + activates the user and binds the member automatically.
+- PENDING: no confident match creates **no** user until an admin approves; approval then creates +
+  activates the user and carries the chosen password across.
+- REJECT: status REJECTED, the stored password hash is **purged**, no user created.
+- 3 audit rows written; admins with an active role receive the in-app "new request" notification.
+
+- ✅ `src/lib/membership-match.ts` — pure `matchMembership(request, members)` → confidence (0–100),
+  band (EXACT/HIGH/MEDIUM/LOW/NONE), reasons, ranked candidates, and `autoApprovable`. **Conservative:**
+  auto-approve requires a full first+last name match, HIGH+ score, a clear lead over the runner-up,
+  and an *eligible* member (adult, no existing login). **Safeguarding:** minors are never
+  auto-matched (§6). Table-tested — exact / high / medium / low / ambiguous / duplicate / no-match /
+  minor / already-linked / clear-winner (11 cases).
+- 🟡 Schema: `AccountRequest` + `AccountRequestStatus` (AUTO_APPROVED, PENDING_ADMIN_REVIEW, APPROVED,
+  REJECTED, NEEDS_INFO). Password captured at request time, stored hashed, moved to the User on
+  approval and purged on rejection — never a plaintext password at rest, and no orphan pending Users.
+  Additive migration.
+- 🟡 `src/lib/account-requests.ts` — `submitAccountRequest` (match → auto/queue, generic response =
+  no account enumeration, notifies admins, emails the requester), `approveAccountRequest` (creates +
+  binds the user, dedupe-guards existing emails), `rejectAccountRequest` (purges the hash),
+  `needsInfoAccountRequest`. All transactional + audited.
+- 🟡 `/auth/register` reworked to the §20 form (first/last name, email, phone, optional verification,
+  password) with a clear confirmation journey (§43); honeypot preserved.
+- 🟡 Admin exception queue `/dashboard/admin/account-requests` — live candidate matches per request,
+  approve-and-link (choose the member), ask-for-info, reject; wired into admin nav + a home stat card.
+- 🟡 Emails: request received, approved (auto + admin), needs-info, rejected — HTML-escaped, tested.
+- 🟢 **Phase-1 integration fix:** `acceptInvite` now creates the matching active `UserRole` (+ MEMBER)
+  and sets `primaryRole`, so invited leaders are visible to `notifyRoles`/role-management instead of
+  relying only on the legacy `role` fallback. `account-requests` does the same for new members.
+
+**Verified:** typecheck clean; **148/148 tests** (+13); production build clean; migration applies on
+real Postgres; full request lifecycle smoke-tested.
+
+---
+
+## Phase 1 keystone — data + logic + integration layer (this pass)
+
+Implements the foundation every later phase depends on (Directive §13–§17): multi-role RBAC,
+the shared WorkItem communication spine, and the shared notification service. **Fully verified
+in this environment against a real Postgres 16 instance** (not just compiled).
+
+**Verified (evidence executed here):**
+- ✅ `prisma migrate deploy` applies BOTH migrations to a fresh Postgres 16 cleanly
+  (`00000000000000_init` → `20260810000000_phase1_keystone`). Confirmed `Role` enum now has
+  `ELDER`; tables `UserRole`, `WorkItem`, `WorkItemNote`, `WorkItemEvent`, `WorkItemMessage`,
+  `WorkItemAttachment`, `Notification` created; partial unique indexes present.
+- ✅ **Partial unique indexes proven with real data:** a duplicate *active* global role is
+  rejected (`UserRole_active_global_key`), while revoke-then-reassign succeeds and preserves
+  history — the exact PostgreSQL nullable-uniqueness trap called out in §13A is handled.
+- ✅ **Backfill proven:** existing single-role users mirror into an active `UserRole`
+  (MINISTRY_HEAD carries ministry scope); `primaryRole` seeded from `role`.
+- ✅ `npm run typecheck` clean; `npm test` **131/131 green** (was 86; +45 new: roles, workflow,
+  routing, multi-role RBAC + WorkItem authorization); `npm run build` clean; `npx prisma validate`
+  clean; `npx prisma generate` clean.
+
+**1A — Multi-role RBAC (§13A/§14):**
+- 🟡 Schema: `ELDER` added to `Role`; new `UserRole { userId, role, ministryId?, active,
+  assignedById?, assignedAt, revokedAt? }`; `User.primaryRole` (default-portal preference,
+  never the security decision). Migration is additive + backfilled.
+- ✅ `src/lib/rbac.ts` — Actor is now multi-role (`roles[]`, `ministryIds[]`) and **back-compat**
+  (legacy single-`role` callers still work). `hasRole`/`ministryScope` are multi-role aware.
+  Central `can(actor, action, resource)` policy, **deny by default**. New WorkItem policies
+  (`canReadWorkItem`/`canManageWorkItem`/`canMessageWorkItem`) enforce requester/assignee/
+  routing-role access + confidentiality (LEADERSHIP_ONLY excludes non-leadership).
+- 🟡 `src/auth/actor.ts` — resolves the FULL active role set from `UserRole` (revoked excluded);
+  active rows are authoritative (revocation actually drops a role); MEMBER always included.
+- ✅ `src/lib/roles.ts` — pure role→portal mapping, portal eligibility, primary-portal
+  selection, role ranking. **Portal context ≠ authorization** is encoded as a pure function.
+
+**1B — WorkItem spine (§15/§16):**
+- 🟡 Schema: `WorkItem` (+ `Note`/`Event`/`Message`/`Attachment`) with type/status/priority/
+  confidentiality; sensitive bodies + notes encrypted at rest (AES-256-GCM). Attachments bind to
+  the secured `Document` model.
+- ✅ `src/lib/workflow.ts` — pure lifecycle state machine (NEW→…→CLOSED) with guards (assignee
+  required for ASSIGNED, date for FOLLOW_UP, reason for NEEDS_INFO, close reason for
+  RESOLVED/CLOSED), fully table-tested.
+- ✅ `src/lib/routing.ts` — pure `routeWorkItem(type, ctx)` policy (CARE/PRAYER→Pastor+Elders,
+  SUPPORT/CONTACT/SPONSOR→Admin, LEADERSHIP_MESSAGE→Pastor/Elder/Admin, ministry-scoped
+  VOLUNTEER→ministry head). A future care-specific role is a one-line table edit.
+- 🟡 `src/lib/workitems.ts` — transactional server service: create (routes + CREATED event +
+  role fan-out), transition (authz + guards + optimistic concurrency + immutable event + audit +
+  notifications), encrypted notes, requester↔staff messages.
+
+**1C — Notifications (§17):**
+- 🟡 Schema: `Notification { userId, category, title, body, deepLink, readAt?, archivedAt? }`.
+- 🟡 `src/lib/notify.ts` — one shared service: `notify`, `notifyRoles` (role-/ministry-scoped
+  fan-out, de-duped, self-excludable), `unreadCount`, `markRead`, `markAllRead`, `archive`.
+
+> Service-times seed is now a clearly-marked **placeholder** (`placeholder: true`, values `TBD`)
+> per §67.3 — the previous 9:30/11:00 values were unverified and must not be treated as fact.
+
+**Verified end-to-end on real Postgres (smoke test):** `createWorkItem` encrypts the body (never
+plaintext), routes an URGENT CARE item to the Pastor and creates the notification; the pastor then
+triages → assigns → resolves (close reason persisted); 4 lifecycle events + 3 audit rows recorded;
+an illegal transition (RESOLVED→NEW) is rejected.
+
+---
+
+## Phase 1D — six portal shells, notifications UI, role management (this pass)
+
+Replaces the "Use the sidebar" dashboard with one shared portal design system across all six
+portals (§18), wires the notification bell to the shared service, and ships admin role management.
+
+**Structural fix (repairs a pre-existing bug):** the dashboard lived in a `(dashboard)` route
+group, which emits **no** `/dashboard` URL prefix — yet 29 in-app links pointed at `/dashboard/…`,
+so they were dead (§57). Converted the group to a real `dashboard/` segment (git renames, history
+preserved): every dashboard page now resolves under `/dashboard/*`, matching those 29 links, the
+directive's `/dashboard/{portal}` scheme, the `PORTAL_ROUTE` map, and the middleware matcher — and
+resolving the `/leadership` public-vs-portal collision (`/leadership` = officers, `/dashboard/leadership`
+= portal). Verified in the build route table.
+
+**Shared portal system:**
+- 🟡 `components/portal/PortalShell.tsx` (server) + `PortalChrome.tsx` (client): responsive shell —
+  fixed sidebar on desktop, slide-over drawer on mobile, header with notification bell. The active
+  portal is derived from the URL, so the **PortalSwitcher is plain navigation** and nav never
+  desyncs. Accessible: labelled nav, `aria-current`, focus-visible, Escape/outside-click on menus.
+- 🟡 `components/portal/portal-nav.ts`: per-portal navigation, filtered to the actor's roles, **only
+  routes that exist** (no dead links).
+- 🟡 `components/portal/NotificationBell.tsx` (client) + `GET /api/notifications`,
+  `POST /api/notifications/[id]/read`, `POST /api/notifications/read-all`: unread badge, list,
+  mark-read / mark-all, deep-link navigation. All scoped to the caller (no IDOR).
+- 🟡 `components/portal/home-ui.tsx`: shared `PortalPage`/`StatCard`/`QuickAction`/`TaskRow`/
+  `EmptyState`/`PortalSection` primitives.
+- ✅ `lib/portal.ts` — pure `portalFromPath` (URL→portal), unit-tested (4 cases).
+
+**Six portal homes** (`/dashboard/{member,ministry,leadership,clerk,treasurer,admin}`), each with a
+purpose statement (§65), live status cards, quick actions, recent-work lists, and empty states —
+gated by `requirePortal` (portal access is presentation; records/actions still enforce policy):
+- 🟡 Member ("My Church"), Ministry ("This Week"), Leadership ("Pastoral Overview"),
+  Church Secretary, Treasurer (with the no-payment-processing notice), Admin ("Operations").
+- 🟡 `/dashboard` now redirects to each user's primary portal (`primaryPortal`).
+- 🟡 Read-only `WorkItemDetail` view at `/dashboard/member/requests/[id]` and
+  `/dashboard/leadership/workitems/[id]` (gated by `canReadWorkItem`; internal notes only to
+  managers; `notFound()` hides existence) — resolves the notification deep links from `workitems.ts`.
+
+**Admin role management (§13A):**
+- 🟡 `lib/user-roles.ts` — `assignRole`/`revokeRole` (transactional, audited, notifies the user,
+  respects the active-uniqueness invariant) + `activeRolesByUser`.
+- 🟡 `/dashboard/admin/accounts` now shows each account's active roles as removable chips and an
+  "add role (+ ministry)" form; server actions double-gate on `admin()` and `canManageRoles`.
+- CLERK now displays as **"Church Secretary"** everywhere (§18/§30); `ELDER` labelled.
+
+**Retired:** `DashboardShell` + `dashboard-nav.ts` deleted after confirming zero remaining consumers.
+
+**Verified:** typecheck clean; **135/135 tests** (+4 portal); production build clean (route table
+shows all `/dashboard/*` routes + public `/leadership` coexisting).
+
+**Remaining in Phase 1:** none blocking. Portal homes surface counts; the full WorkItem **inbox with
+inline triage actions** and public **submission forms** that create WorkItems arrive with the Phase-4
+domain wiring (Care/Prayer/Contact/Attendance → WorkItem). Portal switching is navigation today;
+a per-user default-portal preference toggle is a later nicety.
+
+---
 
 ## Legend
 - ✅ **Verified** — built here and proven by an executed check in this repo.

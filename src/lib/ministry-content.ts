@@ -27,6 +27,56 @@ export const MINISTRY_CATEGORY_ORDER: MinistryCategory[] = [
   "Care & Church Life",
 ];
 
+/** A short, human sentence describing each category, used under section
+ *  headings on the ministries index. */
+export const MINISTRY_CATEGORY_BLURB: Record<MinistryCategory, string> = {
+  "Worship & Word": "Leading us to encounter God in study and praise.",
+  "Discipleship & Age Groups": "Growing faith at every stage of life.",
+  "Outreach & Service": "Taking the love of Jesus into our community.",
+  "Care & Church Life": "Caring for one another and our life together.",
+};
+
+/**
+ * Visual treatment for each category, giving the ministries index the
+ * department-portal feel of a colored tile grid while keeping every cover
+ * dark enough for white text to pass contrast. `cover` is the tile gradient,
+ * `glow` a soft accent orb behind the monogram, and `accent`/`accentText`
+ * the category's identity color for chips, bars, and headings.
+ */
+export const MINISTRY_CATEGORY_STYLE: Record<
+  MinistryCategory,
+  { cover: string; glow: string; accent: string; accentText: string; accentSoft: string }
+> = {
+  "Worship & Word": {
+    cover: "from-denim-700 via-denim-800 to-denim-950",
+    glow: "bg-bright-teal/40",
+    accent: "bg-bright-teal",
+    accentText: "text-primary",
+    accentSoft: "bg-bright-teal/10",
+  },
+  "Discipleship & Age Groups": {
+    cover: "from-denim-500 via-denim-700 to-denim-900",
+    glow: "bg-denim-300/50",
+    accent: "bg-denim-500",
+    accentText: "text-primary",
+    accentSoft: "bg-denim-500/10",
+  },
+  "Outreach & Service": {
+    cover: "from-orange-strong via-denim-800 to-denim-950",
+    glow: "bg-orange/50",
+    accent: "bg-orange",
+    accentText: "text-accent-strong",
+    accentSoft: "bg-orange/10",
+  },
+  "Care & Church Life": {
+    cover: "from-denim-600 via-denim-800 to-denim-950",
+    glow: "bg-gold/50",
+    accent: "bg-gold",
+    accentText: "text-fg",
+    accentSoft: "bg-gold/10",
+  },
+};
+
 export type MinistryContent = {
   /** Short monogram shown in the badge (2 letters). */
   monogram: string;
@@ -47,6 +97,11 @@ export type MinistryContent = {
    *  formatted clock time (e.g. "Sabbath mornings, "). Takes precedence over
    *  the static `meets` string when the setting provides a value. */
   meetsFrom?: { key: string; prefix?: string };
+  /** The title of the person who leads this ministry (the "department head"),
+   *  e.g. "Sabbath School Superintendent". Shown on the ministry's detail page
+   *  alongside the leader's name from the database. Defaults to "Ministry
+   *  Leader" when not specified. */
+  headRole?: string;
 };
 
 const CONTENT: Record<string, MinistryContent> = {
@@ -265,6 +320,104 @@ const CONTENT: Record<string, MinistryContent> = {
     ],
     scripture: { text: "How shall they hear without a preacher?", ref: "Romans 10:14" },
   },
+  administration: {
+    monogram: "AD",
+    category: "Care & Church Life",
+    tagline: "Keeping the life of the church organized and running well.",
+    about:
+      "Administration keeps the everyday work of the church in good order — records, correspondence, board and business meetings, and the many details that let every other ministry flourish. It's quiet, faithful service that holds the whole body together.",
+    activities: [
+      "Maintaining church membership and records",
+      "Preparing board and business meeting minutes",
+      "Handling correspondence and official documents",
+      "Coordinating the church calendar and communications",
+    ],
+    scripture: { text: "Let all things be done decently and in order.", ref: "1 Corinthians 14:40" },
+  },
+  finance: {
+    monogram: "FI",
+    category: "Care & Church Life",
+    tagline: "Stewarding the church's resources with integrity.",
+    about:
+      "Finance oversees the faithful handling of tithes, offerings, and church funds. With transparency and care, the treasury team ensures that what God's people give is received, recorded, and used to advance the mission of the church.",
+    activities: [
+      "Receiving and recording tithes and offerings",
+      "Paying church expenses and remitting to the conference",
+      "Providing regular financial reports to the board",
+      "Supporting ministries with budgeting and reimbursements",
+    ],
+    scripture: { text: "Moreover it is required in stewards, that a man be found faithful.", ref: "1 Corinthians 4:2" },
+  },
+  "adventurer-club": {
+    monogram: "AC",
+    category: "Discipleship & Age Groups",
+    tagline: "Adventure, discovery, and Jesus for our youngest explorers.",
+    about:
+      "The Adventurer Club helps children ages 4 to 9 — together with their parents — grow in their love for Jesus, nature, and their community. Through crafts, awards, nature study, and fun, our Adventurers take their first steps in a lifelong walk with God.",
+    activities: [
+      "Weekly club meetings and award activities",
+      "Nature study, crafts, and outdoor adventures",
+      "Family and parent-child involvement",
+      "Community service and fun outings",
+    ],
+    scripture: { text: "Train up a child in the way he should go.", ref: "Proverbs 22:6" },
+  },
+  "pathfinder-club": {
+    monogram: "PC",
+    category: "Discipleship & Age Groups",
+    tagline: "Building faith, character, and skills in our youth.",
+    about:
+      "Pathfinders is a Christ-centered club for youth ages 10 to 15, blending outdoor adventure, skill-building, and spiritual growth. Through camping, honors, drill, and service, our Pathfinders learn leadership, resilience, and a faith that stands.",
+    activities: [
+      "Weekly meetings, honors, and drill",
+      "Camping, hiking, and outdoor skills",
+      "Community service and mission projects",
+      "Camporees and area Pathfinder events",
+    ],
+    scripture: { text: "Let no man despise thy youth; but be thou an example of the believers.", ref: "1 Timothy 4:12" },
+  },
+  "safety-security": {
+    monogram: "SF",
+    category: "Care & Church Life",
+    tagline: "Keeping our church family safe as we worship.",
+    about:
+      "Safety & Security watches over our congregation so everyone can worship in peace. From greeting and monitoring entrances to emergency preparedness and child-safety support, this team quietly ensures our church is a secure and welcoming place.",
+    activities: [
+      "Monitoring entrances and parking during services",
+      "Emergency preparedness and response planning",
+      "Supporting child-safety and check-in procedures",
+      "Coordinating with local emergency services",
+    ],
+    scripture: { text: "The LORD shall preserve thy going out and thy coming in.", ref: "Psalm 121:8" },
+  },
+  "vacation-bible-school": {
+    monogram: "VB",
+    category: "Discipleship & Age Groups",
+    tagline: "A joyful week of Bible adventure for kids.",
+    about:
+      "Vacation Bible School is a highlight of our year — a week where children from the church and community dive into the Bible through stories, songs, crafts, games, and snacks. VBS plants seeds of faith and opens our doors wide to neighborhood families.",
+    activities: [
+      "Annual summer VBS program",
+      "Bible stories, music, crafts, and games",
+      "Outreach to community children and families",
+      "Recruiting and training volunteer helpers",
+    ],
+    scripture: { text: "Suffer the little children to come unto me, and forbid them not.", ref: "Mark 10:14" },
+  },
+  stewardship: {
+    monogram: "ST",
+    category: "Care & Church Life",
+    tagline: "Growing hearts of gratitude and faithful giving.",
+    about:
+      "Stewardship helps our church family see all of life — time, talents, and treasure — as a trust from God. Through teaching and encouragement, we grow together in gratitude, generosity, and faithful management of the gifts God has given.",
+    activities: [
+      "Teaching biblical principles of stewardship",
+      "Encouraging faithful tithing and giving",
+      "Promoting good management of time and talents",
+      "Supporting church financial and mission goals",
+    ],
+    scripture: { text: "Every man according as he purposeth in his heart, so let him give… for God loveth a cheerful giver.", ref: "2 Corinthians 9:7" },
+  },
 };
 
 /** Derive a 2-letter monogram from a name when no content entry exists. */
@@ -362,4 +515,54 @@ export function resolveMeets(
     if (raw && raw.trim()) return `${from.prefix ?? ""}${formatServiceTime(raw)}`;
   }
   return content.meets ?? null;
+}
+
+/**
+ * The proper title for each ministry's leader ("department head"), keyed by
+ * slug. Kept separate from the editorial CONTENT so it can be maintained on
+ * its own and so ministries created from the admin UI still resolve to a
+ * sensible default. The person's actual name comes from the database.
+ */
+const HEAD_ROLES: Record<string, string> = {
+  "sabbath-school": "Sabbath School Superintendent",
+  "personal-ministries": "Personal Ministries Leader",
+  "childrens-ministries": "Children's Ministries Director",
+  "youth-ministries": "Youth Ministries Leader",
+  "music-ministry": "Music Coordinator",
+  "health-ministries": "Health Ministries Leader",
+  "community-services": "Community Services Director",
+  "womens-ministries": "Women's Ministries Leader",
+  "mens-ministries": "Men's Ministries Leader",
+  "family-ministries": "Family Ministries Leader",
+  deacons: "Head Deacon",
+  deaconesses: "Head Deaconess",
+  "prayer-ministry": "Prayer Ministry Coordinator",
+  hospitality: "Hospitality Coordinator",
+  "media-communication": "Communication Director",
+  administration: "Church Clerk",
+  finance: "Treasurer",
+  "adventurer-club": "Adventurer Club Director",
+  "pathfinder-club": "Pathfinder Club Director",
+  "safety-security": "Safety & Security Officer",
+  "vacation-bible-school": "VBS Coordinator",
+  stewardship: "Stewardship Director",
+};
+
+/** The default title used when a ministry has no curated head role. */
+export const DEFAULT_HEAD_ROLE = "Ministry Leader";
+
+/**
+ * Resolve the title of the person who heads a ministry. Prefers an explicit
+ * `headRole` on the editorial content, then the curated {@link HEAD_ROLES}
+ * map, then the generic {@link DEFAULT_HEAD_ROLE}.
+ */
+export function resolveHeadRole(slug: string, content?: MinistryContent): string {
+  return content?.headRole ?? HEAD_ROLES[slug] ?? DEFAULT_HEAD_ROLE;
+}
+
+/** Initials for an avatar, derived from a person's display name. */
+export function initialsFromName(name: string): string {
+  const words = name.replace(/[^\w\s'-]/g, "").trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0]![0]! + words[words.length - 1]![0]!).toUpperCase();
+  return (name.slice(0, 2) || "").toUpperCase();
 }

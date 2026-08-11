@@ -47,6 +47,7 @@ jobs:
       - run: npx prisma validate      # authoritative schema check
       - run: npx prisma generate
       - run: npx prisma migrate deploy # apply the committed migrations to the CI database
+      - run: npm run lint            # ESLint flat-config gate (real lint, replaces next lint)
       - run: npm run typecheck
       - run: npm run test
       - run: npm run build

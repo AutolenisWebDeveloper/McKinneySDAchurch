@@ -1,0 +1,60 @@
+name: e2e
+
+# Cross-role security E2E suite (Playwright). Kept as its own workflow so the fast `ci` gate
+# (lint/typecheck/unit/build) stays independent of the heavier browser run.
+on: [push, pull_request]
+
+jobs:
+  security-e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: mckinney
+          POSTGRES_HOST_AUTH_METHOD: trust   # passwordless, ephemeral CI DB — no credential to commit
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres@localhost:5432/mckinney
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3100
+      NEXTAUTH_URL: http://127.0.0.1:3100
+      E2E_PORT: "3100"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: "npm" }
+
+      # Ephemeral, CI-only app secrets (nothing secret is committed). Lengths satisfy src/env.ts.
+      - name: Generate CI env
+        run: |
+          {
+            echo "NEXTAUTH_SECRET=$(openssl rand -hex 24)"
+            echo "ENCRYPTION_KEY=$(openssl rand -hex 16)"
+            echo "TOKEN_HMAC_SECRET=$(openssl rand -hex 24)"
+            echo "CRON_SECRET=$(openssl rand -hex 24)"
+          } >> "$GITHUB_ENV"
+
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npx playwright test            # webServer (next start) + fixtures seeded by globalSetup
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

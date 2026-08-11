@@ -33,10 +33,22 @@ export async function acceptInvite(input: { rawToken: string; email: string; pas
         emailNormalized,
         passwordHash,
         role: invite.intendedRole,
+        primaryRole: invite.intendedRole,
         ministryId: invite.ministryId,
         activatedAt: new Date(),
       },
     });
+
+    // Multi-role source of truth (§13A): mirror the invited role into an active UserRole so the
+    // new account is visible to notifyRoles / role management, not only the legacy `role` fallback.
+    const ministryId = invite.intendedRole === "MINISTRY_HEAD" ? invite.ministryId : null;
+    await tx.userRole.create({
+      data: { userId: user.id, role: invite.intendedRole, ministryId, active: true, assignedById: invite.invitedById },
+    });
+    if (invite.intendedRole !== "MEMBER") {
+      // Everyone is also a MEMBER.
+      await tx.userRole.create({ data: { userId: user.id, role: "MEMBER", active: true } });
+    }
 
     await tx.invite.update({ where: { id: invite.id }, data: { status: "ACCEPTED", acceptedAt: new Date() } });
     await tx.invite.updateMany({

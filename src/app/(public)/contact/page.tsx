@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { PageHeader, Card } from "@/components/page-ui";
+import { PageHeader, Card, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
 import { Section, Container } from "@/components/ui";
 import { church, addressOneLine } from "@/components/site-info";
+import { submitContact } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +12,10 @@ export const metadata = {
 };
 
 const EXT = "noopener noreferrer";
+const CATEGORIES = ["General question", "Plan a visit", "Prayer", "Ministries", "Giving", "Other"];
 
-export default function Contact() {
+export default async function Contact({ searchParams }: { searchParams: Promise<{ thanks?: string; error?: string }> }) {
+  const { thanks, error } = await searchParams;
   return (
     <>
       <PageHeader
@@ -51,6 +54,64 @@ export default function Contact() {
             <a href={church.mapsHref} target="_blank" rel={EXT} className="mt-2 inline-block text-sm font-semibold text-primary hover:text-primary-hover">Get directions →</a>
           </Card>
         </div>
+      </Section>
+
+      <Section size="narrow" className="pt-0">
+        {thanks ? (
+          <Card>
+            <h2 className="font-serif text-2xl font-semibold text-fg">Thanks — message sent</h2>
+            <p className="mt-3 text-muted">
+              We’ve received your message and a member of our team will get back to you, usually
+              within a day or two. If it’s urgent, please call{" "}
+              <a href={church.phoneHref} className="text-primary hover:text-primary-hover">{church.phone}</a>.
+            </p>
+            <Link href="/" className="btn btn-primary mt-6">Back home</Link>
+          </Card>
+        ) : (
+          <Card>
+            <h2 className="font-serif text-2xl font-semibold text-fg">Send us a message</h2>
+            <p className="mt-1 text-sm text-muted">We’ll route it to the right person and follow up by email.</p>
+            {error && (
+              <p role="alert" className="mt-4 rounded-lg border border-orange/40 bg-orange/10 px-4 py-3 text-sm text-fg">
+                Please complete the required fields and try again.
+              </p>
+            )}
+            <form action={submitContact} className="mt-6 space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="name" className={`${labelClass} mb-1`}>Your name</label>
+                  <input id="name" name="name" autoComplete="name" required maxLength={120} className={fieldClass} />
+                </div>
+                <div>
+                  <label htmlFor="email" className={`${labelClass} mb-1`}>Email</label>
+                  <input id="email" name="email" type="email" autoComplete="email" required maxLength={200} className={fieldClass} />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="phone" className={`${labelClass} mb-1`}>Phone <span className="font-normal text-muted">(optional)</span></label>
+                  <input id="phone" name="phone" type="tel" autoComplete="tel" maxLength={40} className={fieldClass} />
+                </div>
+                <div>
+                  <label htmlFor="category" className={`${labelClass} mb-1`}>Topic</label>
+                  <select id="category" name="category" className={fieldClass} defaultValue="General question">
+                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label htmlFor="subject" className={`${labelClass} mb-1`}>Subject</label>
+                <input id="subject" name="subject" required maxLength={160} className={fieldClass} />
+              </div>
+              <div>
+                <label htmlFor="message" className={`${labelClass} mb-1`}>Message</label>
+                <textarea id="message" name="message" required rows={5} maxLength={4000} className={fieldClass} />
+              </div>
+              <Honeypot />
+              <button type="submit" className="btn btn-primary w-full">Send message</button>
+            </form>
+          </Card>
+        )}
       </Section>
 
       <section className="bg-tint">

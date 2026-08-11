@@ -70,3 +70,174 @@ export function inviteEmail(p: { roleLabel: string; ministryName?: string; accep
       `<p style="font-size:12px;color:#666">If you weren't expecting this, you can ignore this email.</p>`,
   };
 }
+
+/* ===== Phase 2: member account requests (§20/§38) ===== */
+
+export function accountRequestReceivedEmail(p: { firstName: string; churchName: string }): Rendered {
+  return {
+    subject: `We received your account request — ${esc(p.churchName)}`,
+    html:
+      `<h2>Thanks, ${esc(p.firstName)}</h2>` +
+      `<p>We received your request for a member account at ${esc(p.churchName)}. ` +
+      `A church administrator will review it and confirm your membership. ` +
+      `You'll get an email as soon as your account is ready.</p>` +
+      `<p style="font-size:12px;color:#666">If you didn't request this, you can ignore this email.</p>`,
+  };
+}
+
+export function accountApprovedEmail(p: { firstName: string; churchName: string; loginUrl: string; auto: boolean }): Rendered {
+  return {
+    subject: `Your account is ready — ${esc(p.churchName)}`,
+    html:
+      `<h2>Welcome, ${esc(p.firstName)}</h2>` +
+      `<p>Your member account at ${esc(p.churchName)} is ${p.auto ? "approved" : "now approved"} and ready to use.</p>` +
+      `<p><a href="${esc(p.loginUrl)}">Sign in</a> with the email and password you chose.</p>`,
+  };
+}
+
+export function accountNeedsInfoEmail(p: { firstName: string; churchName: string; note: string; contactEmail: string }): Rendered {
+  return {
+    subject: `A little more information needed — ${esc(p.churchName)}`,
+    html:
+      `<h2>Hello ${esc(p.firstName)}</h2>` +
+      `<p>Before we can finish setting up your account, we need a bit more information:</p>` +
+      `<blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#444">${esc(p.note)}</blockquote>` +
+      `<p>Please reply to <a href="mailto:${esc(p.contactEmail)}">${esc(p.contactEmail)}</a> and we'll take it from there.</p>`,
+  };
+}
+
+export function accountRejectedEmail(p: { firstName: string; churchName: string; reason?: string; contactEmail: string }): Rendered {
+  return {
+    subject: `About your account request — ${esc(p.churchName)}`,
+    html:
+      `<h2>Hello ${esc(p.firstName)}</h2>` +
+      `<p>We're sorry, but we weren't able to approve your member account request at this time.</p>` +
+      (p.reason ? `<p>${esc(p.reason)}</p>` : "") +
+      `<p>If you believe this is a mistake, please contact <a href="mailto:${esc(p.contactEmail)}">${esc(p.contactEmail)}</a>.</p>`,
+  };
+}
+
+/* ===== Phase 4: WorkItem communications (care / contact / message / support) ===== */
+
+export function workItemReceivedEmail(p: { firstName: string; kind: string; churchName: string; reference: string }): Rendered {
+  return {
+    subject: `We received your ${esc(p.kind)} — ${esc(p.churchName)}`,
+    html:
+      `<h2>Thank you${p.firstName ? `, ${esc(p.firstName)}` : ""}</h2>` +
+      `<p>We've received your ${esc(p.kind)} and a member of our team will follow up with you personally.</p>` +
+      `<p>Your reference is <strong>${esc(p.reference)}</strong>.</p>` +
+      `<p style="font-size:12px;color:#666">If this wasn't you, please disregard this message.</p>`,
+  };
+}
+
+export function workItemResolvedEmail(p: { firstName: string; kind: string; churchName: string; note?: string }): Rendered {
+  return {
+    subject: `Update on your ${esc(p.kind)} — ${esc(p.churchName)}`,
+    html:
+      `<h2>Hello${p.firstName ? ` ${esc(p.firstName)}` : ""}</h2>` +
+      `<p>We've followed up on your ${esc(p.kind)} and marked it resolved.</p>` +
+      (p.note ? `<blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#444">${esc(p.note)}</blockquote>` : "") +
+      `<p>If you need anything further, simply reply and we'll be glad to help.</p>`,
+  };
+}
+
+/* ===== Phase 3: Weekly Communications (§22/§23) ===== */
+
+export function weeklyRequestEmail(p: { sabbathDate: string; submitUrl: string; deadline?: string }): Rendered {
+  return {
+    subject: `This week's bulletin — please send your ministry's items`,
+    html:
+      `<h2>Weekly communications for Sabbath ${esc(p.sabbathDate)}</h2>` +
+      `<p>Please submit your ministry's announcements, events, Sabbath program items, and updates —` +
+      ` or let us know there's nothing this week.</p>` +
+      (p.deadline ? `<p><strong>Deadline:</strong> ${esc(p.deadline)}.</p>` : "") +
+      `<p><a href="${esc(p.submitUrl)}">Submit this week's items</a></p>`,
+  };
+}
+
+export function packetSubmissionDecisionEmail(p: { title: string; decision: "accepted" | "rejected" | "needs_info"; note?: string }): Rendered {
+  const word = p.decision === "accepted" ? "accepted" : p.decision === "rejected" ? "not included" : "needs a little more information";
+  return {
+    subject: `Your bulletin submission was ${word}`,
+    html:
+      `<h2>Bulletin submission update</h2>` +
+      `<p>Your submission <strong>${esc(p.title)}</strong> was <strong>${esc(word)}</strong>.</p>` +
+      (p.note ? `<blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#444">${esc(p.note)}</blockquote>` : ""),
+  };
+}
+
+export function packetPublishedEmail(p: { sabbathDate: string; url: string }): Rendered {
+  return {
+    subject: `This week's bulletin is ready — Sabbath ${esc(p.sabbathDate)}`,
+    html:
+      `<h2>The bulletin for Sabbath ${esc(p.sabbathDate)} is published</h2>` +
+      `<p><a href="${esc(p.url)}">View this week's bulletin and order of service</a>.</p>`,
+  };
+}
+
+/* ===== Phase 5: Membership transfers (§29) ===== */
+
+export function transferReceivedEmail(p: { name: string; direction: "INCOMING" | "OUTGOING"; churchName: string; statusUrl?: string }): Rendered {
+  const dir = p.direction === "INCOMING" ? "into" : "out of";
+  return {
+    subject: `We received your membership transfer request`,
+    html:
+      `<h2>Hello ${esc(p.name)}</h2>` +
+      `<p>We've received your request to transfer your membership ${dir} ${esc(p.churchName)}. ` +
+      `Our church secretary will process it through the official Adventist membership system (eAdventist).</p>` +
+      (p.statusUrl ? `<p><a href="${esc(p.statusUrl)}">Check the status of your transfer</a></p>` : ""),
+  };
+}
+
+export function transferConfirmationRequestEmail(p: { name: string; churchName: string; otherChurch: string; confirmUrl: string }): Rendered {
+  return {
+    subject: `Please confirm your membership transfer`,
+    html:
+      `<h2>Hello ${esc(p.name)}</h2>` +
+      `<p>${esc(p.churchName)} has begun a request to transfer your membership to <strong>${esc(p.otherChurch)}</strong> on your behalf.</p>` +
+      `<p>Please confirm this is your wish — nothing is processed until you do.</p>` +
+      `<p><a href="${esc(p.confirmUrl)}">Confirm or decline this transfer</a></p>` +
+      `<p style="font-size:12px;color:#666">If you did not expect this, please decline and contact the church office.</p>`,
+  };
+}
+
+export function transferConfirmedEmail(p: { name: string; churchName: string }): Rendered {
+  return {
+    subject: `Thank you — your transfer is confirmed`,
+    html:
+      `<h2>Hello ${esc(p.name)}</h2>` +
+      `<p>Thank you for confirming. ${esc(p.churchName)}'s secretary will now process your transfer through eAdventist.</p>`,
+  };
+}
+
+export function transferDisputedNotice(p: { name: string; otherChurch: string }): Rendered {
+  return {
+    subject: `Transfer declined by member — needs review`,
+    html:
+      `<h2>Member declined a transfer</h2>` +
+      `<p><strong>${esc(p.name)}</strong> declined the on-behalf transfer to <strong>${esc(p.otherChurch)}</strong>. ` +
+      `Ordinary processing is locked until leadership reviews it.</p>`,
+  };
+}
+
+export function transferCompletedEmail(p: { name: string; churchName: string }): Rendered {
+  return {
+    subject: `Your membership transfer is complete`,
+    html:
+      `<h2>Hello ${esc(p.name)}</h2>` +
+      `<p>Your membership transfer has been completed in the official Adventist record. God bless you.</p>` +
+      `<p style="font-size:12px;color:#666">— ${esc(p.churchName)}</p>`,
+  };
+}
+
+export function memberInfoInviteEmail(p: { churchName: string; url: string; note?: string }): Rendered {
+  return {
+    subject: `${p.churchName} — Member Information Form`,
+    html:
+      `<p>Hello,</p>` +
+      `<p>${esc(p.churchName)} invites you to fill out our Member Information Form so we can keep our church family records up to date.</p>` +
+      (p.note ? `<p>${esc(p.note)}</p>` : "") +
+      `<p><a href="${esc(p.url)}">Open the Member Information Form</a></p>` +
+      `<p>Your information is submitted securely and used only for church administration.</p>`,
+  };
+}
