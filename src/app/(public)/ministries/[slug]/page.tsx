@@ -8,6 +8,7 @@ import {
 import { safe } from "@/lib/safe";
 import { PageHeader, Callout } from "@/components/page-ui";
 import { Section } from "@/components/ui";
+import { Reveal } from "@/components/motion/Reveal";
 import { MinistryBadge } from "@/components/ministry-badge";
 import {
   getMinistryContent,
@@ -70,7 +71,7 @@ export default async function MinistryDetail({ params }: { params: Promise<{ slu
       <Section>
         <div className="grid gap-12 lg:grid-cols-[1fr_20rem]">
           {/* Main column */}
-          <div className="min-w-0 space-y-12">
+          <Reveal as="div" className="min-w-0 space-y-12">
             {/* Department head */}
             <section aria-labelledby="dept-head" className="overflow-hidden rounded-2xl border border-line">
               <div className={`relative flex items-center gap-5 bg-gradient-to-br ${style.cover} p-6 sm:p-8`}>
@@ -191,7 +192,7 @@ export default async function MinistryDetail({ params }: { params: Promise<{ slu
                 </ul>
               </section>
             ) : null}
-          </div>
+          </Reveal>
 
           {/* Sidebar */}
           <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
