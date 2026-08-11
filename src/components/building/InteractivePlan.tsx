@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Container } from "@/components/ui";
-import { BUILDING_SPACES, spaceBySlug } from "@/lib/building-spaces";
+import { spaceBySlug } from "@/lib/building-spaces";
 
 /**
  * Interactive plan viewer: a stylized schematic of the ground floor. Click a space
