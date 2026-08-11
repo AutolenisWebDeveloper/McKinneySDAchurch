@@ -1572,3 +1572,31 @@ model ContentBlock {
   @@unique([key, locale])
   @@index([key])
 }
+
+// ===== Member Information Form (public intake) =====
+
+enum MemberInfoStatus {
+  NEW
+  REVIEWED
+  ARCHIVED
+}
+
+/// Secure household/member information submitted from the public "Member Information Form".
+/// The full submission (names, home address, children + birth dates, baptism/join years,
+/// ministry involvement, and optional employment) is app-encrypted at rest in `payloadEnc`;
+/// only a family label, best-effort contact email, and workflow fields are kept in clear for
+/// the admin review inbox. Staff review a submission and update the member records from it.
+model MemberInfoSubmission {
+  id            String           @id @default(cuid())
+  householdName String
+  contactEmail  String?
+  status        MemberInfoStatus @default(NEW)
+  consent       Boolean          @default(false)
+  payloadEnc    String
+  reviewedById  String?
+  reviewedAt    DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([status, createdAt])
+}

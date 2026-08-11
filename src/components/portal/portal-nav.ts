@@ -77,6 +77,7 @@ export function portalNav(portal: PortalKey, actor: Actor): NavItem[] {
         { href: "/dashboard/admin/account-requests", label: "Account Requests" },
         { href: "/dashboard/admin/accounts", label: "Accounts & Roles" },
         { href: "/dashboard/admin/members", label: "Members" },
+        { href: "/dashboard/admin/member-info", label: "Member Info Forms" },
         { href: "/dashboard/admin/calendar", label: "Calendar" },
         { href: "/dashboard/admin/visitors", label: "Visitors" },
         { href: "/dashboard/admin/email", label: "Member Email" },
