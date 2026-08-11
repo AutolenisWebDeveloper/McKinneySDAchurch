@@ -61,6 +61,19 @@ export default async function Home() {
 
       {/* ================= HERO ================= */}
       <section className="relative overflow-hidden bg-hero-denim text-white">
+        {/* Building rendering backdrop (decorative; the headline carries the meaning) */}
+        <img
+          src="/renderings/exterior-dusk.jpg"
+          alt=""
+          aria-hidden="true"
+          fetchPriority="high"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
+        />
+        {/* Denim scrim: dark where the headline sits (left), clearing to reveal the building
+            (right) — keeps white text at WCAG AA over the photo, and degrades to the denim
+            gradient if the image is unavailable. */}
+        <div className="absolute inset-0 bg-gradient-to-r from-denim-950/95 via-denim-950/80 to-denim-900/45" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-t from-denim-950/70 via-transparent to-transparent" aria-hidden="true" />
         <div className="glow-denim absolute inset-0" aria-hidden="true" />
         {/* Symbol watermark */}
         <img
