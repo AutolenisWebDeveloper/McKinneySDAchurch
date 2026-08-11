@@ -21,6 +21,7 @@ export function getUpcomingEvents(take = 5) {
     where: { status: "APPROVED", visibility: "PUBLIC", startAt: { gte: now() } },
     orderBy: { startAt: "asc" },
     take,
+    include: { ministry: { select: { name: true, slug: true } } },
   });
 }
 
