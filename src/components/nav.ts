@@ -27,6 +27,7 @@ export const navGroups: NavGroup[] = [
     label: "Connect",
     items: [
       { href: "/ministries", label: "Ministries", desc: "Find your place to serve" },
+      { href: "/member-info", label: "Member Information Form", desc: "Share your household & membership details" },
       { href: "/prayer", label: "Prayer Requests", desc: "We would love to pray with you" },
       { href: "/care", label: "Care & Support", desc: "Tell us if you or someone needs care" },
       { href: "/volunteer", label: "Volunteer", desc: "Find your place to serve" },
@@ -50,6 +51,7 @@ export const publicNav = [
   { href: "/leadership", label: "Leadership" },
   { href: "/beliefs", label: "Beliefs" },
   { href: "/ministries", label: "Ministries" },
+  { href: "/member-info", label: "Member Information" },
   { href: "/calendar", label: "Calendar" },
   { href: "/sermons", label: "Sermons" },
   { href: "/bulletin", label: "Bulletin" },

@@ -43,6 +43,9 @@ export default async function AdminPortal() {
         <QuickActionGrid>
           <QuickAction href="/dashboard/admin/approvals" title="Approvals" description="Announcements and events awaiting review" />
           <QuickAction href="/dashboard/admin/accounts" title="Accounts & roles" description="Provision logins and manage roles" />
+          <QuickAction href="/dashboard/admin/members" title="Members" description="Create and manage member profiles" />
+          <QuickAction href="/dashboard/admin/households" title="Households" description="Family profiles and their members" />
+          <QuickAction href="/dashboard/admin/member-info" title="Member info forms" description="Review, approve, and provision from submissions" />
           <QuickAction href="/dashboard/admin/visitors" title="Visitors" description="Follow-up and convert to members" />
           <QuickAction href="/dashboard/admin/workitems" title="Requests inbox" description="Volunteer, sponsor, support, and contact" />
         </QuickActionGrid>
@@ -54,6 +57,7 @@ export default async function AdminPortal() {
           <QuickAction href="/dashboard/admin/care" title="Care" description="Pastoral care oversight" />
           <QuickAction href="/dashboard/admin/construction" title="Building project" description="Capital campaign updates" />
           <QuickAction href="/dashboard/admin/ministries" title="Departments" description="Ministries and leaders" />
+          <QuickAction href="/dashboard/admin/calendar" title="Calendar" description="Publish and manage events" />
           <QuickAction href="/dashboard/admin/bulletin" title="Bulletins" description="Weekly order of service" />
           <QuickAction href="/dashboard/admin/board" title="Board" description="Meetings and minutes" />
         </QuickActionGrid>

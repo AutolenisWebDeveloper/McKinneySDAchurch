@@ -215,6 +215,13 @@ model Household {
   city         String?
   state        String?
   zip          String?
+  anniversary  DateTime? // wedding anniversary (family-level)
+  phone        String? // primary household phone
+  email        String? // primary household email
+  /// Member id designated as the household's primary contact (plain reference,
+  /// resolved in queries; not a FK relation to keep the Household↔Member link simple).
+  primaryContactId String?
+  notes        String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   members      Member[]
@@ -235,6 +242,16 @@ model Member {
   directoryVisible Boolean          @default(false)
   showAddress      Boolean          @default(false)
   lastAttendance   DateTime?
+
+  // ----- Individual profile detail (from the Member Information Form) -----
+  baptismYear       Int? // year baptized (form captures a year, not a full date)
+  joinedYear        Int? // year joined McKinney SDA
+  currentMinistries String? // ministries/roles currently serving in
+  ministryInterests String? // ministries/activities they'd like to join
+  occupation        String? // employment (all optional)
+  employer          String?
+  employmentStatus  String? // EMPLOYED | SELF_EMPLOYED | RETIRED | STUDENT | UNEMPLOYED
+  skills            String? // professional skills/services offered voluntarily
 
   householdId String?
   household   Household? @relation(fields: [householdId], references: [id])
@@ -1571,4 +1588,52 @@ model ContentBlock {
 
   @@unique([key, locale])
   @@index([key])
+}
+
+// ===== Member Information Form (public intake) =====
+
+enum MemberInfoStatus {
+  NEW
+  REVIEWED
+  APPROVED
+  ARCHIVED
+}
+
+/// Secure household/member information submitted from the public "Member Information Form".
+/// The full submission (names, home address, children + birth dates, baptism/join years,
+/// ministry involvement, and optional employment) is app-encrypted at rest in `payloadEnc`;
+/// only a family label, best-effort contact email, and workflow fields are kept in clear for
+/// the admin review inbox. Staff review a submission and update the member records from it.
+model MemberInfoSubmission {
+  id            String           @id @default(cuid())
+  householdName String
+  contactEmail  String?
+  status        MemberInfoStatus @default(NEW)
+  consent       Boolean          @default(false)
+  payloadEnc    String
+  invitedEmail  String? // set when the form was opened from an emailed invite
+  reviewedById  String?
+  reviewedAt    DateTime?
+  createdHouseholdId String? // household provisioned on approval
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([status, createdAt])
+}
+
+/// An emailed invitation to fill out the public Member Information Form. Lets staff
+/// send the form to anyone and (via the token) tie the resulting submission back to
+/// the invite. Sending email is best-effort; a copyable link always works.
+model MemberInfoInvite {
+  id              String    @id @default(cuid())
+  email           String
+  emailNormalized String
+  note            String?
+  tokenDigest     String    @unique
+  sentById        String?
+  submissionId    String?
+  usedAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([emailNormalized])
 }
