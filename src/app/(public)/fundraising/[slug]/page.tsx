@@ -25,7 +25,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   return (
     <>
       {/* Cinematic hero (cover image behind a denim scrim when available) */}
-      <section className="relative overflow-hidden bg-hero-denim text-white">
+      <section data-dark-hero="true" className="hero-under-header relative overflow-hidden bg-hero-denim text-white">
         {c.coverImageUrl ? <img src={c.coverImageUrl} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40" /> : null}
         <div className="absolute inset-0 bg-gradient-to-r from-denim-950 via-denim-950/85 to-denim-900/50" aria-hidden="true" />
         <div className="glow-denim absolute inset-0" aria-hidden="true" />

@@ -24,14 +24,26 @@ export function SiteHeader({
   const [open, setOpen] = useState<string | null>(null); // desktop dropdown label
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [over, setOver] = useState(false); // over a dark full-bleed hero (transparent header)
   const navRef = useRef<HTMLDivElement>(null);
 
+  // Transparent while over a dark hero (marked with data-dark-hero), solid once
+  // scrolled past it. Falls back to the solid header when no dark hero is present.
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    const compute = () => {
+      const hero = document.querySelector<HTMLElement>("[data-dark-hero]");
+      const y = window.scrollY;
+      setScrolled(y > 8);
+      setOver(hero ? y < Math.max(hero.offsetHeight - 72, 0) : false);
+    };
+    compute();
+    window.addEventListener("scroll", compute, { passive: true });
+    window.addEventListener("resize", compute);
+    return () => {
+      window.removeEventListener("scroll", compute);
+      window.removeEventListener("resize", compute);
+    };
+  }, [pathname]);
 
   // Close menus on route change
   useEffect(() => {
@@ -65,15 +77,18 @@ export function SiteHeader({
 
   return (
     <header
-      className={`sticky top-0 z-40 transition-all duration-300 ${
-        scrolled
-          ? "bg-bg/85 backdrop-blur-md border-b border-line shadow-sm"
-          : "bg-bg/60 backdrop-blur-sm border-b border-transparent"
+      data-over={over ? "true" : "false"}
+      className={`fixed inset-x-0 top-0 z-40 transition-all duration-300 ${
+        over
+          ? "border-b border-transparent bg-transparent"
+          : scrolled
+            ? "border-b border-line bg-bg/90 shadow-sm backdrop-blur-md"
+            : "border-b border-line/60 bg-bg/80 backdrop-blur-md"
       }`}
     >
       <div className="mx-auto max-w-content px-4 sm:px-6">
         <div className="flex h-[4.5rem] items-center gap-4">
-          <Brand size="md" />
+          <Brand size="md" inverse={over} />
 
           {/* Desktop nav */}
           <nav aria-label="Primary" className="ml-auto hidden lg:block" ref={navRef}>
@@ -141,7 +156,7 @@ export function SiteHeader({
                 href={livestream}
                 target="_blank"
                 rel={EXT}
-                className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-fg transition-colors hover:text-primary sm:inline-flex"
+                className="header-light hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-fg transition-colors hover:text-primary sm:inline-flex"
               >
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-denim-500 opacity-75" />
@@ -155,7 +170,7 @@ export function SiteHeader({
                 Give
               </a>
             )}
-            <div className="hidden lg:flex items-center gap-1">
+            <div className="header-utils hidden lg:flex items-center gap-1">
               <LanguageToggle locale={locale} />
               <ThemeToggle />
             </div>
@@ -163,7 +178,7 @@ export function SiteHeader({
             {/* Mobile toggle */}
             <button
               type="button"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-line-strong text-fg lg:hidden"
+              className="header-burger inline-flex h-10 w-10 items-center justify-center rounded-full border border-line-strong text-fg lg:hidden"
               aria-expanded={mobileOpen}
               aria-controls="mobile-menu"
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
