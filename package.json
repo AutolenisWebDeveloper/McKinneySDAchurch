@@ -19,7 +19,8 @@
     "prisma:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:bulletin": "tsx prisma/seed-bulletin-aug8.ts",
-    "db:seed:bulletin:archive": "tsx prisma/seed-bulletin-archive.ts"
+    "db:seed:bulletin:archive": "tsx prisma/seed-bulletin-archive.ts",
+    "db:seed:bulletin:recent": "tsx prisma/seed-bulletin-recent.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
