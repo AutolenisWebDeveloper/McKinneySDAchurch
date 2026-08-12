@@ -1,29 +1,12 @@
 /**
- * Seed a couple of prior published bulletins so the archive (/bulletin/archive) is populated.
- * These are REPRESENTATIVE sample editions (standard order of service, generic announcements) —
- * not transcribed from a specific printed bulletin like the Aug 8 seed. Idempotent (keyed on the
- * Sabbath date). Run: `npm run db:seed:bulletin:archive`.
+ * Seed a couple of PRIOR published bulletins (before Aug 8) so the archive (/bulletin/archive)
+ * has history. Representative sample editions — not transcribed from a specific printed bulletin
+ * like the Aug 8 seed. Idempotent (keyed on the Sabbath date). Run: `npm run db:seed:bulletin:archive`.
  */
 import { PrismaClient } from "@prisma/client";
-import { slugify } from "../src/lib/weekly-packet";
+import { publishEdition, type Edition } from "./bulletin-seed-shared";
 
 const prisma = new PrismaClient();
-
-// The standard McKinney SDA program (titles only; representative sample).
-const STANDARD_ORDER = [
-  "Sabbath School", "Morning Prayer", "Sabbath School Lesson", "Health Nugget", "Announcements",
-  "Welcome & Prayer", "Praise Service", "Song of Adoration", "Intercessory Prayer", "Tithes & Offerings",
-  "Children’s Story", "Scripture Reading", "Message", "Closing Hymn", "Benediction", "Postlude",
-];
-
-type Edition = {
-  date: string; // YYYY-MM-DD (a Sabbath)
-  sermonTitle: string; speaker: string; scripture: string;
-  offeringToday: string; elderOnDuty: string; nurseOnDuty: string; sundownTonight: string;
-  nextSabbathSpeaker: string; nextSabbathOffering: string;
-  inspiration: string; inspirationSource: string;
-  announcements: { title: string; category: string; summary: string; recurring?: boolean; recurrence?: string }[];
-};
 
 const EDITIONS: Edition[] = [
   {
@@ -53,43 +36,9 @@ const EDITIONS: Edition[] = [
   },
 ];
 
-async function seedEdition(e: Edition) {
-  const sabbath = new Date(`${e.date}T00:00:00.000Z`);
-  const publishedAt = new Date(`${e.date}T05:00:00.000Z`);
-  const bulletin = await prisma.bulletin.upsert({ where: { sabbathDate: sabbath }, update: {}, create: { sabbathDate: sabbath } });
-  const packet = await prisma.weeklyPacket.upsert({ where: { sabbathDate: sabbath }, update: {}, create: { sabbathDate: sabbath, status: "COLLECTING" } });
-
-  await prisma.bulletin.update({
-    where: { id: bulletin.id },
-    data: {
-      slug: e.date, title: "Welcome Home", status: "APPROVED", publishedAt, pdfVersion: 1, pdfGeneratedAt: publishedAt,
-      welcomeMessage: "A Christ-centered Adventist family in McKinney, Texas — worshiping, growing, and serving together.",
-      sermonTitle: e.sermonTitle, speaker: e.speaker, scripture: e.scripture,
-      sabbathSchoolTime: "9:30 AM", divineWorshipTime: "11:15 AM", offeringToday: e.offeringToday,
-      elderOnDuty: e.elderOnDuty, nurseOnDuty: e.nurseOnDuty, sundownTonight: e.sundownTonight,
-      nextSabbathSpeaker: e.nextSabbathSpeaker, nextSabbathOffering: e.nextSabbathOffering,
-      inspiration: e.inspiration, inspirationSource: e.inspirationSource,
-    },
-  });
-  await prisma.weeklyPacket.update({ where: { id: packet.id }, data: { status: "PUBLISHED", publishedAt, readinessScore: 100, bulletinId: bulletin.id } });
-
-  await prisma.orderOfServiceItem.deleteMany({ where: { bulletinId: bulletin.id } });
-  await prisma.orderOfServiceItem.createMany({ data: STANDARD_ORDER.map((title, i) => ({ bulletinId: bulletin.id, sortOrder: i, title })) });
-
-  await prisma.packetSubmission.deleteMany({ where: { packetId: packet.id, kind: "ANNOUNCEMENT" } });
-  await prisma.packetSubmission.createMany({
-    data: e.announcements.map((a, i) => ({
-      packetId: packet.id, kind: "ANNOUNCEMENT" as const, status: "PUBLISHED" as const,
-      title: a.title, slug: slugify(a.title), summary: a.summary, body: a.summary, category: a.category,
-      recurring: !!a.recurring, recurrence: a.recurrence ?? null, sortOrder: i, includeInPrint: true, includeOnline: true,
-    })),
-  });
-  console.log(`  · ${e.date} — “${e.sermonTitle}” (${e.speaker}) · ${STANDARD_ORDER.length} items · ${e.announcements.length} announcements`);
-}
-
 async function main() {
   console.log("Seeding archive editions:");
-  for (const e of EDITIONS) await seedEdition(e);
+  for (const e of EDITIONS) await publishEdition(prisma, e);
   const total = await prisma.bulletin.count({ where: { status: "APPROVED", publishedAt: { not: null } } });
   console.log(`Done. ${total} published bulletin(s) now in the archive (/bulletin/archive).`);
 }
