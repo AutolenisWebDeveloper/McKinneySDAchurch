@@ -1,131 +1,140 @@
+import { Suspense } from "react";
 import Link from "next/link";
-import { getUpcomingEvents, getPastEvents } from "@/lib/public-content";
-import { safe } from "@/lib/safe";
+import { getPublicCalendarEvents } from "@/lib/public-content";
 import { googleCalUrl } from "@/lib/ics";
-import { monthShort, dayNum, monthYear, monthKey, weekdayTime, excerptHtml } from "@/lib/dates";
-import { PageHeader, EmptyState } from "@/components/page-ui";
+import { excerptHtml } from "@/lib/dates";
+import {
+  CHURCH_TZ,
+  centralMinutes,
+  centralTimeLabel,
+  centralYmd,
+  categoryForSlug,
+  monthKeyOf,
+  WEEKDAY_LABELS,
+  type CalendarEvent,
+} from "@/lib/calendar";
+import { PageHeader, EmptyState, Skeleton } from "@/components/page-ui";
 import { Section, Container } from "@/components/ui";
-import { Reveal } from "@/components/motion/Reveal";
+import { MonthCalendar } from "@/components/calendar/MonthCalendar";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Calendar",
-  description: "Upcoming services, events, and gatherings at McKinney SDA Church. Add any event to your own calendar with one tap.",
+  description:
+    "One month at a time: worship, ministry programs, and gatherings at McKinney SDA Church. Browse by month and add any event to your own calendar.",
 };
 
-const EXT = "noopener noreferrer";
+const longWeekday = (d: Date) =>
+  new Date(d).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: CHURCH_TZ,
+  });
 
-type EventItem = Awaited<ReturnType<typeof getUpcomingEvents>>[number];
+type EventRow = Awaited<ReturnType<typeof getPublicCalendarEvents>>[number];
 
-/** Group events into month buckets, preserving the order they arrive in. */
-function groupByMonth(events: EventItem[]) {
-  const groups: { key: string; label: string; items: EventItem[] }[] = [];
-  for (const e of events) {
-    const key = monthKey(e.startAt);
-    let g = groups.find((x) => x.key === key);
-    if (!g) {
-      g = { key, label: monthYear(e.startAt), items: [] };
-      groups.push(g);
-    }
-    g.items.push(e);
+function toCalendarEvent(e: EventRow): CalendarEvent {
+  const startYmd = centralYmd(e.startAt);
+  const endYmd = centralYmd(e.endAt);
+  return {
+    id: e.id,
+    title: e.title,
+    startYmd,
+    endYmd,
+    startMinutes: centralMinutes(e.startAt),
+    timeLabel: centralTimeLabel(e.startAt),
+    multiDay: startYmd !== endYmd,
+    isFeatured: e.isFeatured,
+    category: categoryForSlug(e.ministry?.slug),
+    ministryName: e.ministry?.name ?? null,
+    ministrySlug: e.ministry?.slug ?? null,
+    location: e.location,
+    excerpt: e.descriptionHtml ? excerptHtml(e.descriptionHtml, 160) : null,
+    startLongDate: longWeekday(e.startAt),
+    endLongDate: longWeekday(e.endAt),
+    googleUrl: googleCalUrl(e),
+    icsUrl: `/api/calendar/${e.id}`,
+  };
+}
+
+/** Streams in behind a skeleton; owns the DB read and its error/empty states. */
+async function CalendarBody() {
+  let events: CalendarEvent[];
+  try {
+    const rows = await getPublicCalendarEvents();
+    events = rows.map(toCalendarEvent);
+  } catch {
+    return (
+      <EmptyState
+        title="We couldn't load the calendar"
+        body="Something went wrong fetching events. Please refresh the page in a moment — if it keeps happening, let us know."
+      />
+    );
   }
-  return groups;
+
+  const now = new Date();
+  return <MonthCalendar events={events} initialMonth={monthKeyOf(now)} todayYmd={centralYmd(now)} />;
 }
 
-function EventCard({ e }: { e: EventItem }) {
+/** Fixed-shape placeholder so the page reserves the calendar's height while events load. */
+function CalendarSkeleton() {
   return (
-    <div className={`card flex flex-col gap-4 p-5 sm:flex-row sm:items-center ${e.isFeatured ? "ring-1 ring-accent/40" : ""}`}>
-      <div className={`flex w-16 shrink-0 flex-col items-center justify-center rounded-lg py-2 text-center text-white ${e.isFeatured ? "bg-accent-strong" : "bg-denim-600"}`}>
-        <span className="text-xs font-semibold uppercase tracking-wide text-white/80">{monthShort(e.startAt)}</span>
-        <span className="text-2xl font-semibold leading-none">{dayNum(e.startAt)}</span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h3 className="font-serif text-lg font-semibold text-fg">{e.title}</h3>
-          {e.isFeatured ? <span className="chip border-accent/50 text-accent-strong">Featured</span> : null}
+    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8 xl:gap-10" aria-hidden="true">
+      <div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <Skeleton className="h-7 w-40" />
+          </div>
+          <Skeleton className="h-9 w-20 rounded-full" />
         </div>
-        <p className="mt-1 text-sm text-muted">
-          {weekdayTime(e.startAt)}
-          {e.location ? ` · ${e.location}` : ""}
-        </p>
-        {e.descriptionHtml ? <p className="mt-1.5 line-clamp-2 text-sm text-muted">{excerptHtml(e.descriptionHtml, 150)}</p> : null}
-        {e.ministry?.name ? (
-          <Link href={`/ministries/${e.ministry.slug}`} className="mt-2 inline-flex text-xs font-semibold uppercase tracking-wide text-primary hover:text-primary-hover">
-            {e.ministry.name}
-          </Link>
-        ) : null}
-      </div>
-      <div className="flex shrink-0 gap-3 text-sm">
-        <a className="font-semibold text-primary hover:text-primary-hover" href={googleCalUrl(e)} target="_blank" rel={EXT}>Add to Google</a>
-        <a className="font-semibold text-primary hover:text-primary-hover" href={`/api/calendar/${e.id}`}>.ics</a>
-      </div>
-    </div>
-  );
-}
-
-function MonthGroups({ groups }: { groups: ReturnType<typeof groupByMonth> }) {
-  return (
-    <div className="space-y-14">
-      {groups.map((group) => (
-        <div key={group.key}>
-          <Reveal>
-            <h3 className="flex items-center gap-4 font-serif text-xl font-semibold text-fg">
-              {group.label}
-              <span className="h-px flex-1 bg-line" aria-hidden="true" />
-              <span className="text-sm font-normal text-muted">{group.items.length} {group.items.length === 1 ? "event" : "events"}</span>
-            </h3>
-          </Reveal>
-
-          <ul className="mt-6 space-y-4">
-            {group.items.map((e, i) => (
-              <Reveal as="li" key={e.id} delayMs={Math.min(i, 4) * 60}>
-                <EventCard e={e} />
-              </Reveal>
+        <div className="mt-6 overflow-hidden rounded-xl border border-line">
+          <div className="grid grid-cols-7 border-b border-line bg-surface-2">
+            {WEEKDAY_LABELS.map((wd) => (
+              <div key={wd} className="py-2 text-center text-xs font-semibold uppercase tracking-wide text-muted/60">
+                {wd}
+              </div>
             ))}
-          </ul>
+          </div>
+          {Array.from({ length: 6 }).map((_, r) => (
+            <div key={r} className="grid grid-cols-7">
+              {Array.from({ length: 7 }).map((_, c) => (
+                <div key={c} className="min-h-14 border-b border-r border-line p-1.5 last:border-r-0 sm:min-h-28">
+                  <Skeleton className="h-6 w-6 rounded-full" />
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
+      <div className="mt-8 lg:mt-0">
+        <div className="card space-y-3 p-5">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-20 w-full" />
+        </div>
+      </div>
     </div>
   );
 }
 
-export default async function Calendar() {
-  const [upcoming, past] = await Promise.all([
-    safe(getUpcomingEvents(60), []),
-    safe(getPastEvents(200), []),
-  ]);
-
-  const upcomingGroups = groupByMonth(upcoming);
-  const pastGroups = groupByMonth(past);
-
+export default function Calendar() {
   return (
     <>
       <PageHeader
-        eyebrow="What's coming up"
         title="Calendar"
-        lede="Everything happening in the life of our church family. Add any event to your own calendar with one tap."
+        lede="Everything happening in the life of our church family — one month at a time. Add any event to your own calendar with one tap."
         tone="denim"
       />
 
-      <Section>
-        {upcoming.length ? (
-          <MonthGroups groups={upcomingGroups} />
-        ) : (
-          <EmptyState title="No upcoming events posted" body="New gatherings will appear here soon. Join us any Sabbath in the meantime." />
-        )}
+      <Section size="wide">
+        <Suspense fallback={<CalendarSkeleton />}>
+          <CalendarBody />
+        </Suspense>
       </Section>
-
-      {past.length ? (
-        <Section>
-          <Reveal>
-            <h2 className="mb-8 flex items-center gap-4 font-serif text-2xl font-semibold text-fg">
-              Earlier this year
-              <span className="h-px flex-1 bg-line" aria-hidden="true" />
-            </h2>
-          </Reveal>
-          <MonthGroups groups={pastGroups} />
-        </Section>
-      ) : null}
 
       <section className="bg-tint">
         <Container className="py-12 sm:py-14">
