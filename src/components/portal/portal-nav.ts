@@ -51,7 +51,8 @@ export function portalNav(portal: PortalKey, _actor: Actor): NavGroup[] {
         {
           label: "My ministry",
           items: [
-            { href: "/dashboard/ministry/submit", label: "Submit to Bulletin", icon: "bulletin" },
+            { href: "/dashboard/ministry/bulletin", label: "Weekly Bulletin", icon: "bulletin" },
+            { href: "/dashboard/ministry/submit", label: "Program & Events", icon: "bulletins" },
             { href: "/dashboard/ministry/announcements", label: "My Announcements", icon: "content" },
             { href: "/dashboard/ministry/events", label: "My Events", icon: "calendar" },
           ],
@@ -230,9 +231,9 @@ export function quickCreateActions(portal: PortalKey): NavItem[] {
       ];
     case "ministry":
       return [
+        { href: "/dashboard/ministry/bulletin/new", label: "New bulletin announcement", icon: "bulletin" },
         { href: "/dashboard/ministry/events/new", label: "New event", icon: "calendar" },
         { href: "/dashboard/ministry/announcements/new", label: "New announcement", icon: "content" },
-        { href: "/dashboard/ministry/submit", label: "Submit to bulletin", icon: "bulletin" },
       ];
     case "clerk":
       return [

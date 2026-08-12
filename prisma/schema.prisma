@@ -209,22 +209,22 @@ model Ministry {
 }
 
 model Household {
-  id           String   @id @default(cuid())
-  familyName   String?
-  addressLine1 String?
-  city         String?
-  state        String?
-  zip          String?
-  anniversary  DateTime? // wedding anniversary (family-level)
-  phone        String? // primary household phone
-  email        String? // primary household email
+  id               String    @id @default(cuid())
+  familyName       String?
+  addressLine1     String?
+  city             String?
+  state            String?
+  zip              String?
+  anniversary      DateTime? // wedding anniversary (family-level)
+  phone            String? // primary household phone
+  email            String? // primary household email
   /// Member id designated as the household's primary contact (plain reference,
   /// resolved in queries; not a FK relation to keep the Household↔Member link simple).
   primaryContactId String?
-  notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  members      Member[]
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  members          Member[]
 }
 
 model Member {
@@ -262,18 +262,18 @@ model Member {
   guardian         Member?  @relation("MinorGuardian", fields: [guardianMemberId], references: [id])
   dependents       Member[] @relation("MinorGuardian")
 
-  guardianConsents     GuardianConsent[]       @relation("ConsentMinor")
-  consentsGiven        GuardianConsent[]       @relation("ConsentGuardian")
-  pastoralNotes        PastoralNote[]          @relation("PastoralNoteMember")
+  guardianConsents     GuardianConsent[]    @relation("ConsentMinor")
+  consentsGiven        GuardianConsent[]    @relation("ConsentGuardian")
+  pastoralNotes        PastoralNote[]       @relation("PastoralNoteMember")
   attendance           Attendance[]
-  careAlerts           CareAlert[]             @relation("CareAlertMember")
-  transfers            MembershipTransfer[]    @relation("MemberTransfers")
-  screening            VolunteerScreening?     @relation("MemberScreening")
-  accountRequests      AccountRequest[]        @relation("AccountRequestMatch")
-  mediaConsents        MediaConsent[]          @relation("MemberMediaConsent")
-  offices              ChurchOffice[]          @relation("OfficerMember")
-  fundraisers          Fundraiser[]            @relation("MemberFundraisers")
-  committeeMemberships CommitteeMember[]       @relation("CommitteeMemberMember")
+  careAlerts           CareAlert[]          @relation("CareAlertMember")
+  transfers            MembershipTransfer[] @relation("MemberTransfers")
+  screening            VolunteerScreening?  @relation("MemberScreening")
+  accountRequests      AccountRequest[]     @relation("AccountRequestMatch")
+  mediaConsents        MediaConsent[]       @relation("MemberMediaConsent")
+  offices              ChurchOffice[]       @relation("OfficerMember")
+  fundraisers          Fundraiser[]         @relation("MemberFundraisers")
+  committeeMemberships CommitteeMember[]    @relation("CommitteeMemberMember")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -891,27 +891,61 @@ model SabbathSchoolLesson {
 }
 
 // ===== Weekly bulletin / order of service (§14F) =====
+/// The Sabbath bulletin — the order-of-service PLUS the worship/duty metadata that renders
+/// across every channel (online page, print/PDF, member email). It is the packet's linked
+/// component (WeeklyPacket.bulletinId, relation "PacketBulletin"), never a competing system.
+/// Approved PacketSubmission announcements are joined at render time; nothing is copied per
+/// channel (single source of truth, §21). `slug` gives the permanent edition a stable route.
 model Bulletin {
-  id            String               @id @default(cuid())
-  sabbathDate   DateTime             @unique
-  title         String?
-  status        ApprovalStatus       @default(PENDING)
-  pdfDocumentId String?
-  publishedAt   DateTime?
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
+  id          String         @id @default(cuid())
+  sabbathDate DateTime       @unique
+  slug        String?        @unique // permanent-edition slug, defaults to YYYY-MM-DD
+  title       String? // optional sermon-series / theme heading
+  status      ApprovalStatus @default(PENDING)
+  publishedAt DateTime?
+
+  // ----- Worship / program metadata (rendered on the order-of-service side) -----
+  welcomeMessage      String?
+  theme               String? // sermon series / weekly theme
+  sabbathSchoolLesson String?
+  sabbathSchoolTime   String?
+  divineWorshipTime   String?
+  healthNugget        String?
+  sermonTitle         String?
+  speaker             String?
+  scripture           String?
+  offeringToday       String? // this week's tithes & offering designation
+  // ----- Duty roster / footer facts -----
+  elderOnDuty         String?
+  nurseOnDuty         String?
+  sundownTonight      String? // Friday sundown, e.g. "8:14 PM"
+  sundownNext         String? // next Friday sundown
+  nextSabbathSpeaker  String?
+  nextSabbathOffering String?
+  heroImageUrl        String?
+
+  // ----- Print/PDF artifact (immutable per publish; versioned on republish, §17) -----
+  pdfDocumentId  String? // signed-download Document when a binary artifact is attached
+  pdfVersion     Int       @default(0)
+  pdfGeneratedAt DateTime?
+
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
   items         OrderOfServiceItem[]
-  weeklyPacket  WeeklyPacket?        @relation("PacketBulletin")
+  distributions BulletinDistribution[]
+  weeklyPacket  WeeklyPacket?          @relation("PacketBulletin")
 }
 
 model OrderOfServiceItem {
   id          String   @id @default(cuid())
   bulletinId  String
-  bulletin    Bulletin @relation(fields: [bulletinId], references: [id])
+  bulletin    Bulletin @relation(fields: [bulletinId], references: [id], onDelete: Cascade)
   sortOrder   Int      @default(0)
   title       String // "Opening Hymn", "Sermon", "Offering", ...
   detail      String? // hymn number, sermon title
   participant String?
+
+  @@index([bulletinId, sortOrder])
 }
 
 // ===== Officers, board & minutes (§14G) =====
@@ -1473,11 +1507,23 @@ enum PacketSubmissionKind {
   NOTHING_THIS_WEEK
 }
 
+/// Governed submission lifecycle (§6). New values extend the original set additively so
+/// existing rows/migrations stay valid. Canonical flow:
+///   DRAFT → SUBMITTED → UNDER_REVIEW → APPROVED | CHANGES_REQUESTED | REJECTED
+///   APPROVED → PUBLISHED → ARCHIVED
+/// Legacy ACCEPTED ≈ APPROVED and NEEDS_INFO ≈ CHANGES_REQUESTED are retained for back-compat
+/// and normalized in the pure state layer.
 enum PacketSubmissionStatus {
   SUBMITTED
   ACCEPTED
   REJECTED
   NEEDS_INFO
+  DRAFT
+  UNDER_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  PUBLISHED
+  ARCHIVED
 }
 
 /// One weekly communications packet per Sabbath. Aggregates ministry submissions and links the
@@ -1496,6 +1542,7 @@ model WeeklyPacket {
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   submissions    PacketSubmission[]
+  reminders      BulletinReminder[]
 
   @@index([status, sabbathDate])
 }
@@ -1512,17 +1559,89 @@ model PacketSubmission {
   submittedById   String?
   kind            PacketSubmissionKind
   status          PacketSubmissionStatus @default(SUBMITTED)
+  version         Int                    @default(0) // optimistic concurrency for edit/review
   title           String?
-  body            String?
+  body            String? // legacy free-text body (kept; also used as short summary fallback)
   participantName String?
-  reviewNote      String?
-  reviewedById    String?
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
 
+  // ----- Announcement content (two layers, §4): print summary vs. extended online detail -----
+  summary         String? // short, print-appropriate bulletin summary
+  fullContentHtml String? // extended online-only detail (sanitized before store)
+  category        String? // editorial category (This Weekend, Coming Up, Ministries, …)
+  slug            String? // stable deep-link anchor within the edition (#slug)
+
+  // ----- Event / logistics -----
+  eventStartAt DateTime?
+  eventEndAt   DateTime?
+  location     String?
+  recurring    Boolean   @default(false)
+  recurrence   String? // human description when recurring
+
+  // ----- Contact -----
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+
+  // ----- Links / CTA / media (URLs validated before store) -----
+  registrationUrl String?
+  externalUrl     String?
+  ctaLabel        String?
+  ctaUrl          String?
+  imageUrl        String?
+
+  // ----- Editorial controls (admin) -----
+  featured          Boolean @default(false)
+  includeInPrint    Boolean @default(true)
+  includeOnline     Boolean @default(true)
+  sortOrder         Int     @default(0) // editorial ordering within a category
+  requestedPriority String? // dept-head request: LOW | NORMAL | HIGH
+  internalNotes     String? // private note to Admin (never rendered publicly)
+
+  reviewNote   String? // admin feedback shown to the department head
+  reviewedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([packetId, slug])
   @@index([packetId, status])
   @@index([ministryId])
   @@index([submittedById])
+}
+
+/// Idempotency + audit ledger for the Monday/Wednesday department-head reminder crons (§11/§12).
+/// One row per (packet, reminder kind, recipient) guarantees a cron re-run never double-sends.
+model BulletinReminder {
+  id         String       @id @default(cuid())
+  packetId   String
+  packet     WeeklyPacket @relation(fields: [packetId], references: [id], onDelete: Cascade)
+  kind       String // MONDAY | WEDNESDAY
+  userId     String
+  ministryId String?
+  state      String? // resolved recipient state that drove a Wednesday reminder
+  sentAt     DateTime     @default(now())
+
+  @@unique([packetId, kind, userId])
+  @@index([packetId, kind])
+}
+
+/// Friday 5:00 PM member-distribution ledger (§18). Unique per (bulletin, channel) so the
+/// scheduled job is idempotent: a retry/duplicate run finds the existing record and no-ops.
+model BulletinDistribution {
+  id              String    @id @default(cuid())
+  bulletinId      String
+  bulletin        Bulletin  @relation(fields: [bulletinId], references: [id], onDelete: Cascade)
+  channel         String // FRIDAY_EMAIL
+  status          String    @default("PENDING") // PENDING | SENT | FAILED
+  recipientCount  Int       @default(0)
+  sentCount       Int       @default(0)
+  suppressedCount Int       @default(0)
+  scheduledFor    DateTime?
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+  error           String?
+
+  @@unique([bulletinId, channel])
+  @@index([bulletinId])
 }
 
 // ===== Phase 7: Email template administration (§38/§39) =====
@@ -1591,18 +1710,18 @@ enum MemberInfoStatus {
 /// only a family label, best-effort contact email, and workflow fields are kept in clear for
 /// the admin review inbox. Staff review a submission and update the member records from it.
 model MemberInfoSubmission {
-  id            String           @id @default(cuid())
-  householdName String
-  contactEmail  String?
-  status        MemberInfoStatus @default(NEW)
-  consent       Boolean          @default(false)
-  payloadEnc    String
-  invitedEmail  String? // set when the form was opened from an emailed invite
-  reviewedById  String?
-  reviewedAt    DateTime?
+  id                 String           @id @default(cuid())
+  householdName      String
+  contactEmail       String?
+  status             MemberInfoStatus @default(NEW)
+  consent            Boolean          @default(false)
+  payloadEnc         String
+  invitedEmail       String? // set when the form was opened from an emailed invite
+  reviewedById       String?
+  reviewedAt         DateTime?
   createdHouseholdId String? // household provisioned on approval
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
   @@index([status, createdAt])
 }
