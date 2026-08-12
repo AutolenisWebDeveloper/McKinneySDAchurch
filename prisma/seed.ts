@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { seedCalendar2026 } from "./calendar-2026";
+import { seedAug8Bulletin } from "./seed-bulletin-aug8";
 const prisma = new PrismaClient();
 
 /**
@@ -67,7 +68,11 @@ async function main() {
 
   const eventCount = await seedCalendar2026(prisma);
 
-  console.log(`Seeded ${BELIEF_TITLES.length} belief entries + ${STARTER_MINISTRIES.length} departments + site settings + ${eventCount} calendar events (2026).`);
+  // Publish the real Aug 8, 2026 Sabbath bulletin so the public site (/bulletin, /bulletin/archive)
+  // and the admin Bulletin Command Center have a live, editable edition on a fresh database.
+  await seedAug8Bulletin(prisma);
+
+  console.log(`Seeded ${BELIEF_TITLES.length} belief entries + ${STARTER_MINISTRIES.length} departments + site settings + ${eventCount} calendar events (2026) + Aug 8 bulletin.`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); }).finally(() => prisma.$disconnect());

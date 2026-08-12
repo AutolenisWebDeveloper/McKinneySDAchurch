@@ -5,10 +5,10 @@
  * and print from this one dataset. Run: `npm run db:seed:bulletin`.
  */
 import { PrismaClient } from "@prisma/client";
+import { pathToFileURL } from "node:url";
 import { centralWallToUtc } from "../src/lib/tz";
 import { slugify } from "../src/lib/weekly-packet";
 
-const prisma = new PrismaClient();
 const SABBATH = new Date("2026-08-08T00:00:00.000Z");
 const at = (wall: string) => centralWallToUtc(wall);
 
@@ -60,7 +60,12 @@ const ANNOUNCEMENTS: Ann[] = [
     summary: "Men: Sunday 7 AM · Women: Sunday 8 PM · Daily prayer: 5 AM (Zoom · McKinney#7)." },
 ];
 
-async function main() {
+/**
+ * Publish the real Aug 8, 2026 edition. Reused by the canonical seed (`prisma/seed.ts`) so a
+ * standard `prisma db seed` publishes it in every environment, and by the standalone runner
+ * below (`npm run db:seed:bulletin`). Idempotent — keyed on the Sabbath date.
+ */
+export async function seedAug8Bulletin(prisma: PrismaClient) {
   const bulletin = await prisma.bulletin.upsert({
     where: { sabbathDate: SABBATH },
     update: {},
@@ -138,6 +143,10 @@ async function main() {
   console.log("View: /bulletin/2026-08-08  ·  Print: /bulletin/2026-08-08/print");
 }
 
-main()
-  .catch((e) => { console.error(e); process.exit(1); })
-  .finally(async () => { await prisma.$disconnect(); });
+// Standalone runner: `npm run db:seed:bulletin`. Skipped when imported (e.g. by prisma/seed.ts).
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const prisma = new PrismaClient();
+  seedAug8Bulletin(prisma)
+    .catch((e) => { console.error(e); process.exit(1); })
+    .finally(async () => { await prisma.$disconnect(); });
+}
