@@ -13,6 +13,7 @@ const full = {
   anniversary: "2005-06-18",
   husband: {
     fullName: "John Johnson",
+    birthDate: "1980-05-04",
     phone: "214-555-0100",
     email: "john@example.com",
     baptismYear: "2001",

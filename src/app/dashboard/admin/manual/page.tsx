@@ -1,6 +1,7 @@
 import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
-import { fieldClass, labelClass, Callout } from "@/components/page-ui";
+import { Callout } from "@/components/page-ui";
+import { TextField, TextareaField, CheckboxField, FormRow, SubmitButton } from "@/components/forms";
 import { PortalPage, PortalSection, EmptyState } from "@/components/portal/home-ui";
 import { addManualVersion, activateManualVersion } from "./actions";
 
@@ -19,28 +20,14 @@ export default async function ManualAdmin() {
 
       <PortalSection title="Add a version">
         <form action={addManualVersion} className="card space-y-3 p-5">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label htmlFor="version" className={`${labelClass} mb-1`}>Version / edition</label>
-              <input id="version" name="version" required maxLength={80} placeholder="e.g. 19th edition (2022)" className={fieldClass} />
-            </div>
-            <div>
-              <label htmlFor="effectiveDate" className={`${labelClass} mb-1`}>Effective date <span className="font-normal text-muted">(optional)</span></label>
-              <input id="effectiveDate" name="effectiveDate" type="date" className={fieldClass} />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="externalUrl" className={`${labelClass} mb-1`}>Official PDF / link URL</label>
-            <input id="externalUrl" name="externalUrl" type="url" maxLength={500} placeholder="https://…" className={fieldClass} />
-          </div>
-          <div>
-            <label htmlFor="releaseNotes" className={`${labelClass} mb-1`}>Release notes <span className="font-normal text-muted">(optional)</span></label>
-            <textarea id="releaseNotes" name="releaseNotes" rows={2} maxLength={2000} className={fieldClass} />
-          </div>
-          <label className="flex items-center gap-2 text-sm text-fg">
-            <input type="checkbox" name="makeActive" defaultChecked /> Make this the current version
-          </label>
-          <button className="btn btn-primary">Add version</button>
+          <FormRow>
+            <TextField label="Version / edition" name="version" required maxLength={80} placeholder="e.g. 19th edition (2022)" />
+            <TextField label="Effective date" name="effectiveDate" type="date" optional />
+          </FormRow>
+          <TextField label="Official PDF / link URL" name="externalUrl" type="url" maxLength={500} placeholder="https://…" />
+          <TextareaField label="Release notes" name="releaseNotes" optional rows={2} maxLength={2000} />
+          <CheckboxField label="Make this the current version" name="makeActive" defaultChecked />
+          <SubmitButton pendingLabel="Adding…">Add version</SubmitButton>
         </form>
       </PortalSection>
 

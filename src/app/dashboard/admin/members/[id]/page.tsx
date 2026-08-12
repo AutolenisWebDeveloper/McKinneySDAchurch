@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
 import { PortalPage, PortalSection } from "@/components/portal/home-ui";
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { TextField, TextareaField, SelectField, CheckboxField, FormRow, SubmitButton } from "@/components/forms";
 import { EMPLOYMENT_STATUSES, EMPLOYMENT_STATUS_LABEL } from "@/lib/member-info";
 import { updateMember, sendPasswordSetup } from "../actions";
 
@@ -57,84 +57,40 @@ export default async function ManageMember({
         <div className="card p-5 sm:p-6">
           <form action={updateMember} className="space-y-4">
             <input type="hidden" name="id" value={member.id} />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="firstName" className={labelClass}>First name</label>
-                <input id="firstName" name="firstName" required maxLength={80} defaultValue={member.firstName} className={`mt-1 ${fieldClass}`} />
-              </div>
-              <div>
-                <label htmlFor="lastName" className={labelClass}>Last name</label>
-                <input id="lastName" name="lastName" required maxLength={80} defaultValue={member.lastName} className={`mt-1 ${fieldClass}`} />
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="phone" className={labelClass}>Phone</label>
-                <input id="phone" name="phone" maxLength={40} defaultValue={member.phone ?? ""} className={`mt-1 ${fieldClass}`} />
-              </div>
-              <div>
-                <label htmlFor="membershipStatus" className={labelClass}>Membership status</label>
-                <select id="membershipStatus" name="membershipStatus" defaultValue={member.membershipStatus} className={`mt-1 ${fieldClass}`}>
-                  {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-                </select>
-              </div>
-            </div>
+            <FormRow>
+              <TextField label="First name" name="firstName" required maxLength={80} defaultValue={member.firstName} />
+              <TextField label="Last name" name="lastName" required maxLength={80} defaultValue={member.lastName} />
+            </FormRow>
+            <FormRow>
+              <TextField label="Phone" name="phone" type="tel" maxLength={40} defaultValue={member.phone ?? ""} />
+              <SelectField label="Membership status" name="membershipStatus" defaultValue={member.membershipStatus} options={STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] ?? s }))} />
+            </FormRow>
             <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2.5 text-sm text-fg">
-                <input type="checkbox" name="directoryVisible" defaultChecked={member.directoryVisible} className="h-4 w-4 rounded border-line-strong text-primary focus:ring-ring/30" />
-                Show in the member directory
-              </label>
-              <label className="flex items-center gap-2.5 text-sm text-fg">
-                <input type="checkbox" name="showAddress" defaultChecked={member.showAddress} className="h-4 w-4 rounded border-line-strong text-primary focus:ring-ring/30" />
-                Show address in the directory
-              </label>
+              <CheckboxField label="Show in the member directory" name="directoryVisible" defaultChecked={member.directoryVisible} />
+              <CheckboxField label="Show address in the directory" name="showAddress" defaultChecked={member.showAddress} />
             </div>
 
             <div className="grid gap-4 border-t border-line pt-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="baptismYear" className={labelClass}>Baptism year</label>
-                <input id="baptismYear" name="baptismYear" inputMode="numeric" maxLength={4} defaultValue={member.baptismYear ?? ""} className={`mt-1 ${fieldClass}`} />
-              </div>
-              <div>
-                <label htmlFor="joinedYear" className={labelClass}>Year joined McKinney SDA</label>
-                <input id="joinedYear" name="joinedYear" inputMode="numeric" maxLength={4} defaultValue={member.joinedYear ?? ""} className={`mt-1 ${fieldClass}`} />
-              </div>
-              <div className="sm:col-span-2">
-                <label htmlFor="currentMinistries" className={labelClass}>Current ministry involvement</label>
-                <textarea id="currentMinistries" name="currentMinistries" rows={2} maxLength={2000} defaultValue={member.currentMinistries ?? ""} className={`mt-1 ${fieldClass}`} />
-              </div>
-              <div className="sm:col-span-2">
-                <label htmlFor="ministryInterests" className={labelClass}>Ministries / activities of interest</label>
-                <textarea id="ministryInterests" name="ministryInterests" rows={2} maxLength={2000} defaultValue={member.ministryInterests ?? ""} className={`mt-1 ${fieldClass}`} />
-              </div>
+              <TextField label="Baptism year" name="baptismYear" inputMode="numeric" maxLength={4} defaultValue={member.baptismYear ?? ""} />
+              <TextField label="Year joined McKinney SDA" name="joinedYear" inputMode="numeric" maxLength={4} defaultValue={member.joinedYear ?? ""} />
+              <TextareaField label="Current ministry involvement" name="currentMinistries" rows={2} maxLength={2000} defaultValue={member.currentMinistries ?? ""} wrapClassName="sm:col-span-2" />
+              <TextareaField label="Ministries / activities of interest" name="ministryInterests" rows={2} maxLength={2000} defaultValue={member.ministryInterests ?? ""} wrapClassName="sm:col-span-2" />
             </div>
 
             <details className="rounded-xl border border-line p-4" open={!!(member.occupation || member.employer || member.employmentStatus || member.skills)}>
               <summary className="cursor-pointer text-sm font-semibold text-fg">Employment <span className="font-normal text-muted">(optional)</span></summary>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="occupation" className={labelClass}>Occupation / title</label>
-                  <input id="occupation" name="occupation" maxLength={200} defaultValue={member.occupation ?? ""} className={`mt-1 ${fieldClass}`} />
-                </div>
-                <div>
-                  <label htmlFor="employer" className={labelClass}>Employer</label>
-                  <input id="employer" name="employer" maxLength={200} defaultValue={member.employer ?? ""} className={`mt-1 ${fieldClass}`} />
-                </div>
-                <div>
-                  <label htmlFor="employmentStatus" className={labelClass}>Employment status</label>
-                  <select id="employmentStatus" name="employmentStatus" defaultValue={member.employmentStatus ?? ""} className={`mt-1 ${fieldClass}`}>
-                    <option value="">—</option>
-                    {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{EMPLOYMENT_STATUS_LABEL[s]}</option>)}
-                  </select>
-                </div>
-                <div className="sm:col-span-2">
-                  <label htmlFor="skills" className={labelClass}>Skills / services offered</label>
-                  <textarea id="skills" name="skills" rows={2} maxLength={2000} defaultValue={member.skills ?? ""} className={`mt-1 ${fieldClass}`} />
-                </div>
+                <TextField label="Occupation / title" name="occupation" maxLength={200} defaultValue={member.occupation ?? ""} />
+                <TextField label="Employer" name="employer" maxLength={200} defaultValue={member.employer ?? ""} />
+                <SelectField label="Employment status" name="employmentStatus" defaultValue={member.employmentStatus ?? ""}>
+                  <option value="">—</option>
+                  {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{EMPLOYMENT_STATUS_LABEL[s]}</option>)}
+                </SelectField>
+                <TextareaField label="Skills / services offered" name="skills" rows={2} maxLength={2000} defaultValue={member.skills ?? ""} wrapClassName="sm:col-span-2" />
               </div>
             </details>
 
-            <button type="submit" className="btn btn-primary">Save changes</button>
+            <SubmitButton pendingLabel="Saving…">Save changes</SubmitButton>
           </form>
         </div>
       </PortalSection>
@@ -170,7 +126,7 @@ export default async function ManageMember({
           {member.user?.email ? (
             <form action={sendPasswordSetup}>
               <input type="hidden" name="id" value={member.id} />
-              <button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-fg transition-colors hover:border-primary hover:text-primary">Email set-password link</button>
+              <SubmitButton className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-fg transition-colors hover:border-primary hover:text-primary" pendingLabel="Sending…">Email set-password link</SubmitButton>
             </form>
           ) : null}
           <p className="text-xs text-muted">

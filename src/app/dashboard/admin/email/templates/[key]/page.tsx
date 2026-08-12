@@ -6,7 +6,8 @@ import { registryEntry } from "@/lib/email-registry";
 import { resolveTemplate } from "@/lib/email-templated";
 import { renderTemplate } from "@/lib/email-render";
 import { church } from "@/components/site-info";
-import { fieldClass, labelClass, Callout } from "@/components/page-ui";
+import { Callout } from "@/components/page-ui";
+import { TextField, TextareaField, SubmitButton } from "@/components/forms";
 import { PortalPage, PortalSection } from "@/components/portal/home-ui";
 import { saveTemplateAction, setTemplateActiveAction, resetTemplateAction, testSendAction } from "../actions";
 
@@ -51,30 +52,27 @@ export default async function TemplateEditor({ params }: { params: Promise<{ key
         <PortalSection title={override ? (override.active ? "Editing (custom, active)" : "Editing (custom, inactive)") : "Editing (default)"}>
           <form action={saveTemplateAction} className="card space-y-3 p-5">
             <input type="hidden" name="key" value={key} />
-            <div>
-              <label htmlFor="subject" className={`${labelClass} mb-1`}>Subject</label>
-              <input id="subject" name="subject" defaultValue={resolved.subject} required maxLength={300} className={fieldClass} />
-            </div>
-            <div>
-              <label htmlFor="htmlBody" className={`${labelClass} mb-1`}>HTML body</label>
-              <textarea id="htmlBody" name="htmlBody" defaultValue={resolved.htmlBody} required rows={10} className={`${fieldClass} font-mono text-xs`} />
-            </div>
-            <div>
-              <label htmlFor="textBody" className={`${labelClass} mb-1`}>Plain-text body <span className="font-normal text-muted">(optional; auto-derived if empty)</span></label>
-              <textarea id="textBody" name="textBody" defaultValue={resolved.textBody ?? ""} rows={4} className={`${fieldClass} font-mono text-xs`} />
-            </div>
-            <button className="btn btn-primary">Save</button>
+            <TextField label="Subject" name="subject" defaultValue={resolved.subject} required maxLength={300} />
+            <TextareaField label="HTML body" name="htmlBody" defaultValue={resolved.htmlBody} required rows={10} className="font-mono text-xs" />
+            <TextareaField
+              label={<>Plain-text body <span className="font-normal text-muted">(optional; auto-derived if empty)</span></>}
+              name="textBody"
+              defaultValue={resolved.textBody ?? ""}
+              rows={4}
+              className="font-mono text-xs"
+            />
+            <SubmitButton pendingLabel="Saving…">Save</SubmitButton>
           </form>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <form action={testSendAction}><input type="hidden" name="key" value={key} /><button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2">Send test to me</button></form>
+            <form action={testSendAction}><input type="hidden" name="key" value={key} /><SubmitButton className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2" pendingLabel="Sending…">Send test to me</SubmitButton></form>
             {override && (
               <>
                 <form action={setTemplateActiveAction}>
                   <input type="hidden" name="key" value={key} /><input type="hidden" name="active" value={override.active ? "0" : "1"} />
-                  <button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2">{override.active ? "Deactivate override" : "Activate override"}</button>
+                  <SubmitButton className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2">{override.active ? "Deactivate override" : "Activate override"}</SubmitButton>
                 </form>
-                <form action={resetTemplateAction}><input type="hidden" name="key" value={key} /><button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium text-accent-strong hover:bg-surface-2">Reset to default</button></form>
+                <form action={resetTemplateAction}><input type="hidden" name="key" value={key} /><SubmitButton className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium text-accent-strong hover:bg-surface-2">Reset to default</SubmitButton></form>
               </>
             )}
           </div>

@@ -31,6 +31,7 @@ function AdultCard({ heading, adult }: { heading: string; adult?: Adult }) {
       <h3 className="mb-3 font-serif text-lg font-semibold text-fg">{heading}</h3>
       <dl>
         <Field label="Full name" value={adult.fullName} />
+        <Field label="Date of birth" value={adult.birthDate} />
         <Field label="Phone" value={adult.phone} />
         <Field label="Email" value={adult.email} />
         <Field label="Baptism year" value={adult.baptismYear} />

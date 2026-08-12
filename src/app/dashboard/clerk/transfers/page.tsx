@@ -1,7 +1,7 @@
 import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
 import { hasRole } from "@/lib/rbac";
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { TextField, TextareaField, SelectField, FormRow, SubmitButton } from "@/components/forms";
 import { PortalPage, PortalSection, EmptyState } from "@/components/portal/home-ui";
 import { advanceTransferAction, createOnBehalfAction } from "./actions";
 
@@ -63,8 +63,8 @@ export default async function Transfers() {
                       <form key={n.to} action={advanceTransferAction} className="flex items-center gap-1">
                         <input type="hidden" name="id" value={t.id} />
                         <input type="hidden" name="to" value={n.to} />
-                        {n.needsRef && <input name="eadventistRef" placeholder="eAdventist ref" className="rounded border border-line-strong bg-surface px-2 py-1 text-sm" />}
-                        <button className="rounded-lg border border-line-strong px-3 py-1 text-sm font-medium hover:bg-surface-2">{n.label}</button>
+                        {n.needsRef && <input name="eadventistRef" aria-label="eAdventist reference" placeholder="eAdventist ref" className="rounded border border-line-strong bg-surface px-2 py-1 text-sm" />}
+                        <SubmitButton className="rounded-lg border border-line-strong px-3 py-1 text-sm font-medium hover:bg-surface-2">{n.label}</SubmitButton>
                       </form>
                     ))}
                   </div>
@@ -81,39 +81,29 @@ export default async function Transfers() {
       <PortalSection title="Start an outgoing transfer on behalf of a member">
         <form action={createOnBehalfAction} className="card space-y-4 p-5">
           <p className="text-sm text-muted">Use this only with the member's consent. They will be asked to confirm before anything is processed.</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="personName" className={`${labelClass} mb-1`}>Member's full name</label>
-              <input id="personName" name="personName" required maxLength={120} className={fieldClass} />
-            </div>
-            <div>
-              <label htmlFor="personEmail" className={`${labelClass} mb-1`}>Member's email <span className="font-normal text-muted">(for confirmation)</span></label>
-              <input id="personEmail" name="personEmail" type="email" maxLength={200} className={fieldClass} />
-            </div>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="otherChurchName" className={`${labelClass} mb-1`}>Church transferring to</label>
-              <input id="otherChurchName" name="otherChurchName" required maxLength={160} className={fieldClass} />
-            </div>
-            <div>
-              <label htmlFor="consentMethod" className={`${labelClass} mb-1`}>How was consent obtained?</label>
-              <select id="consentMethod" name="consentMethod" className={fieldClass} defaultValue="verbal">
-                <option value="verbal">Verbal (in person / phone)</option>
-                <option value="written">Written / signed</option>
-                <option value="email">Email</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label htmlFor="consentNotes" className={`${labelClass} mb-1`}>Consent notes <span className="font-normal text-muted">(optional)</span></label>
-            <textarea id="consentNotes" name="consentNotes" rows={2} maxLength={1000} className={fieldClass} placeholder="e.g. requested after service on Aug 2; will confirm by email" />
-          </div>
+          <FormRow>
+            <TextField label="Member's full name" name="personName" required maxLength={120} />
+            <TextField label={<>Member's email <span className="font-normal text-muted">(for confirmation)</span></>} name="personEmail" type="email" maxLength={200} />
+          </FormRow>
+          <FormRow>
+            <TextField label="Church transferring to" name="otherChurchName" required maxLength={160} />
+            <SelectField
+              label="How was consent obtained?"
+              name="consentMethod"
+              defaultValue="verbal"
+              options={[
+                { value: "verbal", label: "Verbal (in person / phone)" },
+                { value: "written", label: "Written / signed" },
+                { value: "email", label: "Email" },
+              ]}
+            />
+          </FormRow>
+          <TextareaField label="Consent notes" name="consentNotes" optional rows={2} maxLength={1000} placeholder="e.g. requested after service on Aug 2; will confirm by email" />
           <label className="flex items-start gap-2 text-sm text-fg">
             <input type="checkbox" required className="mt-1" />
             <span>I attest that this member has consented to this membership transfer.</span>
           </label>
-          <button type="submit" className="btn btn-primary">Create &amp; request member confirmation</button>
+          <SubmitButton pendingLabel="Creating…">Create &amp; request member confirmation</SubmitButton>
         </form>
       </PortalSection>
     </PortalPage>

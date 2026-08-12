@@ -39,6 +39,7 @@ function adultProfileFields(a: Adult) {
   const emp = a.employment;
   return {
     phone: a.phone ?? null,
+    dateOfBirth: parseDate(a.birthDate),
     baptismYear: parseYear(a.baptismYear),
     joinedYear: parseYear(a.joinedYear),
     currentMinistries: a.ministriesCurrent ?? null,

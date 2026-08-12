@@ -1,4 +1,4 @@
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { TextField, TextareaField, SelectField, CheckboxField, FormRow, SubmitButton } from "@/components/forms";
 
 export type EventFormValues = {
   title?: string;
@@ -31,50 +31,29 @@ export function EventForm({
     <form action={action} className="space-y-4">
       {hiddenId ? <input type="hidden" name="id" value={hiddenId} /> : null}
 
-      <div>
-        <label htmlFor="title" className={labelClass}>Event title</label>
-        <input id="title" name="title" required maxLength={200} defaultValue={values.title ?? ""} className={`mt-1 ${fieldClass}`} placeholder="e.g. Community Health Fair" />
-      </div>
+      <TextField label="Event title" name="title" required maxLength={200} defaultValue={values.title ?? ""} placeholder="e.g. Community Health Fair" />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="startAt" className={labelClass}>Starts</label>
-          <input id="startAt" name="startAt" type="datetime-local" required defaultValue={values.startWall ?? ""} className={`mt-1 ${fieldClass}`} />
-        </div>
-        <div>
-          <label htmlFor="endAt" className={labelClass}>Ends</label>
-          <input id="endAt" name="endAt" type="datetime-local" required defaultValue={values.endWall ?? ""} className={`mt-1 ${fieldClass}`} />
-        </div>
-      </div>
+      <FormRow>
+        <TextField label="Starts" name="startAt" type="datetime-local" required defaultValue={values.startWall ?? ""} />
+        <TextField label="Ends" name="endAt" type="datetime-local" required defaultValue={values.endWall ?? ""} />
+      </FormRow>
       <p className="-mt-2 text-xs text-muted">Times are Central (church local time).</p>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="location" className={labelClass}>Location</label>
-          <input id="location" name="location" maxLength={200} defaultValue={values.location ?? ""} className={`mt-1 ${fieldClass}`} placeholder="e.g. Fellowship Hall" />
-        </div>
-        <div>
-          <label htmlFor="ministryId" className={labelClass}>Department</label>
-          <select id="ministryId" name="ministryId" required defaultValue={values.ministryId ?? ""} className={`mt-1 ${fieldClass}`}>
-            <option value="">Select a department…</option>
-            {ministries.map((m) => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <FormRow>
+        <TextField label="Location" name="location" optional maxLength={200} defaultValue={values.location ?? ""} placeholder="e.g. Fellowship Hall" />
+        <SelectField label="Department" name="ministryId" required defaultValue={values.ministryId ?? ""}>
+          <option value="">Select a department…</option>
+          {ministries.map((m) => (
+            <option key={m.id} value={m.id}>{m.name}</option>
+          ))}
+        </SelectField>
+      </FormRow>
 
-      <div>
-        <label htmlFor="descriptionHtml" className={labelClass}>Description <span className="font-normal text-muted">(optional)</span></label>
-        <textarea id="descriptionHtml" name="descriptionHtml" rows={4} maxLength={8000} defaultValue={values.descriptionHtml ?? ""} className={`mt-1 ${fieldClass}`} placeholder="What's happening, who it's for, what to bring…" />
-      </div>
+      <TextareaField label="Description" name="descriptionHtml" optional rows={4} maxLength={8000} defaultValue={values.descriptionHtml ?? ""} placeholder="What's happening, who it's for, what to bring…" />
 
-      <label className="flex items-center gap-2.5 text-sm text-fg">
-        <input type="checkbox" name="isFeatured" defaultChecked={values.isFeatured ?? false} className="h-4 w-4 rounded border-line-strong text-primary focus:ring-ring/30" />
-        Feature this event (highlight it on the site)
-      </label>
+      <CheckboxField label="Feature this event (highlight it on the site)" name="isFeatured" defaultChecked={values.isFeatured ?? false} />
 
-      <button type="submit" className="btn btn-primary">{submitLabel}</button>
+      <SubmitButton pendingLabel="Saving…">{submitLabel}</SubmitButton>
     </form>
   );
 }

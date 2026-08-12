@@ -7,6 +7,7 @@ import { safe } from "@/lib/safe";
 import { env } from "@/env";
 import { subscribeBuilding, createPledge } from "./actions";
 import { Card, Callout, fieldClass, Honeypot } from "@/components/page-ui";
+import { TextField, TextareaField, SelectField, CheckboxField, FormRow, SubmitButton } from "@/components/forms";
 import { Section, Container, Eyebrow, ArrowLink } from "@/components/ui";
 import { BuildingPlans } from "@/components/BuildingPlans";
 import { BuildingHero } from "@/components/building/BuildingHero";
@@ -225,26 +226,30 @@ export default async function Construction({ searchParams }: { searchParams: Pro
                   <p className="mb-5 text-sm text-muted">A pledge is a giving commitment — no payment is collected here. You can give securely anytime through AdventistGiving.</p>
                   <form action={createPledge} className="space-y-3">
                     <input type="hidden" name="projectId" value={project.id} />
-                    <input name="donorName" required placeholder="Your name" aria-label="Your name" className={fieldClass} />
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <input name="email" type="email" placeholder="Email" aria-label="Email" className={fieldClass} />
-                      <input name="phone" placeholder="Phone" aria-label="Phone" className={fieldClass} />
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <input name="amount" type="number" min={1} required placeholder="Amount $" aria-label="Pledge amount in dollars" className={fieldClass} />
-                      <select name="frequency" aria-label="Giving frequency" className={fieldClass}>
-                        <option value="ONE_TIME">One-time</option>
-                        <option value="MONTHLY">Monthly</option>
-                        <option value="QUARTERLY">Quarterly</option>
-                        <option value="ANNUAL">Annual</option>
-                      </select>
-                      <input name="termMonths" type="number" min={1} placeholder="Over N months" aria-label="Spread over how many months" className={fieldClass} />
-                    </div>
-                    <label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="publicRecognition" className="accent-primary" /> You may list my name as a supporter</label>
-                    <label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="isAnonymous" className="accent-primary" /> Keep my pledge anonymous</label>
-                    <textarea name="note" rows={2} placeholder="Note (optional)" aria-label="Note (optional)" className={fieldClass} />
+                    <TextField label="Your name" name="donorName" required autoComplete="name" placeholder="Your name" />
+                    <FormRow>
+                      <TextField label="Email" name="email" type="email" optional autoComplete="email" placeholder="you@email.com" />
+                      <TextField label="Phone" name="phone" type="tel" optional autoComplete="tel" placeholder="Phone" />
+                    </FormRow>
+                    <FormRow cols={3}>
+                      <TextField label="Pledge amount ($)" name="amount" type="number" min={1} required inputMode="numeric" placeholder="Amount" />
+                      <SelectField
+                        label="Frequency"
+                        name="frequency"
+                        options={[
+                          { value: "ONE_TIME", label: "One-time" },
+                          { value: "MONTHLY", label: "Monthly" },
+                          { value: "QUARTERLY", label: "Quarterly" },
+                          { value: "ANNUAL", label: "Annual" },
+                        ]}
+                      />
+                      <TextField label="Over how many months" name="termMonths" type="number" min={1} optional inputMode="numeric" placeholder="N months" />
+                    </FormRow>
+                    <CheckboxField label="You may list my name as a supporter" name="publicRecognition" />
+                    <CheckboxField label="Keep my pledge anonymous" name="isAnonymous" />
+                    <TextareaField label="Note" name="note" optional rows={2} placeholder="Anything you'd like us to know" />
                     <Honeypot />
-                    <button className="btn btn-primary">Submit pledge</button>
+                    <SubmitButton pendingLabel="Submitting…">Submit pledge</SubmitButton>
                   </form>
                 </Card>
               )}
@@ -312,7 +317,7 @@ function SubscribeSection({ subscribed }: { subscribed?: string }) {
         <form action={subscribeBuilding} className="mx-auto mt-6 flex max-w-md gap-2">
           <input name="email" type="email" required placeholder="you@email.com" aria-label="Email address for building updates" className={`${fieldClass} flex-1`} />
           <Honeypot />
-          <button className="btn btn-primary">Subscribe</button>
+          <SubmitButton pendingLabel="Subscribing…">Subscribe</SubmitButton>
         </form>
       )}
     </Section>

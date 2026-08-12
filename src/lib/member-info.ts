@@ -39,6 +39,7 @@ export const employmentSchema = z
 /** An adult (husband/wife). All fields optional so single-adult households work. */
 export const adultSchema = z.object({
   fullName: z.string().trim().max(160).optional(),
+  birthDate: z.string().trim().max(40).optional(),
   phone: z.string().trim().max(40).optional(),
   email: z.string().trim().max(200).optional(),
   baptismYear: year,
