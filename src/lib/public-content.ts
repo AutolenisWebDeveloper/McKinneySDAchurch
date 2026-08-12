@@ -25,11 +25,20 @@ export function getUpcomingEvents(take = 5) {
   });
 }
 
-/** Already-passed public events, most recent first — for the full-year calendar's "earlier" section. */
-export function getPastEvents(take = 200) {
+/**
+ * Every published event, ascending — the dataset the public month calendar navigates entirely
+ * on the client (no per-month round trips). Server-side visibility is still enforced here
+ * (APPROVED + PUBLIC only), so drafts/restricted events never reach the browser. Bounded to a
+ * generous window around now so the payload stays small as years accumulate.
+ */
+export function getPublicCalendarEvents(take = 800) {
+  const from = new Date(now());
+  from.setUTCFullYear(from.getUTCFullYear() - 2);
+  const to = new Date(now());
+  to.setUTCFullYear(to.getUTCFullYear() + 2);
   return prisma.event.findMany({
-    where: { status: "APPROVED", visibility: "PUBLIC", startAt: { lt: now() } },
-    orderBy: { startAt: "desc" },
+    where: { status: "APPROVED", visibility: "PUBLIC", startAt: { gte: from, lte: to } },
+    orderBy: { startAt: "asc" },
     take,
     include: { ministry: { select: { name: true, slug: true } } },
   });
