@@ -8,10 +8,11 @@ import {
   centralMinutes,
   centralTimeLabel,
   centralYmd,
-  categoryForSlug,
+  resolveCategoryKey,
   monthKeyOf,
   WEEKDAY_LABELS,
   type CalendarEvent,
+  type EventCategoryValue,
 } from "@/lib/calendar";
 import { PageHeader, EmptyState, Skeleton } from "@/components/page-ui";
 import { Section, Container } from "@/components/ui";
@@ -47,15 +48,16 @@ function toCalendarEvent(e: EventRow): CalendarEvent {
     timeLabel: centralTimeLabel(e.startAt),
     multiDay: startYmd !== endYmd,
     isFeatured: e.isFeatured,
-    category: categoryForSlug(e.ministry?.slug),
+    category: resolveCategoryKey(e.category as EventCategoryValue | null, e.ministry?.slug),
     ministryName: e.ministry?.name ?? null,
     ministrySlug: e.ministry?.slug ?? null,
     location: e.location,
-    excerpt: e.descriptionHtml ? excerptHtml(e.descriptionHtml, 160) : null,
+    excerpt: e.summary ?? (e.descriptionHtml ? excerptHtml(e.descriptionHtml, 160) : null),
     startLongDate: longWeekday(e.startAt),
     endLongDate: longWeekday(e.endAt),
-    googleUrl: googleCalUrl(e),
+    googleUrl: googleCalUrl({ ...e, description: e.summary ?? undefined, allDay: e.allDay }),
     icsUrl: `/api/calendar/${e.id}`,
+    detailUrl: e.slug ? `/calendar/events/${e.slug}` : null,
   };
 }
 

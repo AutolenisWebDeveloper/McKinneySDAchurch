@@ -221,19 +221,27 @@ export async function seedCalendar2026(prisma: PrismaClient): Promise<number> {
     const startAt = toUtc(e.date, e.start);
     const endAt = toUtc(e.endDate ?? e.date, e.end);
     const descriptionHtml = e.desc ? `<p>${e.desc}</p>` : null;
+    // Stable, unique public slug (kebab title + stable key). These are pre-published imports.
+    const slug = `${e.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60)}-${e.key}`;
     const data = {
       title: e.title,
+      slug,
+      summary: e.desc ?? null,
       location: e.location ?? null,
       descriptionHtml,
       startAt,
       endAt,
       ministryId,
       isFeatured: e.featured ?? false,
-      status: "APPROVED" as const,
+      // Imported church-calendar events are already published (public + admin-authored).
+      status: "PUBLISHED" as const,
       visibility: "PUBLIC" as const,
       createdById: system.id,
       reviewedById: system.id,
       reviewedAt,
+      publishedAt: reviewedAt,
+      submittedAt: reviewedAt,
+      submissionCount: 1,
     };
     await prisma.event.upsert({ where: { id }, update: data, create: { id, ...data } });
   }

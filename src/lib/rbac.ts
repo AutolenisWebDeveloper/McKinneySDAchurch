@@ -61,6 +61,42 @@ export function canManageAnnouncement(a: Actor, res: { ministryId: string; creat
 export const canManageEvent = canManageAnnouncement;
 export const canReviewContent = (a: Actor) => isAdmin(a); // approve/reject/publish
 
+/* ---- Calendar: governed events (§Calendar) ----
+ * "Owner" work (create/edit/save-draft/submit/discard) is scoped to a department the actor
+ * heads; Admin/Pastor own every department. "Reviewer" work (start review / request changes /
+ * approve / reject / publish / unpublish / cancel) is Admin/Pastor only — a department head can
+ * never approve or publish, which enforces the separation the calendar workflow requires. */
+
+/** May create/edit/save-draft/submit an event for this department. */
+export const canManageEventForMinistry = (a: Actor, ministryId: string) =>
+  canManageEvent(a, { ministryId });
+
+/** May take reviewer actions on events (approve / reject / request changes / publish / cancel). */
+export const canReviewEvent = (a: Actor) => isAdmin(a);
+
+/** May make an approved event publicly visible (or pull it back). */
+export const canPublishEvent = (a: Actor) => isAdmin(a);
+
+/** Every department id the actor may submit/own events for. Admin/Pastor → null (means "all"). */
+export function eventOwnerScope(a: Actor): { all: boolean; ministryIds: string[] } {
+  if (isAdmin(a)) return { all: true, ministryIds: [] };
+  return { all: false, ministryIds: ministryScope(a) };
+}
+
+/**
+ * How this actor relates to a given event, if at all: a "reviewer" (Admin/Pastor), an "owner"
+ * (department head of the event's department), or null (no access). Reviewer wins when the actor
+ * is both. The service uses this to pick the correct set of state-machine transitions.
+ */
+export function eventActorKind(
+  a: Actor,
+  event: { ministryId: string },
+): "reviewer" | "owner" | null {
+  if (canReviewEvent(a)) return "reviewer";
+  if (hasRole(a, "MINISTRY_HEAD") && ministryScope(a).includes(event.ministryId)) return "owner";
+  return null;
+}
+
 /* ---- People & sensitive data ---- */
 export const canReadMember = (a: Actor) => isAdmin(a) || hasRole(a, "CLERK");
 export const canReadPrayerRequest = (a: Actor) => isAdmin(a);

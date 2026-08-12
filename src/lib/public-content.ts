@@ -1,7 +1,8 @@
 import { prisma } from "./db";
 
-/** The public read contract: APPROVED + PUBLIC + publishAt<=now only. Never returns
- *  pending/rejected/private content. (This is the read side of P2-6.) */
+/** The public read contract: APPROVED + PUBLIC + publishAt<=now only for announcements; for the
+ *  governed calendar, events must be PUBLISHED (approved-but-unpublished stays private). Never
+ *  returns draft/pending/rejected/cancelled/private content into public listings. */
 const now = () => new Date();
 
 export function getApprovedAnnouncements(take = 5) {
@@ -18,7 +19,7 @@ export function getApprovedAnnouncements(take = 5) {
 
 export function getUpcomingEvents(take = 5) {
   return prisma.event.findMany({
-    where: { status: "APPROVED", visibility: "PUBLIC", startAt: { gte: now() } },
+    where: { status: "PUBLISHED", visibility: "PUBLIC", startAt: { gte: now() } },
     orderBy: { startAt: "asc" },
     take,
     include: { ministry: { select: { name: true, slug: true } } },
@@ -37,7 +38,7 @@ export function getPublicCalendarEvents(take = 800) {
   const to = new Date(now());
   to.setUTCFullYear(to.getUTCFullYear() + 2);
   return prisma.event.findMany({
-    where: { status: "APPROVED", visibility: "PUBLIC", startAt: { gte: from, lte: to } },
+    where: { status: "PUBLISHED", visibility: "PUBLIC", startAt: { gte: from, lte: to } },
     orderBy: { startAt: "asc" },
     take,
     include: { ministry: { select: { name: true, slug: true } } },
@@ -61,7 +62,7 @@ export function getApprovedAnnouncementsForMinistry(ministryId: string, take = 1
   });
 }
 export function getUpcomingEventsForMinistry(ministryId: string, take = 10) {
-  return prisma.event.findMany({ where: { ministryId, status: "APPROVED", visibility: "PUBLIC", startAt: { gte: new Date() } }, orderBy: { startAt: "asc" }, take });
+  return prisma.event.findMany({ where: { ministryId, status: "PUBLISHED", visibility: "PUBLIC", startAt: { gte: new Date() } }, orderBy: { startAt: "asc" }, take });
 }
 export function getSermons(take = 30) {
   return prisma.sermon.findMany({ orderBy: { preachedAt: "desc" }, take });
@@ -69,6 +70,26 @@ export function getSermons(take = 30) {
 export function getSermon(id: string) {
   return prisma.sermon.findUnique({ where: { id } });
 }
-export function getApprovedEvent(id: string) {
-  return prisma.event.findFirst({ where: { id, status: "APPROVED", visibility: "PUBLIC" } });
+/** A single published event by id (used by the .ics export). Published + public only. */
+export function getPublishedEvent(id: string) {
+  return prisma.event.findFirst({ where: { id, status: "PUBLISHED", visibility: "PUBLIC" } });
+}
+
+/** A single event reachable at its public canonical URL: PUBLISHED (listed) or CANCELLED (so a
+ *  held link still shows it was called off). Includes its ministry for display. */
+export function getPublicEventBySlug(slug: string) {
+  return prisma.event.findFirst({
+    where: { slug, visibility: "PUBLIC", status: { in: ["PUBLISHED", "CANCELLED"] } },
+    include: { ministry: { select: { name: true, slug: true } } },
+  });
+}
+
+/** All published event slugs (for static params / sitemap). */
+export function getPublishedEventSlugs(take = 500) {
+  return prisma.event.findMany({
+    where: { status: "PUBLISHED", visibility: "PUBLIC", slug: { not: null } },
+    orderBy: { startAt: "desc" },
+    take,
+    select: { slug: true, updatedAt: true },
+  });
 }

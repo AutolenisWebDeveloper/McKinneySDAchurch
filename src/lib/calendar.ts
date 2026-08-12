@@ -143,6 +143,12 @@ export function expandEventDays(startYmd: Ymd, endYmd: Ymd): Ymd[] {
   return out.length ? out : [startYmd];
 }
 
+/** Do two half-open time intervals [aStart,aEnd) and [bStart,bEnd) overlap? Pure — used by the
+ *  scheduling-conflict detector and unit-tested independently of the DB. */
+export function intervalsOverlap(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
+  return aStart.getTime() < bEnd.getTime() && bStart.getTime() < aEnd.getTime();
+}
+
 export const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 export const WEEKDAY_LABELS_FULL = [
   "Sunday",
@@ -204,7 +210,49 @@ export type CalendarEvent = {
   endLongDate: string;
   googleUrl: string;
   icsUrl: string;
+  detailUrl: string | null; // canonical public event page (/calendar/events/[slug])
 };
+
+/** Map an explicit EventCategory (the submitter's choice) to a public color/icon key. Kept as a
+ *  plain string union so this module stays free of a Prisma import (it is shared with the client). */
+export type EventCategoryValue =
+  | "WORSHIP" | "YOUTH" | "CHILDREN" | "FAMILY"
+  | "OUTREACH" | "HEALTH" | "FELLOWSHIP" | "SERVICE" | "OTHER";
+
+const CATEGORY_KEY_BY_VALUE: Record<EventCategoryValue, CategoryKey> = {
+  WORSHIP: "worship",
+  YOUTH: "youth",
+  CHILDREN: "children",
+  FAMILY: "family",
+  FELLOWSHIP: "family",
+  OUTREACH: "outreach",
+  HEALTH: "outreach",
+  SERVICE: "outreach",
+  OTHER: "worship",
+};
+
+/** Options for the submission form's category selector (value + human label). */
+export const EVENT_CATEGORY_OPTIONS: { value: EventCategoryValue; label: string }[] = [
+  { value: "WORSHIP", label: "Worship & Devotion" },
+  { value: "YOUTH", label: "Youth" },
+  { value: "CHILDREN", label: "Children" },
+  { value: "FAMILY", label: "Family" },
+  { value: "FELLOWSHIP", label: "Fellowship" },
+  { value: "OUTREACH", label: "Outreach & Evangelism" },
+  { value: "HEALTH", label: "Health" },
+  { value: "SERVICE", label: "Community Service" },
+  { value: "OTHER", label: "Other" },
+];
+
+/** Resolve an event's public category: the explicit choice wins; otherwise fall back to the
+ *  ministry-slug mapping so legacy events (no category) still color correctly. */
+export function resolveCategoryKey(
+  category: EventCategoryValue | null | undefined,
+  ministrySlug: string | null | undefined,
+): CategoryKey {
+  if (category && CATEGORY_KEY_BY_VALUE[category]) return CATEGORY_KEY_BY_VALUE[category];
+  return categoryForSlug(ministrySlug);
+}
 
 /** Map a ministry slug to one of the restrained semantic categories. */
 export function categoryForSlug(slug: string | null | undefined): CategoryKey {

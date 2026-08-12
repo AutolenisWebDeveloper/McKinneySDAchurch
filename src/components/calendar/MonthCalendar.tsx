@@ -482,7 +482,13 @@ function DayAgenda({ ymd, events, filtersOn }: { ymd: Ymd; events: CalendarEvent
                   ) : null}
                 </div>
 
-                <h4 className="mt-2 font-serif text-base font-semibold leading-snug text-fg">{e.title}</h4>
+                <h4 className="mt-2 font-serif text-base font-semibold leading-snug text-fg">
+                  {e.detailUrl ? (
+                    <Link href={e.detailUrl} className="hover:text-primary hover:underline">{e.title}</Link>
+                  ) : (
+                    e.title
+                  )}
+                </h4>
 
                 <dl className="mt-1.5 space-y-1 text-sm text-muted">
                   <div className="flex items-start gap-2">
@@ -500,6 +506,11 @@ function DayAgenda({ ymd, events, filtersOn }: { ymd: Ymd; events: CalendarEvent
                 {e.excerpt ? <p className="mt-2 text-sm leading-relaxed text-muted">{e.excerpt}</p> : null}
 
                 <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                  {e.detailUrl ? (
+                    <Link href={e.detailUrl} className="font-semibold text-primary hover:text-primary-hover">
+                      View details
+                    </Link>
+                  ) : null}
                   {e.ministrySlug && e.ministryName ? (
                     <Link href={`/ministries/${e.ministrySlug}`} className="font-semibold text-primary hover:text-primary-hover">
                       {e.ministryName}
