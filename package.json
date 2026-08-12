@@ -18,7 +18,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
-    "db:seed:bulletin": "tsx prisma/seed-bulletin-aug8.ts"
+    "db:seed:bulletin": "tsx prisma/seed-bulletin-aug8.ts",
+    "db:seed:bulletin:archive": "tsx prisma/seed-bulletin-archive.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
