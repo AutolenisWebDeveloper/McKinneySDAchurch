@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { doAccept } from "./actions";
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { TextField, SubmitButton } from "@/components/forms";
 
 export const dynamic = "force-dynamic";
 
@@ -47,24 +47,19 @@ export default async function AcceptInvite({
 
           <form action={doAccept} className="mt-6 space-y-4">
             <input type="hidden" name="token" value={token} />
-            <div>
-              <label htmlFor="name" className={`${labelClass} mb-1`}>Full name <span className="font-normal text-muted">(optional)</span></label>
-              <input id="name" name="name" autoComplete="name" maxLength={120} className={fieldClass} />
-            </div>
-            <div>
-              <label htmlFor="email" className={`${labelClass} mb-1`}>Email</label>
-              <input id="email" name="email" type="email" autoComplete="email" required defaultValue={email ?? ""} className={fieldClass} />
-              <p className="mt-1 text-xs text-muted">Use the email your invitation was sent to.</p>
-            </div>
-            <div>
-              <label htmlFor="password" className={`${labelClass} mb-1`}>Create a password</label>
-              <input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} className={fieldClass} />
-            </div>
-            <div>
-              <label htmlFor="confirm" className={`${labelClass} mb-1`}>Confirm password</label>
-              <input id="confirm" name="confirm" type="password" autoComplete="new-password" required minLength={8} className={fieldClass} />
-            </div>
-            <button type="submit" className="btn btn-primary w-full">Create my account</button>
+            <TextField label="Full name" name="name" optional autoComplete="name" maxLength={120} />
+            <TextField
+              label="Email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              defaultValue={email ?? ""}
+              hint="Use the email your invitation was sent to."
+            />
+            <TextField label="Create a password" name="password" type="password" autoComplete="new-password" required minLength={8} />
+            <TextField label="Confirm password" name="confirm" type="password" autoComplete="new-password" required minLength={8} />
+            <SubmitButton fullWidth pendingLabel="Creating…">Create my account</SubmitButton>
           </form>
 
           <div className="mt-5 text-center text-sm">

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { safe } from "@/lib/safe";
 import { submitPrayer } from "./actions";
-import { PageHeader, Card, Callout, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
+import { PageHeader, Card, Callout } from "@/components/page-ui";
+import { Honeypot, TextField, TextareaField, CheckboxField, SubmitButton } from "@/components/forms";
 import { Section, Eyebrow } from "@/components/ui";
 import { Reveal } from "@/components/motion/Reveal";
 
@@ -41,18 +42,18 @@ export default async function Prayer({ searchParams }: { searchParams: Promise<{
                 </div>
               ) : null}
               <form action={submitPrayer} className="space-y-4">
-                <div>
-                  <label htmlFor="name" className={`${labelClass} mb-1`}>Name <span className="font-normal text-muted">(optional)</span></label>
-                  <input id="name" name="name" className={fieldClass} />
-                </div>
-                <div>
-                  <label htmlFor="content" className={`${labelClass} mb-1`}>Your request</label>
-                  <textarea id="content" name="content" required rows={5} className={fieldClass} placeholder="Share as much or as little as you'd like…" />
-                </div>
-                <label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="isAnonymous" className="accent-primary" /> Submit anonymously</label>
-                <label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="wantsPublish" className="accent-primary" /> Allow sharing on the prayer wall (after review)</label>
+                <TextField label="Name" name="name" optional />
+                <TextareaField
+                  label="Your request"
+                  name="content"
+                  required
+                  rows={5}
+                  placeholder="Share as much or as little as you'd like…"
+                />
+                <CheckboxField label="Submit anonymously" name="isAnonymous" />
+                <CheckboxField label="Allow sharing on the prayer wall (after review)" name="wantsPublish" />
                 <Honeypot />
-                <button type="submit" className="btn btn-primary">Submit request</button>
+                <SubmitButton pendingLabel="Submitting…">Submit request</SubmitButton>
               </form>
             </Card>
           </Reveal>

@@ -1,6 +1,6 @@
 import { requirePortal } from "@/auth/actor";
 import { prisma } from "@/lib/db";
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { TextField, TextareaField, SubmitButton } from "@/components/forms";
 import { PortalPage, PortalSection, EmptyState } from "@/components/portal/home-ui";
 import { requestOutgoingTransfer, confirmMyTransfer, denyMyTransfer } from "./actions";
 
@@ -40,11 +40,11 @@ export default async function MemberTransfer({ searchParams }: { searchParams: P
               <div className="mt-3 flex gap-2">
                 <form action={confirmMyTransfer}>
                   <input type="hidden" name="id" value={t.id} />
-                  <button className="btn btn-primary text-sm">Yes, confirm my transfer</button>
+                  <SubmitButton className="btn btn-primary text-sm">Yes, confirm my transfer</SubmitButton>
                 </form>
                 <form action={denyMyTransfer}>
                   <input type="hidden" name="id" value={t.id} />
-                  <button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium text-accent-strong hover:bg-surface-2">No, I did not request this</button>
+                  <SubmitButton className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium text-accent-strong hover:bg-surface-2">No, I did not request this</SubmitButton>
                 </form>
               </div>
             </div>
@@ -54,19 +54,10 @@ export default async function MemberTransfer({ searchParams }: { searchParams: P
 
       <PortalSection title="Transfer out to another church">
         <form action={requestOutgoingTransfer} className="card space-y-4 p-5">
-          <div>
-            <label htmlFor="otherChurchName" className={`${labelClass} mb-1`}>Church you're transferring to</label>
-            <input id="otherChurchName" name="otherChurchName" required maxLength={160} className={fieldClass} />
-          </div>
-          <div>
-            <label htmlFor="otherChurchContact" className={`${labelClass} mb-1`}>Their contact <span className="font-normal text-muted">(optional)</span></label>
-            <input id="otherChurchContact" name="otherChurchContact" maxLength={160} className={fieldClass} />
-          </div>
-          <div>
-            <label htmlFor="note" className={`${labelClass} mb-1`}>Anything else <span className="font-normal text-muted">(optional)</span></label>
-            <textarea id="note" name="note" rows={3} maxLength={1000} className={fieldClass} />
-          </div>
-          <button type="submit" className="btn btn-primary">Request transfer out</button>
+          <TextField label="Church you're transferring to" name="otherChurchName" required maxLength={160} />
+          <TextField label="Their contact" name="otherChurchContact" optional maxLength={160} />
+          <TextareaField label="Anything else" name="note" optional rows={3} maxLength={1000} />
+          <SubmitButton pendingLabel="Submitting…">Request transfer out</SubmitButton>
         </form>
       </PortalSection>
 

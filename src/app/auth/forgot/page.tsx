@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requestReset } from "./actions";
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { TextField, SubmitButton } from "@/components/forms";
 
 export const dynamic = "force-dynamic";
 
@@ -36,11 +36,8 @@ export default async function ForgotPassword({ searchParams }: { searchParams: P
                 Enter your email and we’ll send you a link to set a new password.
               </p>
               <form action={requestReset} className="mt-6 space-y-4">
-                <div>
-                  <label htmlFor="email" className={`${labelClass} mb-1`}>Email</label>
-                  <input id="email" name="email" type="email" autoComplete="email" required className={fieldClass} />
-                </div>
-                <button type="submit" className="btn btn-primary w-full">Send reset link</button>
+                <TextField label="Email" name="email" type="email" autoComplete="email" required />
+                <SubmitButton fullWidth pendingLabel="Sending…">Send reset link</SubmitButton>
               </form>
               <div className="mt-5 text-center text-sm">
                 <Link href="/auth/login" className="text-muted hover:text-fg">Back to sign in</Link>

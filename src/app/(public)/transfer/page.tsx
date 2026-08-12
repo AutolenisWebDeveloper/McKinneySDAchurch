@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { env } from "@/env";
 import { submitTransfer } from "./actions";
-import { PageHeader, Card, Callout, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
+import { PageHeader, Card, Callout } from "@/components/page-ui";
+import { Honeypot, TextField, TextareaField, FormRow, SubmitButton } from "@/components/forms";
 import { Section } from "@/components/ui";
 import { Reveal } from "@/components/motion/Reveal";
 
@@ -55,34 +56,16 @@ export default async function Transfer({ searchParams }: { searchParams: Promise
             </Callout>
             <form action={submitTransfer} className="mt-6 space-y-4">
               <input type="hidden" name="direction" value="INCOMING" />
-              <div>
-                <label htmlFor="personName" className={`${labelClass} mb-1`}>Your full name</label>
-                <input id="personName" name="personName" required autoComplete="name" className={fieldClass} />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="personEmail" className={`${labelClass} mb-1`}>Email <span className="font-normal text-muted">(optional)</span></label>
-                  <input id="personEmail" name="personEmail" type="email" autoComplete="email" className={fieldClass} />
-                </div>
-                <div>
-                  <label htmlFor="personPhone" className={`${labelClass} mb-1`}>Phone <span className="font-normal text-muted">(optional)</span></label>
-                  <input id="personPhone" name="personPhone" type="tel" autoComplete="tel" className={fieldClass} />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="otherChurchName" className={`${labelClass} mb-1`}>Your current church name</label>
-                <input id="otherChurchName" name="otherChurchName" required className={fieldClass} />
-              </div>
-              <div>
-                <label htmlFor="otherChurchContact" className={`${labelClass} mb-1`}>Current church contact <span className="font-normal text-muted">(optional)</span></label>
-                <input id="otherChurchContact" name="otherChurchContact" className={fieldClass} />
-              </div>
-              <div>
-                <label htmlFor="note" className={`${labelClass} mb-1`}>Anything else <span className="font-normal text-muted">(optional)</span></label>
-                <textarea id="note" name="note" rows={3} className={fieldClass} />
-              </div>
+              <TextField label="Your full name" name="personName" required autoComplete="name" />
+              <FormRow>
+                <TextField label="Email" name="personEmail" type="email" optional autoComplete="email" />
+                <TextField label="Phone" name="personPhone" type="tel" optional autoComplete="tel" />
+              </FormRow>
+              <TextField label="Your current church name" name="otherChurchName" required />
+              <TextField label="Current church contact" name="otherChurchContact" optional />
+              <TextareaField label="Anything else" name="note" optional rows={3} />
               <Honeypot />
-              <button className="btn btn-primary">Submit transfer request</button>
+              <SubmitButton pendingLabel="Submitting…">Submit transfer request</SubmitButton>
             </form>
           </Card>
         </Reveal>

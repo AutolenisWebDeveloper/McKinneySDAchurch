@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { submitMemberInfo } from "./actions";
 import { ChildrenFields } from "./ChildrenFields";
-import { PageHeader, Card, Callout, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
+import { PageHeader, Card, Callout } from "@/components/page-ui";
+import { Honeypot, TextField, TextareaField, SelectField, CheckboxField, SubmitButton } from "@/components/forms";
 import { Section } from "@/components/ui";
 import { Reveal } from "@/components/motion/Reveal";
 import { EMPLOYMENT_STATUSES, EMPLOYMENT_STATUS_LABEL } from "@/lib/member-info";
@@ -19,58 +20,25 @@ function AdultFields({ prefix, heading }: { prefix: string; heading: string }) {
     <fieldset className="space-y-4">
       <legend className="font-serif text-lg font-semibold text-fg">{heading}</legend>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor={`${prefix}_fullName`} className={labelClass}>Full name</label>
-          <input id={`${prefix}_fullName`} name={`${prefix}_fullName`} maxLength={160} className={`mt-1 ${fieldClass}`} />
-        </div>
-        <div>
-          <label htmlFor={`${prefix}_phone`} className={labelClass}>Phone number</label>
-          <input id={`${prefix}_phone`} name={`${prefix}_phone`} type="tel" maxLength={40} className={`mt-1 ${fieldClass}`} />
-        </div>
-        <div className="sm:col-span-2">
-          <label htmlFor={`${prefix}_email`} className={labelClass}>Email address</label>
-          <input id={`${prefix}_email`} name={`${prefix}_email`} type="email" maxLength={200} className={`mt-1 ${fieldClass}`} />
-        </div>
-        <div>
-          <label htmlFor={`${prefix}_baptismYear`} className={labelClass}>Baptism year <span className="font-normal text-muted">(if any)</span></label>
-          <input id={`${prefix}_baptismYear`} name={`${prefix}_baptismYear`} inputMode="numeric" maxLength={4} placeholder="e.g. 2009" className={`mt-1 ${fieldClass}`} />
-        </div>
-        <div>
-          <label htmlFor={`${prefix}_joinedYear`} className={labelClass}>Year joined McKinney SDA <span className="font-normal text-muted">(if any)</span></label>
-          <input id={`${prefix}_joinedYear`} name={`${prefix}_joinedYear`} inputMode="numeric" maxLength={4} className={`mt-1 ${fieldClass}`} />
-        </div>
-        <div className="sm:col-span-2">
-          <label htmlFor={`${prefix}_current`} className={labelClass}>Current ministry involvement</label>
-          <textarea id={`${prefix}_current`} name={`${prefix}_current`} rows={2} maxLength={2000} placeholder="Ministries or roles you currently serve in" className={`mt-1 ${fieldClass}`} />
-        </div>
-        <div className="sm:col-span-2">
-          <label htmlFor={`${prefix}_interested`} className={labelClass}>Ministries / activities you'd like to join</label>
-          <textarea id={`${prefix}_interested`} name={`${prefix}_interested`} rows={2} maxLength={2000} placeholder="Where you'd love to get involved" className={`mt-1 ${fieldClass}`} />
-        </div>
+        <TextField label="Full name" name={`${prefix}_fullName`} maxLength={160} />
+        <TextField label="Phone number" name={`${prefix}_phone`} type="tel" maxLength={40} />
+        <TextField label="Email address" name={`${prefix}_email`} type="email" maxLength={200} wrapClassName="sm:col-span-2" />
+        <TextField label={<>Baptism year <span className="font-normal text-muted">(if any)</span></>} name={`${prefix}_baptismYear`} inputMode="numeric" maxLength={4} placeholder="e.g. 2009" />
+        <TextField label={<>Year joined McKinney SDA <span className="font-normal text-muted">(if any)</span></>} name={`${prefix}_joinedYear`} inputMode="numeric" maxLength={4} />
+        <TextareaField label="Current ministry involvement" name={`${prefix}_current`} rows={2} maxLength={2000} placeholder="Ministries or roles you currently serve in" wrapClassName="sm:col-span-2" />
+        <TextareaField label="Ministries / activities you'd like to join" name={`${prefix}_interested`} rows={2} maxLength={2000} placeholder="Where you'd love to get involved" wrapClassName="sm:col-span-2" />
       </div>
 
       <details className="rounded-xl border border-line p-4">
         <summary className="cursor-pointer text-sm font-semibold text-fg">Employment information <span className="font-normal text-muted">(optional)</span></summary>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor={`${prefix}_occupation`} className={labelClass}>Occupation / job title</label>
-            <input id={`${prefix}_occupation`} name={`${prefix}_occupation`} maxLength={200} className={`mt-1 ${fieldClass}`} />
-          </div>
-          <div>
-            <label htmlFor={`${prefix}_employer`} className={labelClass}>Employer / business name</label>
-            <input id={`${prefix}_employer`} name={`${prefix}_employer`} maxLength={200} className={`mt-1 ${fieldClass}`} />
-          </div>
-          <div>
-            <label htmlFor={`${prefix}_empStatus`} className={labelClass}>Employment status</label>
-            <select id={`${prefix}_empStatus`} name={`${prefix}_empStatus`} defaultValue="" className={`mt-1 ${fieldClass}`}>
-              <option value="">Prefer not to say</option>
-              {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{EMPLOYMENT_STATUS_LABEL[s]}</option>)}
-            </select>
-          </div>
-          <div className="sm:col-span-2">
-            <label htmlFor={`${prefix}_skills`} className={labelClass}>Skills or services you'd offer the church voluntarily</label>
-            <textarea id={`${prefix}_skills`} name={`${prefix}_skills`} rows={2} maxLength={2000} placeholder="e.g. accounting, carpentry, music, IT, medical, translation…" className={`mt-1 ${fieldClass}`} />
-          </div>
+          <TextField label="Occupation / job title" name={`${prefix}_occupation`} maxLength={200} />
+          <TextField label="Employer / business name" name={`${prefix}_employer`} maxLength={200} />
+          <SelectField label="Employment status" name={`${prefix}_empStatus`} defaultValue="">
+            <option value="">Prefer not to say</option>
+            {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{EMPLOYMENT_STATUS_LABEL[s]}</option>)}
+          </SelectField>
+          <TextareaField label="Skills or services you'd offer the church voluntarily" name={`${prefix}_skills`} rows={2} maxLength={2000} placeholder="e.g. accounting, carpentry, music, IT, medical, translation…" wrapClassName="sm:col-span-2" />
         </div>
       </details>
     </fieldset>
@@ -119,18 +87,9 @@ export default async function MemberInfoForm({ searchParams }: { searchParams: P
             {/* Household */}
             <fieldset className="space-y-4">
               <legend className="font-serif text-lg font-semibold text-fg">Household</legend>
-              <div>
-                <label htmlFor="householdName" className={labelClass}>Household / family name</label>
-                <input id="householdName" name="householdName" required maxLength={200} placeholder="e.g. The Johnson Family" className={`mt-1 ${fieldClass}`} />
-              </div>
-              <div>
-                <label htmlFor="address" className={labelClass}>Home address</label>
-                <textarea id="address" name="address" rows={2} maxLength={500} placeholder="Street, city, state, ZIP" className={`mt-1 ${fieldClass}`} />
-              </div>
-              <div>
-                <label htmlFor="anniversary" className={labelClass}>Wedding anniversary <span className="font-normal text-muted">(if applicable)</span></label>
-                <input id="anniversary" name="anniversary" type="date" className={`mt-1 ${fieldClass}`} />
-              </div>
+              <TextField label="Household / family name" name="householdName" required maxLength={200} placeholder="e.g. The Johnson Family" />
+              <TextareaField label="Home address" name="address" rows={2} maxLength={500} placeholder="Street, city, state, ZIP" />
+              <TextField label={<>Wedding anniversary <span className="font-normal text-muted">(if applicable)</span></>} name="anniversary" type="date" />
             </fieldset>
 
             <div className="border-t border-line pt-8"><AdultFields prefix="husband" heading="Husband" /></div>
@@ -147,14 +106,17 @@ export default async function MemberInfoForm({ searchParams }: { searchParams: P
 
             {/* Consent */}
             <div className="border-t border-line pt-8">
-              <label className="flex items-start gap-3 text-sm text-fg">
-                <input type="checkbox" name="consent" required className="mt-0.5 h-4 w-4 rounded border-line-strong text-primary focus:ring-ring/30" />
-                <span>
-                  I consent to McKinney Seventh-day Adventist Church securely storing and using the
-                  information above for church administration and pastoral care.
-                </span>
-              </label>
-              <button type="submit" className="btn btn-primary mt-6">Submit information</button>
+              <CheckboxField
+                name="consent"
+                required
+                label={
+                  <>
+                    I consent to McKinney Seventh-day Adventist Church securely storing and using the
+                    information above for church administration and pastoral care.
+                  </>
+                }
+              />
+              <SubmitButton className="btn btn-primary mt-6" pendingLabel="Submitting…">Submit information</SubmitButton>
             </div>
           </form>
         </Card></Reveal>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { PageHeader, Card, Callout, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
+import { PageHeader, Card, Callout } from "@/components/page-ui";
+import { Honeypot, TextField, TextareaField, SelectField, FormRow, SubmitButton } from "@/components/forms";
 import { Section } from "@/components/ui";
 import { church } from "@/components/site-info";
 import { submitVolunteer } from "./actions";
@@ -51,39 +52,34 @@ export default async function Volunteer({ searchParams }: { searchParams: Promis
               </Callout>
               {error && <p role="alert" className="mt-4 rounded-lg border border-orange/40 bg-orange/10 px-4 py-3 text-sm text-fg">Please complete the required fields.</p>}
               <form action={submitVolunteer} className="mt-6 space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="name" className={`${labelClass} mb-1`}>Your name</label>
-                    <input id="name" name="name" autoComplete="name" required maxLength={120} className={fieldClass} />
-                  </div>
-                  <div>
-                    <label htmlFor="email" className={`${labelClass} mb-1`}>Email</label>
-                    <input id="email" name="email" type="email" autoComplete="email" required maxLength={200} className={fieldClass} />
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="phone" className={`${labelClass} mb-1`}>Phone <span className="font-normal text-muted">(optional)</span></label>
-                    <input id="phone" name="phone" type="tel" autoComplete="tel" maxLength={40} className={fieldClass} />
-                  </div>
-                  <div>
-                    <label htmlFor="ministryId" className={`${labelClass} mb-1`}>Ministry <span className="font-normal text-muted">(optional)</span></label>
-                    <select id="ministryId" name="ministryId" className={fieldClass} defaultValue="__none__">
-                      <option value="__none__">Wherever I&rsquo;m needed</option>
-                      {ministries.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="area" className={`${labelClass} mb-1`}>How would you like to help? <span className="font-normal text-muted">(optional)</span></label>
-                  <input id="area" name="area" maxLength={160} placeholder="e.g. music, greeting, children's classes, tech" className={fieldClass} />
-                </div>
-                <div>
-                  <label htmlFor="message" className={`${labelClass} mb-1`}>Tell us about yourself</label>
-                  <textarea id="message" name="message" required rows={4} maxLength={4000} className={fieldClass} placeholder="Your experience, availability, and interests." />
-                </div>
+                <FormRow>
+                  <TextField label="Your name" name="name" autoComplete="name" required maxLength={120} />
+                  <TextField label="Email" name="email" type="email" autoComplete="email" required maxLength={200} />
+                </FormRow>
+                <FormRow>
+                  <TextField label="Phone" name="phone" type="tel" optional autoComplete="tel" maxLength={40} />
+                  <SelectField label="Ministry" name="ministryId" optional defaultValue="__none__">
+                    <option value="__none__">Wherever I&rsquo;m needed</option>
+                    {ministries.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </SelectField>
+                </FormRow>
+                <TextField
+                  label="How would you like to help?"
+                  name="area"
+                  optional
+                  maxLength={160}
+                  placeholder="e.g. music, greeting, children's classes, tech"
+                />
+                <TextareaField
+                  label="Tell us about yourself"
+                  name="message"
+                  required
+                  rows={4}
+                  maxLength={4000}
+                  placeholder="Your experience, availability, and interests."
+                />
                 <Honeypot />
-                <button type="submit" className="btn btn-primary w-full">Submit</button>
+                <SubmitButton fullWidth pendingLabel="Submitting…">Submit</SubmitButton>
               </form>
               <p className="mt-4 text-center text-sm text-muted">Questions? <Link href="/contact" className="text-primary hover:text-primary-hover">Contact us</Link> or call {church.phone}.</p>
             </Card>

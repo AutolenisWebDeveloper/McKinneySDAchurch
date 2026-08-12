@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { TextField } from "@/components/forms";
 
 /**
  * Repeatable child rows. Each row renders the same four inputs, so the server
@@ -29,22 +29,10 @@ export function ChildrenFields() {
             ) : null}
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className={labelClass}>Full name</label>
-              <input name="childFullName" maxLength={160} className={`mt-1 ${fieldClass}`} />
-            </div>
-            <div>
-              <label className={labelClass}>Birth date</label>
-              <input name="childBirthDate" type="date" className={`mt-1 ${fieldClass}`} />
-            </div>
-            <div>
-              <label className={labelClass}>Baptism year <span className="font-normal text-muted">(if any)</span></label>
-              <input name="childBaptismYear" inputMode="numeric" maxLength={4} placeholder="e.g. 2022" className={`mt-1 ${fieldClass}`} />
-            </div>
-            <div>
-              <label className={labelClass}>Year joined McKinney SDA <span className="font-normal text-muted">(if any)</span></label>
-              <input name="childJoinedYear" inputMode="numeric" maxLength={4} className={`mt-1 ${fieldClass}`} />
-            </div>
+            <TextField id={`childFullName_${key}`} name="childFullName" label="Full name" maxLength={160} />
+            <TextField id={`childBirthDate_${key}`} name="childBirthDate" label="Birth date" type="date" />
+            <TextField id={`childBaptismYear_${key}`} name="childBaptismYear" label={<>Baptism year <span className="font-normal text-muted">(if any)</span></>} inputMode="numeric" maxLength={4} placeholder="e.g. 2022" />
+            <TextField id={`childJoinedYear_${key}`} name="childJoinedYear" label={<>Year joined McKinney SDA <span className="font-normal text-muted">(if any)</span></>} inputMode="numeric" maxLength={4} />
           </div>
         </div>
       ))}

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { PageHeader, Card, FormError, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
+import { PageHeader, Card } from "@/components/page-ui";
+import { FormError, Honeypot, TextField, TextareaField, SelectField, FormRow, SubmitButton } from "@/components/forms";
 import { Section, Container } from "@/components/ui";
 import { Reveal } from "@/components/motion/Reveal";
 import { church, addressOneLine } from "@/components/site-info";
@@ -76,38 +77,18 @@ export default async function Contact({ searchParams }: { searchParams: Promise<
             <p className="mt-1 text-sm text-muted">We'll route it to the right person and follow up by email.</p>
             {error && <div className="mt-4"><FormError>Please complete the required fields and try again.</FormError></div>}
             <form action={submitContact} className="mt-6 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="name" className={`${labelClass} mb-1`}>Your name</label>
-                  <input id="name" name="name" autoComplete="name" required maxLength={120} className={fieldClass} />
-                </div>
-                <div>
-                  <label htmlFor="email" className={`${labelClass} mb-1`}>Email</label>
-                  <input id="email" name="email" type="email" autoComplete="email" required maxLength={200} className={fieldClass} />
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="phone" className={`${labelClass} mb-1`}>Phone <span className="font-normal text-muted">(optional)</span></label>
-                  <input id="phone" name="phone" type="tel" autoComplete="tel" maxLength={40} className={fieldClass} />
-                </div>
-                <div>
-                  <label htmlFor="category" className={`${labelClass} mb-1`}>Topic</label>
-                  <select id="category" name="category" className={fieldClass} defaultValue="General question">
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label htmlFor="subject" className={`${labelClass} mb-1`}>Subject</label>
-                <input id="subject" name="subject" required maxLength={160} className={fieldClass} />
-              </div>
-              <div>
-                <label htmlFor="message" className={`${labelClass} mb-1`}>Message</label>
-                <textarea id="message" name="message" required rows={5} maxLength={4000} className={fieldClass} />
-              </div>
+              <FormRow>
+                <TextField label="Your name" name="name" autoComplete="name" required maxLength={120} />
+                <TextField label="Email" name="email" type="email" autoComplete="email" required maxLength={200} />
+              </FormRow>
+              <FormRow>
+                <TextField label="Phone" name="phone" type="tel" optional autoComplete="tel" maxLength={40} />
+                <SelectField label="Topic" name="category" defaultValue="General question" options={CATEGORIES} />
+              </FormRow>
+              <TextField label="Subject" name="subject" required maxLength={160} />
+              <TextareaField label="Message" name="message" required rows={5} maxLength={4000} />
               <Honeypot />
-              <button type="submit" className="btn btn-primary w-full">Send message</button>
+              <SubmitButton fullWidth pendingLabel="Sending…">Send message</SubmitButton>
             </form>
           </Card></Reveal>
         )}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { doReset } from "./actions";
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { TextField, SubmitButton } from "@/components/forms";
 
 export const dynamic = "force-dynamic";
 
@@ -45,15 +45,9 @@ export default async function ResetPassword({
 
           <form action={doReset} className="mt-6 space-y-4">
             <input type="hidden" name="token" value={token} />
-            <div>
-              <label htmlFor="password" className={`${labelClass} mb-1`}>New password</label>
-              <input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} className={fieldClass} />
-            </div>
-            <div>
-              <label htmlFor="confirm" className={`${labelClass} mb-1`}>Confirm password</label>
-              <input id="confirm" name="confirm" type="password" autoComplete="new-password" required minLength={8} className={fieldClass} />
-            </div>
-            <button type="submit" className="btn btn-primary w-full">Update password</button>
+            <TextField label="New password" name="password" type="password" autoComplete="new-password" required minLength={8} />
+            <TextField label="Confirm password" name="confirm" type="password" autoComplete="new-password" required minLength={8} />
+            <SubmitButton fullWidth pendingLabel="Updating…">Update password</SubmitButton>
           </form>
 
           <div className="mt-5 text-center text-sm">
