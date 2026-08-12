@@ -3,6 +3,7 @@ import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
 import { PortalPage, PortalSection, EmptyState } from "@/components/portal/home-ui";
 import { fieldClass, labelClass } from "@/components/page-ui";
+import { SubmitButton } from "@/components/forms";
 import { CopyButton } from "./CopyButton";
 import { sendFormInvite } from "./actions";
 
@@ -48,9 +49,9 @@ export default async function MemberInfoInbox({ searchParams }: { searchParams: 
           ) : null}
 
           <div>
-            <p className={labelClass}>Copy the form link and share it anywhere</p>
+            <p id="form-link-label" className={labelClass}>Copy the form link and share it anywhere</p>
             <div className="mt-1 flex gap-2">
-              <input readOnly value={formUrl} className={`${fieldClass} font-mono text-sm`} />
+              <input readOnly value={formUrl} aria-labelledby="form-link-label" className={`${fieldClass} font-mono text-sm`} />
               <CopyButton value={formUrl} />
             </div>
           </div>
@@ -58,9 +59,9 @@ export default async function MemberInfoInbox({ searchParams }: { searchParams: 
           <form action={sendFormInvite} className="border-t border-line pt-4">
             <p className={labelClass}>Or email the form to someone</p>
             <div className="mt-1 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-              <input name="email" type="email" required placeholder="their@email.com" className={fieldClass} />
-              <input name="note" maxLength={500} placeholder="Optional note" className={fieldClass} />
-              <button type="submit" className="btn btn-primary">Send</button>
+              <input name="email" type="email" required aria-label="Recipient email" placeholder="their@email.com" className={fieldClass} />
+              <input name="note" maxLength={500} aria-label="Optional note" placeholder="Optional note" className={fieldClass} />
+              <SubmitButton pendingLabel="Sending…">Send</SubmitButton>
             </div>
           </form>
         </div>

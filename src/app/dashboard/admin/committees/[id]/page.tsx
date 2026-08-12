@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { decryptField } from "@/lib/crypto";
 import { adultWhere } from "@/lib/minors";
 import { fieldClass, labelClass } from "@/components/page-ui";
+import { SubmitButton } from "@/components/forms";
 import { PortalPage, PortalSection } from "@/components/portal/home-ui";
 import { addMemberAction, removeMemberAction } from "../actions";
 import { addActionItem, setActionItemStatus, addSecretaryNote } from "../../board/actions";
@@ -62,12 +63,12 @@ export default async function CommitteeWorkspace({ params }: { params: Promise<{
               {adults.map((m) => <option key={m.id} value={m.id}>{m.lastName}, {m.firstName}</option>)}
             </select>
           </div>
-          <select name="role" className={fieldClass + " max-w-[10rem]"} defaultValue="Member">
+          <select name="role" aria-label="Role" className={fieldClass + " max-w-[10rem]"} defaultValue="Member">
             <option value="Member">Member</option>
             <option value="Chair">Chair</option>
             <option value="Secretary">Secretary</option>
           </select>
-          <button className="rounded-lg border border-line-strong px-3 py-2 text-sm font-medium hover:bg-surface-2">Add</button>
+          <SubmitButton className="rounded-lg border border-line-strong px-3 py-2 text-sm font-medium hover:bg-surface-2">Add</SubmitButton>
         </form>
       </PortalSection>
 
@@ -96,10 +97,10 @@ export default async function CommitteeWorkspace({ params }: { params: Promise<{
         </div>
         <form action={addActionItem} className="mt-3 flex flex-wrap items-end gap-2">
           <input type="hidden" name="committeeId" value={id} />
-          <input name="description" required maxLength={2000} placeholder="New action item" className={`${fieldClass} min-w-[16rem] flex-1`} />
-          <input name="ownerName" maxLength={120} placeholder="Owner (optional)" className={`${fieldClass} max-w-[10rem]`} />
-          <input name="dueDate" type="date" className={`${fieldClass} max-w-[10rem]`} />
-          <button className="rounded-lg border border-line-strong px-3 py-2 text-sm font-medium hover:bg-surface-2">Add</button>
+          <input name="description" required maxLength={2000} aria-label="New action item" placeholder="New action item" className={`${fieldClass} min-w-[16rem] flex-1`} />
+          <input name="ownerName" maxLength={120} aria-label="Owner" placeholder="Owner (optional)" className={`${fieldClass} max-w-[10rem]`} />
+          <input name="dueDate" type="date" aria-label="Due date" className={`${fieldClass} max-w-[10rem]`} />
+          <SubmitButton className="rounded-lg border border-line-strong px-3 py-2 text-sm font-medium hover:bg-surface-2">Add</SubmitButton>
         </form>
       </PortalSection>
 
@@ -107,8 +108,8 @@ export default async function CommitteeWorkspace({ params }: { params: Promise<{
       <PortalSection title="Notes">
         <form action={addSecretaryNote} className="flex flex-col gap-2">
           <input type="hidden" name="committeeId" value={id} />
-          <textarea name="body" rows={2} maxLength={4000} placeholder="Add a governance note (encrypted at rest)…" className={fieldClass} />
-          <button className="self-start rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2">Add note</button>
+          <textarea name="body" rows={2} maxLength={4000} aria-label="Governance note" placeholder="Add a governance note (encrypted at rest)…" className={fieldClass} />
+          <SubmitButton className="self-start rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2" pendingLabel="Adding…">Add note</SubmitButton>
         </form>
         <div className="mt-3 space-y-2">
           {committee.notes.map((n) => (

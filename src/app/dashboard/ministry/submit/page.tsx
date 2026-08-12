@@ -2,7 +2,7 @@ import { requirePortal } from "@/auth/actor";
 import { prisma } from "@/lib/db";
 import { ministryScope, hasRole } from "@/lib/rbac";
 import { getOrCreatePacket } from "@/lib/weekly-packets";
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { fieldClass, TextField, TextareaField, SelectField, SubmitButton } from "@/components/forms";
 import { PortalPage, PortalSection, EmptyState } from "@/components/portal/home-ui";
 import { submitPacketItem, submitNothingThisWeek } from "./actions";
 
@@ -64,37 +64,21 @@ export default async function MinistrySubmit({ searchParams }: { searchParams: P
               <input type="hidden" name="packetId" value={packet.id} />
               <div className="grid gap-4 sm:grid-cols-2">
                 {ministries.length > 1 ? (
-                  <div>
-                    <label htmlFor="ministryId" className={`${labelClass} mb-1`}>Ministry</label>
-                    <select id="ministryId" name="ministryId" className={fieldClass} defaultValue={defaultMinistry}>
-                      {ministries.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                    </select>
-                  </div>
+                  <SelectField label="Ministry" name="ministryId" defaultValue={defaultMinistry} options={ministries.map((m) => ({ value: m.id, label: m.name }))} />
                 ) : (
                   <input type="hidden" name="ministryId" value={defaultMinistry} />
                 )}
-                <div>
-                  <label htmlFor="kind" className={`${labelClass} mb-1`}>Type</label>
-                  <select id="kind" name="kind" className={fieldClass} defaultValue="ANNOUNCEMENT">
-                    {["ANNOUNCEMENT", "EVENT", "SABBATH_PROGRAM_ITEM", "PARTICIPANT", "MINISTRY_UPDATE"].map((k) => (
-                      <option key={k} value={k}>{KIND_LABEL[k]}</option>
-                    ))}
-                  </select>
-                </div>
+                <SelectField
+                  label="Type"
+                  name="kind"
+                  defaultValue="ANNOUNCEMENT"
+                  options={["ANNOUNCEMENT", "EVENT", "SABBATH_PROGRAM_ITEM", "PARTICIPANT", "MINISTRY_UPDATE"].map((k) => ({ value: k, label: KIND_LABEL[k] ?? k }))}
+                />
               </div>
-              <div>
-                <label htmlFor="title" className={`${labelClass} mb-1`}>Title / summary</label>
-                <input id="title" name="title" maxLength={160} className={fieldClass} required />
-              </div>
-              <div>
-                <label htmlFor="body" className={`${labelClass} mb-1`}>Details <span className="font-normal text-muted">(optional)</span></label>
-                <textarea id="body" name="body" rows={3} maxLength={4000} className={fieldClass} />
-              </div>
-              <div>
-                <label htmlFor="participantName" className={`${labelClass} mb-1`}>Participant name <span className="font-normal text-muted">(for program items)</span></label>
-                <input id="participantName" name="participantName" maxLength={120} className={fieldClass} />
-              </div>
-              <button type="submit" className="btn btn-primary">Submit to this week</button>
+              <TextField label="Title / summary" name="title" required maxLength={160} />
+              <TextareaField label="Details" name="body" optional rows={3} maxLength={4000} />
+              <TextField label={<>Participant name <span className="font-normal text-muted">(for program items)</span></>} name="participantName" maxLength={120} />
+              <SubmitButton pendingLabel="Submitting…">Submit to this week</SubmitButton>
             </form>
           </PortalSection>
 
@@ -102,15 +86,15 @@ export default async function MinistrySubmit({ searchParams }: { searchParams: P
             <form action={submitNothingThisWeek} className="flex flex-wrap items-center gap-3 card p-4">
               <input type="hidden" name="packetId" value={packet.id} />
               {ministries.length > 1 ? (
-                <select name="ministryId" className={`${fieldClass} max-w-xs`} defaultValue={defaultMinistry}>
+                <select name="ministryId" aria-label="Ministry" className={`${fieldClass} max-w-xs`} defaultValue={defaultMinistry}>
                   {ministries.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               ) : (
                 <input type="hidden" name="ministryId" value={defaultMinistry} />
               )}
-              <button type="submit" className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2">
+              <SubmitButton className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2">
                 Nothing this week
-              </button>
+              </SubmitButton>
               <span className="text-sm text-muted">Lets the office know your ministry is accounted for.</span>
             </form>
           </PortalSection>

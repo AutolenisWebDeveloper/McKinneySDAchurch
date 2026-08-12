@@ -3,7 +3,8 @@ import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
 import { decryptField } from "@/lib/crypto";
 import { sanitize } from "@/lib/sanitize";
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { fieldClass } from "@/components/page-ui";
+import { TextField, TextareaField, FormRow, SubmitButton } from "@/components/forms";
 import { PortalPage, PortalSection } from "@/components/portal/home-ui";
 import {
   saveMinutes, approveMinutes, updateMeetingDetails, addMotion, recordMotionVotes,
@@ -41,20 +42,11 @@ export default async function BoardMeetingDetail({ params }: { params: Promise<{
         <form action={updateMeetingDetails} className="card space-y-3 p-5">
           <input type="hidden" name="id" value={id} />
           <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label htmlFor="location" className={`${labelClass} mb-1`}>Location</label>
-              <input id="location" name="location" defaultValue={m.location ?? ""} maxLength={160} className={fieldClass} />
-            </div>
+            <TextField label="Location" name="location" defaultValue={m.location ?? ""} maxLength={160} />
           </div>
-          <div>
-            <label htmlFor="attendees" className={`${labelClass} mb-1`}>Attendees</label>
-            <textarea id="attendees" name="attendees" defaultValue={m.attendees ?? ""} rows={2} className={fieldClass} placeholder="Names present" />
-          </div>
-          <div>
-            <label htmlFor="excusedAbsences" className={`${labelClass} mb-1`}>Excused absences</label>
-            <input id="excusedAbsences" name="excusedAbsences" defaultValue={m.excusedAbsences ?? ""} className={fieldClass} />
-          </div>
-          <button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2">Save details</button>
+          <TextareaField label="Attendees" name="attendees" defaultValue={m.attendees ?? ""} rows={2} placeholder="Names present" />
+          <TextField label="Excused absences" name="excusedAbsences" defaultValue={m.excusedAbsences ?? ""} />
+          <SubmitButton className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2" pendingLabel="Saving…">Save details</SubmitButton>
         </form>
       </PortalSection>
 
@@ -84,12 +76,12 @@ export default async function BoardMeetingDetail({ params }: { params: Promise<{
                   <label className="text-xs text-muted">For <input name="votesFor" type="number" min="0" defaultValue={mo.votesFor} className="w-14 rounded border border-line-strong bg-surface px-1.5 py-1 text-sm" /></label>
                   <label className="text-xs text-muted">Against <input name="votesAgainst" type="number" min="0" defaultValue={mo.votesAgainst} className="w-14 rounded border border-line-strong bg-surface px-1.5 py-1 text-sm" /></label>
                   <label className="text-xs text-muted">Abstain <input name="votesAbstain" type="number" min="0" defaultValue={mo.votesAbstain} className="w-14 rounded border border-line-strong bg-surface px-1.5 py-1 text-sm" /></label>
-                  <select name="result" defaultValue="" className="rounded border border-line-strong bg-surface px-2 py-1 text-xs">
+                  <select name="result" aria-label="Motion result" defaultValue="" className="rounded border border-line-strong bg-surface px-2 py-1 text-xs">
                     <option value="">Auto-tally</option>
                     <option value="TABLED">Table</option>
                     <option value="WITHDRAWN">Withdraw</option>
                   </select>
-                  <button className="rounded border border-line-strong px-2 py-1 text-xs font-medium hover:bg-surface-2">Record</button>
+                  <SubmitButton className="rounded border border-line-strong px-2 py-1 text-xs font-medium hover:bg-surface-2">Record</SubmitButton>
                 </form>
               )}
             </div>
@@ -99,12 +91,12 @@ export default async function BoardMeetingDetail({ params }: { params: Promise<{
         {!approved && (
           <form action={addMotion} className="mt-3 card space-y-2 p-4">
             <input type="hidden" name="meetingId" value={id} />
-            <textarea name="text" required rows={2} maxLength={2000} placeholder="Motion text" className={fieldClass} />
-            <div className="grid gap-2 sm:grid-cols-2">
-              <input name="moverName" placeholder="Moved by (optional)" maxLength={120} className={fieldClass} />
-              <input name="seconderName" placeholder="Seconded by (optional)" maxLength={120} className={fieldClass} />
-            </div>
-            <button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2">Add motion</button>
+            <TextareaField label="Motion text" name="text" required rows={2} maxLength={2000} placeholder="The motion as moved" />
+            <FormRow>
+              <TextField label="Moved by" name="moverName" optional maxLength={120} />
+              <TextField label="Seconded by" name="seconderName" optional maxLength={120} />
+            </FormRow>
+            <SubmitButton className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2" pendingLabel="Adding…">Add motion</SubmitButton>
           </form>
         )}
       </PortalSection>
@@ -133,10 +125,10 @@ export default async function BoardMeetingDetail({ params }: { params: Promise<{
         </div>
         <form action={addActionItem} className="mt-3 flex flex-wrap items-end gap-2">
           <input type="hidden" name="meetingId" value={id} />
-          <input name="description" required maxLength={2000} placeholder="New action item" className={`${fieldClass} min-w-[16rem] flex-1`} />
-          <input name="ownerName" maxLength={120} placeholder="Owner" className={`${fieldClass} max-w-[10rem]`} />
-          <input name="dueDate" type="date" className={`${fieldClass} max-w-[10rem]`} />
-          <button className="rounded-lg border border-line-strong px-3 py-2 text-sm font-medium hover:bg-surface-2">Add</button>
+          <input name="description" required maxLength={2000} aria-label="New action item" placeholder="New action item" className={`${fieldClass} min-w-[16rem] flex-1`} />
+          <input name="ownerName" maxLength={120} aria-label="Owner" placeholder="Owner" className={`${fieldClass} max-w-[10rem]`} />
+          <input name="dueDate" type="date" aria-label="Due date" className={`${fieldClass} max-w-[10rem]`} />
+          <SubmitButton className="rounded-lg border border-line-strong px-3 py-2 text-sm font-medium hover:bg-surface-2">Add</SubmitButton>
         </form>
       </PortalSection>
 
@@ -148,11 +140,11 @@ export default async function BoardMeetingDetail({ params }: { params: Promise<{
           <>
             <form action={saveMinutes} className="space-y-2">
               <input type="hidden" name="id" value={id} />
-              <textarea name="minutes" rows={12} defaultValue={minutes} required placeholder="Meeting minutes…" className={fieldClass} />
-              <button className="btn btn-primary">Save draft</button>
+              <TextareaField label="Minutes" name="minutes" rows={12} defaultValue={minutes} required placeholder="Meeting minutes…" />
+              <SubmitButton pendingLabel="Saving…">Save draft</SubmitButton>
             </form>
             {m.minutesEncrypted && (
-              <form action={approveMinutes} className="mt-3"><input type="hidden" name="id" value={id} /><button className="rounded-lg border border-line-strong px-4 py-2 text-sm font-medium hover:bg-surface-2">Approve minutes (locks)</button></form>
+              <form action={approveMinutes} className="mt-3"><input type="hidden" name="id" value={id} /><SubmitButton className="rounded-lg border border-line-strong px-4 py-2 text-sm font-medium hover:bg-surface-2" pendingLabel="Approving…">Approve minutes (locks)</SubmitButton></form>
             )}
           </>
         )}
@@ -162,8 +154,8 @@ export default async function BoardMeetingDetail({ params }: { params: Promise<{
       <PortalSection title="Secretary notes">
         <form action={addSecretaryNote} className="flex flex-col gap-2">
           <input type="hidden" name="meetingId" value={id} />
-          <textarea name="body" rows={2} maxLength={4000} placeholder="Private note (encrypted at rest)…" className={fieldClass} />
-          <button className="self-start rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2">Add note</button>
+          <textarea name="body" rows={2} maxLength={4000} aria-label="Secretary note" placeholder="Private note (encrypted at rest)…" className={fieldClass} />
+          <SubmitButton className="self-start rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2" pendingLabel="Adding…">Add note</SubmitButton>
         </form>
         <div className="mt-3 space-y-2">
           {m.notes.map((n) => (

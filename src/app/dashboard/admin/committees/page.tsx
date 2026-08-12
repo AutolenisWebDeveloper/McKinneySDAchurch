@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { TextField, SubmitButton } from "@/components/forms";
 import { PortalPage, PortalSection, EmptyState } from "@/components/portal/home-ui";
 import { createCommitteeAction, archiveCommitteeAction } from "./actions";
 
@@ -41,15 +41,9 @@ export default async function Committees() {
 
       <PortalSection title="New committee">
         <form action={createCommitteeAction} className="card space-y-3 p-5">
-          <div>
-            <label htmlFor="name" className={`${labelClass} mb-1`}>Committee name</label>
-            <input id="name" name="name" required maxLength={120} className={fieldClass} />
-          </div>
-          <div>
-            <label htmlFor="description" className={`${labelClass} mb-1`}>Description <span className="font-normal text-muted">(optional)</span></label>
-            <input id="description" name="description" maxLength={300} className={fieldClass} />
-          </div>
-          <button className="btn btn-primary">Create committee</button>
+          <TextField label="Committee name" name="name" required maxLength={120} />
+          <TextField label="Description" name="description" optional maxLength={300} />
+          <SubmitButton pendingLabel="Creating…">Create committee</SubmitButton>
         </form>
       </PortalSection>
 

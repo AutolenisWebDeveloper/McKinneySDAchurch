@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
 import { PortalPage, PortalSection } from "@/components/portal/home-ui";
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { TextField, TextareaField, SelectField, FormRow, SubmitButton } from "@/components/forms";
 import { updateHousehold } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -38,56 +38,26 @@ export default async function HouseholdDetail({
         <div className="card p-5 sm:p-6">
           <form action={updateHousehold} className="space-y-4">
             <input type="hidden" name="id" value={household.id} />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="familyName" className={labelClass}>Family / household name</label>
-                <input id="familyName" name="familyName" maxLength={200} defaultValue={household.familyName ?? ""} className={`mt-1 ${fieldClass}`} />
-              </div>
-              <div>
-                <label htmlFor="anniversary" className={labelClass}>Wedding anniversary</label>
-                <input id="anniversary" name="anniversary" type="date" defaultValue={dateInput(household.anniversary)} className={`mt-1 ${fieldClass}`} />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="addressLine1" className={labelClass}>Home address</label>
-              <input id="addressLine1" name="addressLine1" maxLength={300} defaultValue={household.addressLine1 ?? ""} className={`mt-1 ${fieldClass}`} />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <label htmlFor="city" className={labelClass}>City</label>
-                <input id="city" name="city" maxLength={120} defaultValue={household.city ?? ""} className={`mt-1 ${fieldClass}`} />
-              </div>
-              <div>
-                <label htmlFor="state" className={labelClass}>State</label>
-                <input id="state" name="state" maxLength={60} defaultValue={household.state ?? ""} className={`mt-1 ${fieldClass}`} />
-              </div>
-              <div>
-                <label htmlFor="zip" className={labelClass}>ZIP</label>
-                <input id="zip" name="zip" maxLength={20} defaultValue={household.zip ?? ""} className={`mt-1 ${fieldClass}`} />
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="phone" className={labelClass}>Household phone</label>
-                <input id="phone" name="phone" maxLength={40} defaultValue={household.phone ?? ""} className={`mt-1 ${fieldClass}`} />
-              </div>
-              <div>
-                <label htmlFor="email" className={labelClass}>Household email</label>
-                <input id="email" name="email" type="email" maxLength={200} defaultValue={household.email ?? ""} className={`mt-1 ${fieldClass}`} />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="primaryContactId" className={labelClass}>Primary contact</label>
-              <select id="primaryContactId" name="primaryContactId" defaultValue={household.primaryContactId ?? ""} className={`mt-1 ${fieldClass}`}>
-                <option value="">— none —</option>
-                {household.members.map((m) => <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="notes" className={labelClass}>Family notes</label>
-              <textarea id="notes" name="notes" rows={2} maxLength={2000} defaultValue={household.notes ?? ""} className={`mt-1 ${fieldClass}`} />
-            </div>
-            <button type="submit" className="btn btn-primary">Save family profile</button>
+            <FormRow>
+              <TextField label="Family / household name" name="familyName" maxLength={200} defaultValue={household.familyName ?? ""} />
+              <TextField label="Wedding anniversary" name="anniversary" type="date" defaultValue={dateInput(household.anniversary)} />
+            </FormRow>
+            <TextField label="Home address" name="addressLine1" maxLength={300} defaultValue={household.addressLine1 ?? ""} />
+            <FormRow cols={3}>
+              <TextField label="City" name="city" maxLength={120} defaultValue={household.city ?? ""} />
+              <TextField label="State" name="state" maxLength={60} defaultValue={household.state ?? ""} />
+              <TextField label="ZIP" name="zip" maxLength={20} defaultValue={household.zip ?? ""} />
+            </FormRow>
+            <FormRow>
+              <TextField label="Household phone" name="phone" type="tel" maxLength={40} defaultValue={household.phone ?? ""} />
+              <TextField label="Household email" name="email" type="email" maxLength={200} defaultValue={household.email ?? ""} />
+            </FormRow>
+            <SelectField label="Primary contact" name="primaryContactId" defaultValue={household.primaryContactId ?? ""}>
+              <option value="">— none —</option>
+              {household.members.map((m) => <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>)}
+            </SelectField>
+            <TextareaField label="Family notes" name="notes" rows={2} maxLength={2000} defaultValue={household.notes ?? ""} />
+            <SubmitButton pendingLabel="Saving…">Save family profile</SubmitButton>
           </form>
         </div>
       </PortalSection>
