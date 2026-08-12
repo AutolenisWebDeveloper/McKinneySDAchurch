@@ -9,10 +9,35 @@ import { pathToFileURL } from "node:url";
 import { centralWallToUtc } from "../src/lib/tz";
 import { slugify } from "../src/lib/weekly-packet";
 
-const SABBATH = new Date("2026-08-08T00:00:00.000Z");
+export const SABBATH = new Date("2026-08-08T00:00:00.000Z");
+export const PUBLISHED_AT = new Date("2026-08-07T22:00:00.000Z");
 const at = (wall: string) => centralWallToUtc(wall);
 
-const ORDER: { title: string; detail?: string; participant?: string }[] = [
+/** Scalar bulletin fields for the published Aug 8 edition (shared by the seed + SQL generator). */
+export const AUG8_BULLETIN = {
+  slug: "2026-08-08",
+  title: "Welcome Home",
+  status: "APPROVED",
+  publishedAt: PUBLISHED_AT,
+  pdfVersion: 1,
+  pdfGeneratedAt: PUBLISHED_AT,
+  welcomeMessage: "A Christ-centered Adventist family in McKinney, Texas — worshiping, growing, and serving together.",
+  sermonTitle: "The Gods of This World",
+  speaker: "Darren Anderson",
+  scripture: "Romans 12:2",
+  sabbathSchoolTime: "9:30 AM",
+  divineWorshipTime: "11:15 AM",
+  offeringToday: "Christian Record Services (NAD)",
+  elderOnDuty: "Anthony Wanyanga",
+  nurseOnDuty: "Gloria Ikonne",
+  sundownTonight: "8:21 PM",
+  nextSabbathSpeaker: "Anthony Wanyanga",
+  nextSabbathOffering: "Local Church Budget",
+  inspiration: "In the courts above, Christ is pleading for His church — pleading for those for whom He has paid the redemption price of His blood. Centuries, ages, can never lessen the efficacy of His atoning sacrifice.",
+  inspirationSource: "The Acts of the Apostles, 552–553",
+} as const;
+
+export const ORDER: { title: string; detail?: string; participant?: string }[] = [
   { title: "Sabbath School", detail: "9:30 – 9:40 AM" },
   { title: "Morning Prayer" },
   { title: "Sabbath School Lesson", detail: "9:50 – 10:20 AM" },
@@ -35,7 +60,7 @@ type Ann = {
   title: string; category: string; summary: string; featured?: boolean;
   eventStartAt?: Date | null; location?: string; recurring?: boolean; recurrence?: string;
 };
-const ANNOUNCEMENTS: Ann[] = [
+export const ANNOUNCEMENTS: Ann[] = [
   { title: "Together As One Convocation", category: "This Weekend", featured: true,
     summary: "Texas Conference training for church officers, August 8–9 at North Dallas Adventist Academy in Richardson. Attendance is free; registration is required only for complimentary meals. More information is in the church WhatsApp group." },
   { title: "Community Health Expo", category: "Community & Outreach",
@@ -79,33 +104,12 @@ export async function seedAug8Bulletin(prisma: PrismaClient) {
 
   await prisma.bulletin.update({
     where: { id: bulletin.id },
-    data: {
-      slug: "2026-08-08",
-      title: "Welcome Home",
-      status: "APPROVED",
-      publishedAt: new Date("2026-08-07T22:00:00.000Z"),
-      pdfVersion: 1,
-      pdfGeneratedAt: new Date("2026-08-07T22:00:00.000Z"),
-      welcomeMessage: "A Christ-centered Adventist family in McKinney, Texas — worshiping, growing, and serving together.",
-      sermonTitle: "The Gods of This World",
-      speaker: "Darren Anderson",
-      scripture: "Romans 12:2",
-      sabbathSchoolTime: "9:30 AM",
-      divineWorshipTime: "11:15 AM",
-      offeringToday: "Christian Record Services (NAD)",
-      elderOnDuty: "Anthony Wanyanga",
-      nurseOnDuty: "Gloria Ikonne",
-      sundownTonight: "8:21 PM",
-      nextSabbathSpeaker: "Anthony Wanyanga",
-      nextSabbathOffering: "Local Church Budget",
-      inspiration: "In the courts above, Christ is pleading for His church — pleading for those for whom He has paid the redemption price of His blood. Centuries, ages, can never lessen the efficacy of His atoning sacrifice.",
-      inspirationSource: "The Acts of the Apostles, 552–553",
-    },
+    data: { ...AUG8_BULLETIN },
   });
 
   await prisma.weeklyPacket.update({
     where: { id: packet.id },
-    data: { status: "PUBLISHED", publishedAt: new Date("2026-08-07T22:00:00.000Z"), readinessScore: 100, bulletinId: bulletin.id },
+    data: { status: "PUBLISHED", publishedAt: PUBLISHED_AT, readinessScore: 100, bulletinId: bulletin.id },
   });
 
   // Rebuild order of service.
