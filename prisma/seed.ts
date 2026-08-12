@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { seedCalendar2026 } from "./calendar-2026";
 const prisma = new PrismaClient();
 
 /**
@@ -64,7 +65,9 @@ async function main() {
     },
   });
 
-  console.log(`Seeded ${BELIEF_TITLES.length} belief entries + ${STARTER_MINISTRIES.length} departments + site settings.`);
+  const eventCount = await seedCalendar2026(prisma);
+
+  console.log(`Seeded ${BELIEF_TITLES.length} belief entries + ${STARTER_MINISTRIES.length} departments + site settings + ${eventCount} calendar events (2026).`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); }).finally(() => prisma.$disconnect());
