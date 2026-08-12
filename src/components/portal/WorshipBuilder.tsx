@@ -63,6 +63,11 @@ export function WorshipBuilder({
             <TextField label="Hero image URL" name="heroImageUrl" type="url" optional defaultValue={v(bulletin.heroImageUrl)} hint="Optional cover image for the online bulletin." />
           </Fieldset>
 
+          <Fieldset legend="Inspiration" description="The back-cover devotional quote.">
+            <TextareaField label="Quote" name="inspiration" rows={2} optional defaultValue={v(bulletin.inspiration)} />
+            <TextField label="Source" name="inspirationSource" optional defaultValue={v(bulletin.inspirationSource)} placeholder="e.g. The Acts of the Apostles, 552–553" />
+          </Fieldset>
+
           <div className="flex justify-end border-t border-line pt-5">
             <SubmitButton pendingLabel="Saving…">Save worship details</SubmitButton>
           </div>

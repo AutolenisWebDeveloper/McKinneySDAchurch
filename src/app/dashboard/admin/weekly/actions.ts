@@ -111,6 +111,7 @@ const META_FIELDS = [
   "title", "theme", "welcomeMessage", "sabbathSchoolLesson", "sabbathSchoolTime", "divineWorshipTime",
   "healthNugget", "sermonTitle", "speaker", "scripture", "offeringToday", "elderOnDuty", "nurseOnDuty",
   "sundownTonight", "sundownNext", "nextSabbathSpeaker", "nextSabbathOffering", "heroImageUrl",
+  "inspiration", "inspirationSource",
 ] as const;
 
 export async function updateBulletinMetaAction(formData: FormData) {

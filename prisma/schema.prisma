@@ -923,6 +923,8 @@ model Bulletin {
   nextSabbathSpeaker  String?
   nextSabbathOffering String?
   heroImageUrl        String?
+  inspiration         String? // weekly back-cover devotional quote
+  inspirationSource   String? // its attribution/source
 
   // ----- Print/PDF artifact (immutable per publish; versioned on republish, §17) -----
   pdfDocumentId  String? // signed-download Document when a binary artifact is attached

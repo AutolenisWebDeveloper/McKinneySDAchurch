@@ -15,16 +15,22 @@ export async function bulletinActionUrls(slug: string): Promise<BulletinActionUr
   };
 }
 
-/** Absolute canonical URLs (production origin) used to generate scannable QR codes for print. */
-export async function bulletinQrTargets(slug: string): Promise<{ label: string; url: string }[]> {
+export type ConnectTile = { label: string; caption: string; url: string };
+
+/**
+ * The back-cover "Connect" tiles (§15/§16) — Join Zoom, Watch Live, Give, Church Website — each a
+ * scannable QR encoding a canonical production URL. Mirrors the redesigned bulletin. When Zoom
+ * isn't configured, the fourth tile links to this week's bulletin online instead.
+ */
+export async function bulletinConnectTiles(slug: string): Promise<ConnectTile[]> {
   const site = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
   const [watch, zoom] = await Promise.all([getSetting("livestream_url"), getSetting("zoom_url")]);
   const give = env.ADVENTIST_GIVING_URL ?? church.giving;
-  return [
-    { label: "This bulletin online", url: `${site}/bulletin/${slug}` },
-    { label: "Church website", url: `${site}/` },
-    { label: "Watch Live", url: watch ?? church.social.livestream },
-    ...(zoom ? [{ label: "Join Zoom", url: zoom }] : []),
-    { label: "Give", url: give },
-  ];
+  const tiles: ConnectTile[] = [];
+  if (zoom) tiles.push({ label: "Join Zoom", caption: "Prayer & ministry gatherings", url: zoom });
+  else tiles.push({ label: "Read Online", caption: "This week's bulletin", url: `${site}/bulletin/${slug}` });
+  tiles.push({ label: "Watch Live", caption: "Worship service online", url: watch ?? church.social.livestream });
+  tiles.push({ label: "Give", caption: "Tithe, offerings & Building Fund", url: give });
+  tiles.push({ label: "Church Website", caption: "Calendar, ministries & more", url: `${site}/` });
+  return tiles;
 }
