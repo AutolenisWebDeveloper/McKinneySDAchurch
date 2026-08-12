@@ -30,7 +30,6 @@ export default async function AdminCalendar() {
     prisma.event.findMany({
       where: { startAt: { lt: now } },
       orderBy: { startAt: "desc" },
-      take: 15,
       include: { ministry: { select: { name: true } } },
     }),
     prisma.ministry.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -83,7 +82,7 @@ export default async function AdminCalendar() {
       </PortalSection>
 
       {past.length ? (
-        <PortalSection title="Recent past events">
+        <PortalSection title={`Past events${past.length ? ` (${past.length})` : ""}`}>
           <ul className="card divide-y divide-line px-5">{past.map((e) => <Row key={e.id} e={e} />)}</ul>
         </PortalSection>
       ) : null}

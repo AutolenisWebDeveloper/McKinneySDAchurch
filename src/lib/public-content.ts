@@ -25,6 +25,16 @@ export function getUpcomingEvents(take = 5) {
   });
 }
 
+/** Already-passed public events, most recent first — for the full-year calendar's "earlier" section. */
+export function getPastEvents(take = 200) {
+  return prisma.event.findMany({
+    where: { status: "APPROVED", visibility: "PUBLIC", startAt: { lt: now() } },
+    orderBy: { startAt: "desc" },
+    take,
+    include: { ministry: { select: { name: true, slug: true } } },
+  });
+}
+
 export function getLatestSermon() {
   return prisma.sermon.findFirst({ orderBy: { preachedAt: "desc" } });
 }
