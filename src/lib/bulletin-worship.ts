@@ -55,14 +55,17 @@ export type BulletinMeta = {
   nextSabbathSpeaker?: string;
   nextSabbathOffering?: string;
   heroImageUrl?: string;
+  inspiration?: string;
+  inspirationSource?: string;
 };
 
 const META_KEYS: (keyof BulletinMeta)[] = [
   "title", "theme", "welcomeMessage", "sabbathSchoolLesson", "sabbathSchoolTime", "divineWorshipTime",
   "healthNugget", "sermonTitle", "speaker", "scripture", "offeringToday", "elderOnDuty", "nurseOnDuty",
   "sundownTonight", "sundownNext", "nextSabbathSpeaker", "nextSabbathOffering", "heroImageUrl",
+  "inspiration", "inspirationSource",
 ];
-const LONG_KEYS = new Set<keyof BulletinMeta>(["welcomeMessage", "healthNugget"]);
+const LONG_KEYS = new Set<keyof BulletinMeta>(["welcomeMessage", "healthNugget", "inspiration"]);
 
 /** Update the bulletin worship/duty metadata. Empty strings clear a field. */
 export async function updateBulletinMeta(admin: Actor, bulletinId: string, meta: BulletinMeta): Promise<void> {

@@ -14,3 +14,14 @@ export function eventTimeLabel(start?: Date | null, end?: Date | null): string |
   if (end) return `${base} – ${dayLabel(end)} ${timeOnly(end)}`;
   return base;
 }
+
+const shortDow = (d: Date) => new Date(d).toLocaleString("en-US", { timeZone: CHURCH_TZ, weekday: "short" }).toUpperCase();
+const shortMon = (d: Date) => new Date(d).toLocaleString("en-US", { timeZone: CHURCH_TZ, month: "short" }).toUpperCase();
+const dom = (d: Date) => new Date(d).toLocaleString("en-US", { timeZone: CHURCH_TZ, day: "numeric" });
+const compactTime = (d: Date) => new Date(d).toLocaleString("en-US", { timeZone: CHURCH_TZ, hour: "numeric", minute: "2-digit" }).replace(":00", "");
+
+/** Compact uppercase timing chip for print, e.g. "FRI · AUG 14 · 6 PM". Null when no start. */
+export function eventChip(start?: Date | null): string | null {
+  if (!start) return null;
+  return `${shortDow(start)} · ${shortMon(start)} ${dom(start)} · ${compactTime(start)}`;
+}

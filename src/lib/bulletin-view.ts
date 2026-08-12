@@ -61,6 +61,8 @@ export type BulletinView = {
   nextSabbathSpeaker: string | null;
   nextSabbathOffering: string | null;
   heroImageUrl: string | null;
+  inspiration: string | null;
+  inspirationSource: string | null;
   order: { id: string; title: string; detail: string | null; participant: string | null }[];
   announcements: BulletinAnnouncementView[];
   categories: { category: string; items: BulletinAnnouncementView[] }[];
@@ -192,6 +194,8 @@ function assemble(bulletin: NonNullable<BulletinRow>, channel: Channel, opts: { 
     nextSabbathSpeaker: bulletin.nextSabbathSpeaker,
     nextSabbathOffering: bulletin.nextSabbathOffering,
     heroImageUrl: bulletin.heroImageUrl,
+    inspiration: bulletin.inspiration,
+    inspirationSource: bulletin.inspirationSource,
     order: bulletin.items.map((i) => ({ id: i.id, title: i.title, detail: i.detail, participant: i.participant })),
     announcements,
     categories,

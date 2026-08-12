@@ -161,22 +161,45 @@ export function BulletinArticle({ view, urls }: { view: BulletinView; urls: Bull
           </div>
         </div>
 
+        {/* ---------- Inspiration ---------- */}
+        {view.inspiration ? (
+          <Reveal>
+            <blockquote className="mx-auto max-w-2xl border-y border-line py-8 text-center">
+              <p className="eyebrow mb-3">Inspiration</p>
+              <p className="font-serif text-xl italic leading-relaxed text-fg">“{view.inspiration}”</p>
+              {view.inspirationSource ? <footer className="mt-3 text-sm text-muted">— {view.inspirationSource}</footer> : null}
+            </blockquote>
+          </Reveal>
+        ) : null}
+
         {/* ---------- Connect / Give / Watch ---------- */}
         <Reveal>
           <div className="rounded-2xl border border-line bg-tint p-6 sm:p-8">
-            <Eyebrow className="mb-5">Connect this week</Eyebrow>
+            <Eyebrow className="mb-1">{church.connectTagline}</Eyebrow>
+            <p className="mb-5 text-sm text-muted">{church.connectSub}</p>
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-3">
                 <p className="text-sm leading-relaxed text-fg/85">
                   Worship with us in person at <strong>{church.meetingPlace}</strong>, {church.address.line1}, {church.address.city}, {church.address.state} {church.address.zip} — or join online.
                 </p>
                 <BulletinActions urls={urls} variant="light" />
+                <dl className="space-y-0 pt-1">
+                  <DetailRow label="Phone" value={church.phone} />
+                  <DetailRow label="Email" value={church.email} />
+                  <DetailRow label="Mailing" value={church.mailing} />
+                </dl>
               </div>
-              <dl className="space-y-0">
-                <DetailRow label="Phone" value={church.phone} />
-                <DetailRow label="Email" value={church.email} />
-                <DetailRow label="Pastor" value={church.pastor} />
-              </dl>
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">Church officers</p>
+                <ul className="space-y-1.5">
+                  {church.officers.map((o) => (
+                    <li key={o.role + o.name} className="flex items-baseline justify-between gap-3 border-b border-line py-1.5 text-sm last:border-0">
+                      <span className="text-xs uppercase tracking-wide text-muted">{o.role}</span>
+                      <span className="font-medium text-fg">{o.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
             <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-line pt-5 text-sm">
               <ArrowLink href="/construction">Building project</ArrowLink>

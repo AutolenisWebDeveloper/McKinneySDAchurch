@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { env } from "@/env";
 import { qrSvg } from "@/lib/qr";
-import { bulletinQrTargets } from "@/lib/bulletin-links";
+import { bulletinConnectTiles } from "@/lib/bulletin-links";
 import type { BulletinView } from "@/lib/bulletin-view";
 import { BulletinPrint, type QrItem } from "./BulletinPrint";
 import { PrintButton } from "./PrintButton";
@@ -21,11 +21,11 @@ export async function BulletinPrintScreen({
   auto?: boolean;
 }) {
   const site = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
-  const [coverQrSvg, targets] = await Promise.all([
+  const [coverQrSvg, tiles] = await Promise.all([
     qrSvg(`${site}/bulletin/${view.slug}`, { size: 96 }),
-    bulletinQrTargets(view.slug),
+    bulletinConnectTiles(view.slug),
   ]);
-  const backQrs: QrItem[] = await Promise.all(targets.map(async (t) => ({ ...t, svg: await qrSvg(t.url, { size: 84 }) })));
+  const backQrs: QrItem[] = await Promise.all(tiles.map(async (t) => ({ ...t, svg: await qrSvg(t.url, { size: 84 }) })));
   const extended = view.announcements.filter((a) => a.hasExtended);
   const annQrEntries = await Promise.all(
     extended.map(async (a) => [a.id, await qrSvg(`${site}/bulletin/${view.slug}#${a.slug}`, { size: 60 })] as const),
