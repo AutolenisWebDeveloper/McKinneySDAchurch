@@ -1,6 +1,7 @@
 import { requirePortal } from "@/auth/actor";
 import { prisma } from "@/lib/db";
 import { ministryScope } from "@/lib/rbac";
+import { EVENT_STATUS_LABEL } from "@/lib/event-workflow";
 import {
   PortalPage, StatGrid, StatCard, PortalSection, QuickActionGrid, QuickAction, TaskRow, EmptyState,
 } from "@/components/portal/home-ui";
@@ -14,7 +15,8 @@ export default async function MinistryPortal() {
 
   const [pendingAnn, pendingEvt, recentAnn, recentEvt] = await Promise.all([
     prisma.announcement.count({ where: { ...scopeWhere, status: "PENDING" } }),
-    prisma.event.count({ where: { ...scopeWhere, status: "PENDING" } }),
+    // Events "in flight" with admin: submitted, under review, or returned for changes.
+    prisma.event.count({ where: { ...scopeWhere, status: { in: ["SUBMITTED", "UNDER_REVIEW", "CHANGES_REQUESTED"] } } }),
     prisma.announcement.findMany({
       where: scopeWhere, orderBy: { createdAt: "desc" }, take: 4,
       select: { id: true, title: true, status: true, createdAt: true },
@@ -61,9 +63,9 @@ export default async function MinistryPortal() {
             {recentEvt.map((e) => (
               <TaskRow
                 key={e.id}
-                href="/dashboard/ministry/events"
+                href={`/dashboard/ministry/events/${e.id}`}
                 title={e.title}
-                meta={`${statusLabel(e.status)} · ${e.startAt.toLocaleDateString("en-US")}`}
+                meta={`${EVENT_STATUS_LABEL[e.status]} · ${e.startAt.toLocaleDateString("en-US")}`}
               />
             ))}
           </div>

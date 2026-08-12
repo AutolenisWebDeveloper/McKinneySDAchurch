@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
-import { reviewAnnouncement, reviewEvent, approveAccount, rejectAccount } from "./actions";
+import { reviewAnnouncement, approveAccount, rejectAccount } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -31,12 +32,11 @@ function WithdrawControl({ id, version, action }: { id: string; version: number;
 
 export default async function Approvals() {
   await requireActor("ADMIN", "PASTOR");
-  const [pendAccts, pendAnn, pendEvt, pubAnn, pubEvt] = await Promise.all([
+  const [pendAccts, pendAnn, pubAnn, pendingEventCount] = await Promise.all([
     prisma.user.findMany({ where: { activatedAt: null }, orderBy: { createdAt: "asc" }, select: { id: true, name: true, email: true, role: true, createdAt: true } }),
     prisma.announcement.findMany({ where: { status: "PENDING" }, include: { ministry: true }, orderBy: { createdAt: "asc" } }),
-    prisma.event.findMany({ where: { status: "PENDING" }, include: { ministry: true }, orderBy: { startAt: "asc" } }),
     prisma.announcement.findMany({ where: { status: "APPROVED" }, include: { ministry: true }, orderBy: { updatedAt: "desc" }, take: 20 }),
-    prisma.event.findMany({ where: { status: "APPROVED" }, include: { ministry: true }, orderBy: { startAt: "asc" }, take: 20 }),
+    prisma.event.count({ where: { status: { in: ["SUBMITTED", "UNDER_REVIEW", "CHANGES_REQUESTED"] } } }),
   ]);
   const when = (d: Date) => new Date(d).toLocaleString("en-US", { timeZone: "America/Chicago" });
 
@@ -80,28 +80,26 @@ export default async function Approvals() {
       </section>
 
       <section>
-        <h2 className="font-semibold mb-2">Pending events ({pendEvt.length})</h2>
-        {pendEvt.length ? (
-          <ul className="space-y-4">{pendEvt.map((e) => (
-            <li key={e.id} className="rounded border border-black/10 dark:border-white/10 p-4">
-              <p className="font-medium">{e.title} <span className="text-muted text-sm">· {e.ministry.name} · {when(e.startAt)}</span></p>
-              <div className="mt-3"><ReviewControls id={e.id} version={e.version} action={reviewEvent} /></div>
-            </li>))}
-          </ul>
-        ) : <p className="text-muted">Nothing pending.</p>}
+        <h2 className="font-semibold mb-2">Calendar events</h2>
+        <Link
+          href="/dashboard/admin/calendar"
+          className="flex items-center justify-between rounded-lg border border-black/10 dark:border-white/10 p-4 transition-colors hover:border-primary"
+        >
+          <span className="text-sm">
+            Events are reviewed in the <strong>Calendar command center</strong>
+            {pendingEventCount ? ` · ${pendingEventCount} awaiting your attention` : " · nothing waiting"}
+          </span>
+          <span aria-hidden="true">→</span>
+        </Link>
       </section>
 
       <section>
-        <h2 className="font-semibold mb-2">Published — withdraw if needed</h2>
-        {(pubAnn.length || pubEvt.length) ? (
+        <h2 className="font-semibold mb-2">Published announcements — withdraw if needed</h2>
+        {pubAnn.length ? (
           <ul className="space-y-2">
             {pubAnn.map((a) => (
               <li key={a.id} className="flex items-center justify-between rounded border border-black/10 dark:border-white/10 p-3">
                 <span className="text-sm">Announcement · {a.title}</span><WithdrawControl id={a.id} version={a.version} action={reviewAnnouncement} />
-              </li>))}
-            {pubEvt.map((e) => (
-              <li key={e.id} className="flex items-center justify-between rounded border border-black/10 dark:border-white/10 p-3">
-                <span className="text-sm">Event · {e.title} · {when(e.startAt)}</span><WithdrawControl id={e.id} version={e.version} action={reviewEvent} />
               </li>))}
           </ul>
         ) : <p className="text-muted">Nothing published yet.</p>}

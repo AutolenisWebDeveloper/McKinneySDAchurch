@@ -15,6 +15,49 @@ export function pendingReviewEmail(p: { kind: "announcement" | "event"; title: s
   };
 }
 
+/** Calendar event lifecycle updates sent to the submitting department head. `url` is the
+ *  dashboard event page. All user-supplied text (title, comment) is HTML-escaped. */
+export function eventUpdateEmail(p: {
+  title: string;
+  ministryName: string;
+  outcome: "changes_requested" | "approved" | "rejected" | "published" | "cancelled";
+  comment?: string;
+  url: string;
+}): Rendered {
+  const t = `<strong>${esc(p.title)}</strong>`;
+  const lead: Record<typeof p.outcome, { subject: string; body: string }> = {
+    changes_requested: {
+      subject: `Changes requested: ${p.title}`,
+      body: `<p>An administrator has requested changes to your event ${t} before it can be approved.</p>`,
+    },
+    approved: {
+      subject: `Approved: ${p.title}`,
+      body: `<p>Your event ${t} has been <strong>approved</strong>. It will appear on the public calendar once an administrator publishes it.</p>`,
+    },
+    rejected: {
+      subject: `Not approved: ${p.title}`,
+      body: `<p>Your event ${t} was <strong>not approved</strong>.</p>`,
+    },
+    published: {
+      subject: `Published: ${p.title}`,
+      body: `<p>Your event ${t} is now <strong>live on the public calendar</strong>.</p>`,
+    },
+    cancelled: {
+      subject: `Cancelled: ${p.title}`,
+      body: `<p>Your event ${t} has been <strong>cancelled</strong>.</p>`,
+    },
+  };
+  const { subject, body } = lead[p.outcome];
+  return {
+    subject,
+    html:
+      body +
+      (p.comment ? `<p><strong>Note from the reviewer:</strong> ${esc(p.comment)}</p>` : "") +
+      `<p><a href="${esc(p.url)}">Open it in your dashboard</a></p>` +
+      `<p style="color:#667">${esc(p.ministryName)}</p>`,
+  };
+}
+
 export function decisionEmail(p: { kind: string; title: string; approved: boolean; reason?: string }): Rendered {
   const body = p.approved
     ? `<p>Your ${esc(p.kind)} “<strong>${esc(p.title)}</strong>” has been approved and published.</p>`

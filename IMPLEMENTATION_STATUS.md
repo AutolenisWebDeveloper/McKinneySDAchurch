@@ -6,6 +6,58 @@ now being extended to the merged Master Directive (Phases 1–10) starting with 
 
 ---
 
+## Calendar — governed event management & publishing (this pass)
+
+Transformed the calendar from a two-state admin-published `Event` into a complete, governed
+department-head → admin → public publishing system, **kept fully independent of the Weekly
+Bulletin** (no shared workflow, no "include in bulletin", no bulletin changes). Extends the
+existing `Event` model — no parallel model, no second authorization/notification/audit/email
+architecture.
+
+- ✅ **Schema (migration `20260812140000_calendar_governed_events`).** `Event.status` moved from
+  the generic `ApprovalStatus` to a dedicated **`EventStatus`** (DRAFT→SUBMITTED→UNDER_REVIEW→
+  CHANGES_REQUESTED→APPROVED→PUBLISHED, plus REJECTED/CANCELLED/ARCHIVED) with an **in-place data
+  backfill** (APPROVED→PUBLISHED, PENDING→SUBMITTED, WITHDRAWN→ARCHIVED) — verified on populated
+  data, no loss. Added structured location (`LocationType` + venue/address/online), public
+  contact, registration, media (image URL), board-approval verification fields (`BoardApprovalState`,
+  private internal note), `EventCategory`, a unique public `slug`, governance timestamps, and an
+  **`EventReview`** history table. Full-text `searchVector` drift deliberately excluded from the
+  migration.
+- ✅ **Approval ≠ publication.** `src/lib/event-workflow.ts` is the pure, tested state machine
+  (owner vs reviewer transitions, mandatory comments, separation-of-duties). Only **PUBLISHED**
+  events are publicly listed; CANCELLED stays reachable at its URL but unlisted.
+- ✅ **Server-enforced department assignment** (`src/lib/events.ts`): a department head's
+  department is resolved from their `UserRole` scope; a forged `ministryId` is rejected. Single
+  department → read-only chip; multiple → scoped select. Admin reassignment is audit-logged.
+- ✅ **Department Head workspace** (`/dashboard/ministry/events`): status tabs + counts, a premium
+  progressively-disclosed submission form, Save Draft / Submit / Resubmit / Discard, changes-
+  requested feedback, review history, and a public **preview**.
+- ✅ **Admin Calendar command center** (`/dashboard/admin/calendar`): approval inbox with counts
+  (pending / under review / changes requested / ready to publish / board issues / conflicts /
+  cancelled), a review screen with governance + board verification + **scheduling-conflict
+  detection**, and approve / request-changes / reject / publish / unpublish / cancel / reassign.
+  Events removed from the generic Approvals page (announcements unchanged).
+- ✅ **Public calendar**: month view preserved; read gate switched to PUBLISHED; **canonical deep-
+  link pages** `/calendar/events/[slug]` with Register / Directions / **Add to calendar (Google /
+  Apple .ics / Outlook)** / Share, cancelled-state handling, JSON-LD, and sitemap entries.
+- ✅ **Reused** `notify`/`notifyRoles`, `writeAudit`/`AuditLog`, `sendEmail` + template registry,
+  `sanitize`, the portal shell, and the design tokens. Notifications + audit at every transition.
+
+**Verified:** `prisma validate` clean; migration applies on real Postgres with a verified data
+backfill; `typecheck` clean; **313/313 vitest** (+34: event-workflow, event-rbac, conflicts, ICS/
+add-to-calendar, category resolution); production build compiles + prerenders; lint clean on
+changed files; and an **end-to-end script (`scripts/verify-calendar.ts`, 34/34 checks)** exercises
+the whole lifecycle + security boundaries (forged department, self-approval block, stale-version
+guard, publication gating, board capture, cancellation, conflict detection) against the live DB.
+
+**Deferred (documented, honest):** a recurring-event *expansion engine* (no engine pre-existed;
+single- and multi-day events are fully supported — recurrence fields intentionally omitted rather
+than shipped as a stub); binary image *upload* UI (validated image-URL supported now; the existing
+`storage.ts` Blob path can back an uploader later); i18n string extraction for the new screens
+(follows the existing per-page extraction backlog).
+
+---
+
 ## Phase 10 — EN/ES internationalization + accessibility polish (this pass)
 
 Extends the i18n foundation toward full English/Spanish coverage (§49) and tightens accessibility

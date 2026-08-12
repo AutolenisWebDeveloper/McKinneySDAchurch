@@ -7,14 +7,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPaths = ["", "/about", "/beliefs", "/church-manual", "/ministries", "/calendar", "/sermons", "/prayer", "/give", "/plan-a-visit", "/contact", "/search", "/privacy", "/terms", "/accessibility"];
   const entries: MetadataRoute.Sitemap = staticPaths.map((p) => ({ url: `${base}${p}`, changeFrequency: "weekly", priority: p === "" ? 1 : 0.6 }));
   try {
-    const [beliefs, ministries, sermons] = await Promise.all([
+    const [beliefs, ministries, sermons, events] = await Promise.all([
       prisma.referenceDocument.findMany({ where: { type: "FUNDAMENTAL_BELIEF" }, select: { slug: true } }),
       prisma.ministry.findMany({ select: { slug: true } }),
       prisma.sermon.findMany({ select: { id: true }, orderBy: { preachedAt: "desc" }, take: 200 }),
+      prisma.event.findMany({ where: { status: "PUBLISHED", visibility: "PUBLIC", slug: { not: null } }, select: { slug: true, updatedAt: true }, orderBy: { startAt: "desc" }, take: 300 }),
     ]);
     for (const b of beliefs) entries.push({ url: `${base}/reference/${b.slug}` });
     for (const m of ministries) entries.push({ url: `${base}/ministries/${m.slug}` });
     for (const s of sermons) entries.push({ url: `${base}/sermons/${s.id}` });
+    for (const e of events) entries.push({ url: `${base}/calendar/events/${e.slug}`, lastModified: e.updatedAt, changeFrequency: "weekly", priority: 0.5 });
   } catch { /* DB unavailable at build: static entries still emitted */ }
   return entries;
 }

@@ -19,21 +19,22 @@ function parse(formData: FormData): { id: string; version: number; decision: Rev
   return { id, version, decision: { action: "approve" } };
 }
 
-async function review(kind: "announcement" | "event", formData: FormData) {
+/**
+ * Announcement review. Calendar events have their own governed workflow (src/lib/events.ts) and
+ * are reviewed in the Admin Calendar command center, not here — keeping the generic approval path
+ * dedicated to announcements.
+ */
+export async function reviewAnnouncement(formData: FormData) {
   const actor = await getActor();
   const { id, version, decision } = parse(formData);
 
   // Decide + persist + audit atomically, version-guarded.
   const committed = await prisma.$transaction(async (tx) => {
-    const item = kind === "announcement"
-      ? await tx.announcement.findUniqueOrThrow({ where: { id } })
-      : await tx.event.findUniqueOrThrow({ where: { id } });
+    const item = await tx.announcement.findUniqueOrThrow({ where: { id } });
     const patch = reviewDecision(actor, item, decision, { expectedVersion: version });
-    const res = kind === "announcement"
-      ? await tx.announcement.updateMany({ where: { id, version }, data: patch as Prisma.AnnouncementUpdateManyMutationInput })
-      : await tx.event.updateMany({ where: { id, version }, data: patch as Prisma.EventUpdateManyMutationInput });
+    const res = await tx.announcement.updateMany({ where: { id, version }, data: patch as Prisma.AnnouncementUpdateManyMutationInput });
     if (res.count !== 1) throw new Error("STALE_VERSION");
-    await writeAudit(tx, { actorId: actor.userId, action: `${kind}.${decision.action}`, entity: kind === "announcement" ? "Announcement" : "Event", entityId: id });
+    await writeAudit(tx, { actorId: actor.userId, action: `announcement.${decision.action}`, entity: "Announcement", entityId: id });
     return { createdById: item.createdById, title: item.title };
   });
 
@@ -43,7 +44,7 @@ async function review(kind: "announcement" | "event", formData: FormData) {
       const submitter = await prisma.user.findUnique({ where: { id: committed.createdById }, select: { email: true } });
       if (submitter?.email) {
         const { subject, html } = decisionEmail({
-          kind, title: committed.title,
+          kind: "announcement", title: committed.title,
           approved: decision.action === "approve",
           reason: decision.action === "reject" ? decision.reason : undefined,
         });
@@ -55,9 +56,6 @@ async function review(kind: "announcement" | "event", formData: FormData) {
   revalidatePath("/dashboard/admin/approvals");
   revalidatePath("/"); // public feeds may change on approve/withdraw
 }
-
-export async function reviewAnnouncement(fd: FormData) { return review("announcement", fd); }
-export async function reviewEvent(fd: FormData) { return review("event", fd); }
 
 /** Approve a pending, self-registered member account (activatedAt = now). */
 export async function approveAccount(formData: FormData) {

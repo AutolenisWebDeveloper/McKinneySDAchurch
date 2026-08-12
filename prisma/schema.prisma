@@ -33,6 +33,53 @@ enum ContentVisibility {
   MEMBERS_ONLY
 }
 
+// ===== Calendar / governed events (§Calendar) =====
+// The Event lifecycle is richer than the generic ApprovalStatus used by Announcements, so the
+// calendar has its own explicit, server-enforced state machine (src/lib/event-workflow.ts).
+// Approval and publication are DISTINCT: an event can be APPROVED without being PUBLISHED.
+enum EventStatus {
+  DRAFT // department head is still preparing it (private)
+  SUBMITTED // sent to admin, awaiting triage
+  UNDER_REVIEW // admin is actively reviewing
+  CHANGES_REQUESTED // admin returned it to the department head with comments
+  APPROVED // admin approved; not yet publicly visible
+  PUBLISHED // publicly visible on the website calendar
+  REJECTED // admin declined it (terminal, retains history)
+  CANCELLED // a scheduled event was called off (retains history)
+  ARCHIVED // withdrawn/retired from active surfaces (retains history)
+}
+
+// Semantic category chosen by the submitter. Drives the public calendar's color/icon system;
+// falls back to the ministry-slug mapping for legacy events with no explicit category.
+enum EventCategory {
+  WORSHIP
+  YOUTH
+  CHILDREN
+  FAMILY
+  OUTREACH
+  HEALTH
+  FELLOWSHIP
+  SERVICE
+  OTHER
+}
+
+// Where an event physically/virtually happens. The submission form reveals only the fields
+// relevant to the chosen type.
+enum LocationType {
+  CHURCH // the church's regular meeting location
+  EXTERNAL // an external physical venue
+  ONLINE // online only
+  HYBRID // in-person + online
+}
+
+// Board-approval verification state for events that require church-board sign-off. A department
+// head ENTERS this for admin VERIFICATION; entering "APPROVED" never auto-publishes an event.
+enum BoardApprovalState {
+  PENDING
+  APPROVED
+  NOT_APPROVED
+}
+
 enum VisitorStatus {
   ACTIVE
   INACTIVE
@@ -136,6 +183,7 @@ model User {
   announcementsReviewed Announcement[]       @relation("AnnouncementReviewedBy")
   eventsCreated         Event[]              @relation("EventCreatedBy")
   eventsReviewed        Event[]              @relation("EventReviewedBy")
+  eventReviews          EventReview[]        @relation("EventReviewActor")
   prayerReviewed        PrayerRequest[]      @relation("PrayerReviewedBy")
   invitesSent           Invite[]             @relation("InviteInvitedBy")
   campaignsCreated      EmailCampaign[]      @relation("CampaignCreatedBy")
@@ -329,29 +377,97 @@ model Announcement {
 }
 
 model Event {
-  id              String            @id @default(cuid())
+  id              String         @id @default(cuid())
   title           String
-  descriptionHtml String?
-  location        String?
+  slug            String?        @unique // stable public deep link: /calendar/events/[slug]
+  summary         String? // short plain-text description (public teaser)
+  descriptionHtml String? // full description (sanitized before store & render)
+  category        EventCategory? // semantic category; falls back to ministry mapping when null
   startAt         DateTime
   endAt           DateTime
-  status          ApprovalStatus    @default(PENDING)
-  version         Int               @default(0)
+  allDay          Boolean        @default(false)
+  timezone        String         @default("America/Chicago")
+
+  // ----- Location (fields revealed by locationType) -----
+  locationType         LocationType @default(CHURCH)
+  location             String? // legacy/derived one-line label (kept for back-compat display)
+  venueName            String?
+  addressLine1         String?
+  city                 String?
+  state                String?
+  zip                  String?
+  onlineUrl            String?
+  locationInstructions String?
+
+  // ----- Public contact -----
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+  contactPublic Boolean @default(false) // whether the contact block is shown publicly
+
+  // ----- Registration / information -----
+  registrationRequired Boolean   @default(false)
+  registrationUrl      String?
+  infoUrl              String?
+  ctaLabel             String?
+  registrationDeadline DateTime?
+  capacity             Int?
+
+  // ----- Media -----
+  imageUrl String?
+  imageAlt String?
+
+  // ----- Board approval (submitted for admin verification; never self-authorizes publication) -----
+  boardApprovalRequired Boolean             @default(false)
+  boardApprovalState    BoardApprovalState?
+  boardApprovalDate     DateTime?
+  boardApprovalRef      String? // e.g. minute/motion reference
+  boardNoteInternal     String? // PRIVATE — never exposed publicly
+
+  // ----- Governed lifecycle -----
+  status          EventStatus       @default(DRAFT)
+  version         Int               @default(0) // optimistic concurrency
   visibility      ContentVisibility @default(PUBLIC)
-  ministryId      String
-  ministry        Ministry          @relation(fields: [ministryId], references: [id])
-  createdById     String
-  createdBy       User              @relation("EventCreatedBy", fields: [createdById], references: [id])
-  reviewedById    String?
-  reviewedBy      User?             @relation("EventReviewedBy", fields: [reviewedById], references: [id])
-  reviewedAt      DateTime?
-  rejectReason    String?
-  isFeatured      Boolean           @default(false)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  submittedAt     DateTime?
+  publishedAt     DateTime?
+  cancelledAt     DateTime?
+  submissionCount Int               @default(0)
+  adminFeedback   String? // last "changes requested" comment surfaced to the department head
+
+  ministryId   String
+  ministry     Ministry      @relation(fields: [ministryId], references: [id])
+  createdById  String
+  createdBy    User          @relation("EventCreatedBy", fields: [createdById], references: [id])
+  reviewedById String?
+  reviewedBy   User?         @relation("EventReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  rejectReason String?
+  isFeatured   Boolean       @default(false)
+  reviews      EventReview[] @relation("EventReviewEvent")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@index([status, startAt])
-  @@index([ministryId])
+  @@index([ministryId, status])
+  @@index([startAt])
+}
+
+// User-facing review/status history for an event (the governance timeline). This is NOT the
+// security audit (AuditLog remains the single audit architecture) — it is the domain thread of
+// review actions and comments, analogous to WorkItemEvent for tickets.
+model EventReview {
+  id         String       @id @default(cuid())
+  eventId    String
+  event      Event        @relation("EventReviewEvent", fields: [eventId], references: [id], onDelete: Cascade)
+  actorId    String
+  actor      User         @relation("EventReviewActor", fields: [actorId], references: [id])
+  action     String // submit | resubmit | start_review | request_changes | approve | reject | publish | unpublish | cancel | reassign | edit
+  fromStatus EventStatus?
+  toStatus   EventStatus?
+  comment    String? // admin comment / changes-requested text (never sensitive PII)
+  createdAt  DateTime     @default(now())
+
+  @@index([eventId, createdAt])
 }
 
 model Sermon {

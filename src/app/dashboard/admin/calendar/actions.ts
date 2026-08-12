@@ -2,127 +2,83 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/db";
 import { getActor } from "@/auth/actor";
 import { requireRole } from "@/lib/rbac";
-import { sanitize } from "@/lib/sanitize";
-import { writeAudit } from "@/lib/audit";
-import { centralWallToUtc } from "@/lib/tz";
+import {
+  saveEvent,
+  adminCreateEvent,
+  transitionEvent,
+  reassignDepartment,
+  parseEventForm,
+} from "@/lib/events";
+import type { EventAction } from "@/lib/event-workflow";
 
-const wall = z.string().transform((v, ctx) => {
-  const d = centralWallToUtc(v);
-  if (!d) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date/time" });
-    return z.NEVER;
-  }
-  return d;
-});
-
-const schema = z
-  .object({
-    title: z.string().trim().min(1).max(200),
-    location: z.string().trim().max(200).optional(),
-    descriptionHtml: z.string().trim().max(8000).optional(),
-    startAt: wall,
-    endAt: wall,
-    ministryId: z.string().min(1),
-    isFeatured: z.boolean().optional(),
-  })
-  .refine((d) => d.endAt >= d.startAt, { message: "End must be on/after start", path: ["endAt"] });
-
-function parseForm(formData: FormData) {
-  return schema.parse({
-    title: formData.get("title"),
-    location: formData.get("location") || undefined,
-    descriptionHtml: formData.get("descriptionHtml") || undefined,
-    startAt: formData.get("startAt"),
-    endAt: formData.get("endAt"),
-    ministryId: formData.get("ministryId"),
-    isFeatured: formData.get("isFeatured") === "on",
-  });
-}
-
-/** Public surfaces that list events: refresh them when the calendar changes. */
-function revalidatePublic(ministryId?: string) {
+/** Refresh the public surfaces + admin views after any calendar change. */
+function revalidateAll(slug?: string | null) {
   revalidatePath("/calendar");
   revalidatePath("/");
   revalidatePath("/dashboard/admin/calendar");
-  if (ministryId) {
-    // The ministry detail page lists its upcoming events by slug; refresh broadly.
-    revalidatePath("/ministries", "layout");
+  if (slug) revalidatePath(`/calendar/events/${slug}`);
+  revalidatePath("/ministries", "layout");
+}
+
+/** Admin creates an event (intent="publish" publishes immediately; otherwise saved as a draft). */
+export async function adminCreateEventAction(formData: FormData) {
+  const actor = await getActor();
+  requireRole(actor, "ADMIN", "PASTOR");
+  const intent = String(formData.get("intent") ?? "draft");
+  let input;
+  try {
+    input = parseEventForm(formData);
+  } catch (e) {
+    const msg = e instanceof z.ZodError ? e.issues[0]?.message ?? "Please check the form." : "Please check the form.";
+    redirect(`/dashboard/admin/calendar/new?error=${encodeURIComponent(msg)}`);
   }
+  const res = await adminCreateEvent(actor, input, { publish: intent === "publish" });
+  if (!res.ok) redirect(`/dashboard/admin/calendar/new?error=${encodeURIComponent(res.error)}`);
+  revalidateAll(res.slug);
+  redirect(`/dashboard/admin/calendar/${res.id}`);
 }
 
-export async function createEvent(formData: FormData) {
-  const actor = await getActor();
-  requireRole(actor, "ADMIN", "PASTOR");
-  const d = parseForm(formData);
-  // Admin-authored events are published immediately (the admin is the reviewer).
-  const created = await prisma.event.create({
-    data: {
-      title: d.title,
-      location: d.location,
-      descriptionHtml: d.descriptionHtml ? sanitize(d.descriptionHtml) : null,
-      startAt: d.startAt,
-      endAt: d.endAt,
-      ministryId: d.ministryId,
-      isFeatured: d.isFeatured ?? false,
-      status: "APPROVED",
-      visibility: "PUBLIC",
-      createdById: actor.userId,
-      reviewedById: actor.userId,
-      reviewedAt: new Date(),
-    },
-  });
-  await writeAudit(prisma, { actorId: actor.userId, action: "event.create", entity: "Event", entityId: created.id });
-  revalidatePublic(d.ministryId);
-  redirect("/dashboard/admin/calendar");
-}
-
-export async function updateEvent(formData: FormData) {
+/** Admin edits an existing event's content (status unchanged). */
+export async function adminEditEventAction(formData: FormData) {
   const actor = await getActor();
   requireRole(actor, "ADMIN", "PASTOR");
   const id = String(formData.get("id"));
-  const d = parseForm(formData);
-  await prisma.event.update({
-    where: { id },
-    data: {
-      title: d.title,
-      location: d.location,
-      descriptionHtml: d.descriptionHtml ? sanitize(d.descriptionHtml) : null,
-      startAt: d.startAt,
-      endAt: d.endAt,
-      ministryId: d.ministryId,
-      isFeatured: d.isFeatured ?? false,
-      // Keep it published; an admin edit is implicitly re-approved.
-      status: "APPROVED",
-      reviewedById: actor.userId,
-      reviewedAt: new Date(),
-      version: { increment: 1 },
-    },
-  });
-  await writeAudit(prisma, { actorId: actor.userId, action: "event.update", entity: "Event", entityId: id });
-  revalidatePublic(d.ministryId);
-  redirect("/dashboard/admin/calendar");
+  let input;
+  try {
+    input = parseEventForm(formData);
+  } catch (e) {
+    const msg = e instanceof z.ZodError ? e.issues[0]?.message ?? "Please check the form." : "Please check the form.";
+    redirect(`/dashboard/admin/calendar/${id}/edit?error=${encodeURIComponent(msg)}`);
+  }
+  const res = await saveEvent(actor, input, id);
+  if (!res.ok) redirect(`/dashboard/admin/calendar/${id}/edit?error=${encodeURIComponent(res.error)}`);
+  revalidateAll(res.slug);
+  redirect(`/dashboard/admin/calendar/${id}`);
 }
 
-export async function deleteEvent(formData: FormData) {
+/** Reviewer lifecycle action (start_review / request_changes / approve / reject / publish /
+ *  unpublish / cancel / archive). */
+export async function reviewEventAction(formData: FormData) {
   const actor = await getActor();
   requireRole(actor, "ADMIN", "PASTOR");
   const id = String(formData.get("id"));
-  await prisma.event.delete({ where: { id } });
-  await writeAudit(prisma, { actorId: actor.userId, action: "event.delete", entity: "Event", entityId: id });
-  revalidatePublic();
-  redirect("/dashboard/admin/calendar");
+  const action = String(formData.get("action")) as EventAction;
+  const version = Number(formData.get("version"));
+  const comment = formData.get("comment") ? String(formData.get("comment")) : undefined;
+  const res = await transitionEvent(actor, id, action, { expectedVersion: version, comment });
+  revalidateAll(res.ok ? res.slug : undefined);
+  redirect(`/dashboard/admin/calendar/${id}${res.ok ? "" : `?error=${encodeURIComponent(res.error)}`}`);
 }
 
-export async function toggleFeatured(formData: FormData) {
+/** Admin moves an event to a different department (audit-logged). */
+export async function reassignDepartmentAction(formData: FormData) {
   const actor = await getActor();
   requireRole(actor, "ADMIN", "PASTOR");
   const id = String(formData.get("id"));
-  const featured = formData.get("featured") === "true";
-  await prisma.event.update({ where: { id }, data: { isFeatured: featured } });
-  await writeAudit(prisma, { actorId: actor.userId, action: "event.feature", entity: "Event", entityId: id, metadata: { featured } });
-  revalidatePublic();
-  redirect("/dashboard/admin/calendar");
+  const ministryId = String(formData.get("ministryId"));
+  const res = await reassignDepartment(actor, id, ministryId);
+  revalidateAll(res.ok ? res.slug : undefined);
+  redirect(`/dashboard/admin/calendar/${id}${res.ok ? "" : `?error=${encodeURIComponent(res.error)}`}`);
 }
