@@ -5,14 +5,39 @@
  * and print from this one dataset. Run: `npm run db:seed:bulletin`.
  */
 import { PrismaClient } from "@prisma/client";
+import { pathToFileURL } from "node:url";
 import { centralWallToUtc } from "../src/lib/tz";
 import { slugify } from "../src/lib/weekly-packet";
 
-const prisma = new PrismaClient();
-const SABBATH = new Date("2026-08-08T00:00:00.000Z");
+export const SABBATH = new Date("2026-08-08T00:00:00.000Z");
+export const PUBLISHED_AT = new Date("2026-08-07T22:00:00.000Z");
 const at = (wall: string) => centralWallToUtc(wall);
 
-const ORDER: { title: string; detail?: string; participant?: string }[] = [
+/** Scalar bulletin fields for the published Aug 8 edition (shared by the seed + SQL generator). */
+export const AUG8_BULLETIN = {
+  slug: "2026-08-08",
+  title: "Welcome Home",
+  status: "APPROVED",
+  publishedAt: PUBLISHED_AT,
+  pdfVersion: 1,
+  pdfGeneratedAt: PUBLISHED_AT,
+  welcomeMessage: "A Christ-centered Adventist family in McKinney, Texas — worshiping, growing, and serving together.",
+  sermonTitle: "The Gods of This World",
+  speaker: "Darren Anderson",
+  scripture: "Romans 12:2",
+  sabbathSchoolTime: "9:30 AM",
+  divineWorshipTime: "11:15 AM",
+  offeringToday: "Christian Record Services (NAD)",
+  elderOnDuty: "Anthony Wanyanga",
+  nurseOnDuty: "Gloria Ikonne",
+  sundownTonight: "8:21 PM",
+  nextSabbathSpeaker: "Anthony Wanyanga",
+  nextSabbathOffering: "Local Church Budget",
+  inspiration: "In the courts above, Christ is pleading for His church — pleading for those for whom He has paid the redemption price of His blood. Centuries, ages, can never lessen the efficacy of His atoning sacrifice.",
+  inspirationSource: "The Acts of the Apostles, 552–553",
+} as const;
+
+export const ORDER: { title: string; detail?: string; participant?: string }[] = [
   { title: "Sabbath School", detail: "9:30 – 9:40 AM" },
   { title: "Morning Prayer" },
   { title: "Sabbath School Lesson", detail: "9:50 – 10:20 AM" },
@@ -35,7 +60,7 @@ type Ann = {
   title: string; category: string; summary: string; featured?: boolean;
   eventStartAt?: Date | null; location?: string; recurring?: boolean; recurrence?: string;
 };
-const ANNOUNCEMENTS: Ann[] = [
+export const ANNOUNCEMENTS: Ann[] = [
   { title: "Together As One Convocation", category: "This Weekend", featured: true,
     summary: "Texas Conference training for church officers, August 8–9 at North Dallas Adventist Academy in Richardson. Attendance is free; registration is required only for complimentary meals. More information is in the church WhatsApp group." },
   { title: "Community Health Expo", category: "Community & Outreach",
@@ -60,7 +85,12 @@ const ANNOUNCEMENTS: Ann[] = [
     summary: "Men: Sunday 7 AM · Women: Sunday 8 PM · Daily prayer: 5 AM (Zoom · McKinney#7)." },
 ];
 
-async function main() {
+/**
+ * Publish the real Aug 8, 2026 edition. Reused by the canonical seed (`prisma/seed.ts`) so a
+ * standard `prisma db seed` publishes it in every environment, and by the standalone runner
+ * below (`npm run db:seed:bulletin`). Idempotent — keyed on the Sabbath date.
+ */
+export async function seedAug8Bulletin(prisma: PrismaClient) {
   const bulletin = await prisma.bulletin.upsert({
     where: { sabbathDate: SABBATH },
     update: {},
@@ -74,33 +104,12 @@ async function main() {
 
   await prisma.bulletin.update({
     where: { id: bulletin.id },
-    data: {
-      slug: "2026-08-08",
-      title: "Welcome Home",
-      status: "APPROVED",
-      publishedAt: new Date("2026-08-07T22:00:00.000Z"),
-      pdfVersion: 1,
-      pdfGeneratedAt: new Date("2026-08-07T22:00:00.000Z"),
-      welcomeMessage: "A Christ-centered Adventist family in McKinney, Texas — worshiping, growing, and serving together.",
-      sermonTitle: "The Gods of This World",
-      speaker: "Darren Anderson",
-      scripture: "Romans 12:2",
-      sabbathSchoolTime: "9:30 AM",
-      divineWorshipTime: "11:15 AM",
-      offeringToday: "Christian Record Services (NAD)",
-      elderOnDuty: "Anthony Wanyanga",
-      nurseOnDuty: "Gloria Ikonne",
-      sundownTonight: "8:21 PM",
-      nextSabbathSpeaker: "Anthony Wanyanga",
-      nextSabbathOffering: "Local Church Budget",
-      inspiration: "In the courts above, Christ is pleading for His church — pleading for those for whom He has paid the redemption price of His blood. Centuries, ages, can never lessen the efficacy of His atoning sacrifice.",
-      inspirationSource: "The Acts of the Apostles, 552–553",
-    },
+    data: { ...AUG8_BULLETIN },
   });
 
   await prisma.weeklyPacket.update({
     where: { id: packet.id },
-    data: { status: "PUBLISHED", publishedAt: new Date("2026-08-07T22:00:00.000Z"), readinessScore: 100, bulletinId: bulletin.id },
+    data: { status: "PUBLISHED", publishedAt: PUBLISHED_AT, readinessScore: 100, bulletinId: bulletin.id },
   });
 
   // Rebuild order of service.
@@ -138,6 +147,10 @@ async function main() {
   console.log("View: /bulletin/2026-08-08  ·  Print: /bulletin/2026-08-08/print");
 }
 
-main()
-  .catch((e) => { console.error(e); process.exit(1); })
-  .finally(async () => { await prisma.$disconnect(); });
+// Standalone runner: `npm run db:seed:bulletin`. Skipped when imported (e.g. by prisma/seed.ts).
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const prisma = new PrismaClient();
+  seedAug8Bulletin(prisma)
+    .catch((e) => { console.error(e); process.exit(1); })
+    .finally(async () => { await prisma.$disconnect(); });
+}
