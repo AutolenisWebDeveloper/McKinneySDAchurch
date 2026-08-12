@@ -2,6 +2,9 @@
   "crons": [
     { "path": "/api/cron/visitor-weekly-invite", "schedule": "0 13 * * 3" },
     { "path": "/api/cron/ministry-head-reminder", "schedule": "0 14 * * 1" },
+    { "path": "/api/cron/bulletin-wednesday-reminder", "schedule": "0 14 * * 3" },
+    { "path": "/api/cron/bulletin-friday-distribution", "schedule": "0 22 * * 5" },
+    { "path": "/api/cron/bulletin-friday-distribution", "schedule": "0 23 * * 5" },
     { "path": "/api/cron/care-scan", "schedule": "0 6 * * 1" }
   ]
 }

@@ -1,12 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { env } from "@/env";
-import { runMondayBulletinReminders } from "@/lib/bulletin-reminders";
+import { runWednesdayBulletinReminders } from "@/lib/bulletin-reminders";
 
 /**
- * Monday department-head bulletin reminder (§11). Delegates to the single reminder service, which
- * personalizes each head's copy by their current standing and is idempotent per (packet, MONDAY,
- * head) via the BulletinReminder ledger — a duplicate cron run never re-sends.
+ * Wednesday targeted reminder (§12). Same reminder service as Monday (one path) but only nudges
+ * heads who still need to act — no submission, an unfinished draft, or changes requested. Heads
+ * who have already submitted (or marked nothing this week) get nothing. Idempotent per
+ * (packet, WEDNESDAY, head).
  */
 function authorized(req: NextRequest): boolean {
   const header = req.headers.get("authorization") ?? "";
@@ -17,6 +18,6 @@ function authorized(req: NextRequest): boolean {
 
 export async function GET(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ ok: false, error: { code: "UNAUTHORIZED", message: "bad cron secret" } }, { status: 401 });
-  const result = await runMondayBulletinReminders(new Date());
+  const result = await runWednesdayBulletinReminders(new Date());
   return NextResponse.json({ ok: true, data: result });
 }

@@ -175,6 +175,110 @@ export function packetPublishedEmail(p: { sabbathDate: string; url: string }): R
   };
 }
 
+/* ----- Weekly bulletin: department-head reminders (§11/§12) ----- */
+
+const MONDAY_STANDING: Record<string, string> = {
+  NONE: "You haven't started an announcement for this week yet.",
+  DRAFT: "You have a draft that hasn't been submitted yet.",
+  SUBMITTED: "Thank you — your announcement is submitted. No action is needed.",
+  CHANGES_REQUESTED: "An admin has requested changes to your submission.",
+  NOTHING: "You've marked that your ministry has nothing this week. Thank you!",
+};
+
+/** Monday reminder — identifies the Sabbath, the deadline, and the head's current standing (§11). */
+export function bulletinMondayReminderEmail(p: {
+  sabbathDate: string; deadline?: string; workspaceUrl: string; personalState: string;
+}): Rendered {
+  const standing = MONDAY_STANDING[p.personalState] ?? MONDAY_STANDING.NONE;
+  return {
+    subject: `Bulletin submissions open — Sabbath ${esc(p.sabbathDate)}`,
+    html:
+      `<h2>Preparing the bulletin for Sabbath ${esc(p.sabbathDate)}</h2>` +
+      `<p>${esc(standing!)}</p>` +
+      (p.deadline ? `<p><strong>Submission deadline:</strong> ${esc(p.deadline)}.</p>` : "") +
+      `<p><a href="${esc(p.workspaceUrl)}">Open your Weekly Bulletin workspace</a> to add or finish an announcement, or mark that you have nothing this week.</p>`,
+  };
+}
+
+const WEDNESDAY_COPY: Record<string, { subject: string; body: string }> = {
+  NO_SUBMISSION: {
+    subject: "Reminder: your ministry hasn't submitted for this Sabbath's bulletin",
+    body: "We haven't received anything from your ministry for this week's bulletin. If you have an announcement, please add it — or let us know there's nothing this week.",
+  },
+  DRAFT: {
+    subject: "Your bulletin announcement is still a draft",
+    body: "You have an unfinished draft that hasn't been submitted for review yet. Please finish and submit it before the deadline.",
+  },
+  CHANGES_REQUESTED: {
+    subject: "Action needed: changes requested on your bulletin announcement",
+    body: "An admin has requested changes to your submission. Please review their feedback and resubmit.",
+  },
+};
+
+/** Wednesday targeted reminder — content depends on the head's resolved state; never blanket (§12). */
+export function bulletinWednesdayReminderEmail(p: {
+  sabbathDate: string; deadline?: string; workspaceUrl: string; state: string;
+}): Rendered {
+  const copy = WEDNESDAY_COPY[p.state] ?? WEDNESDAY_COPY.NO_SUBMISSION;
+  return {
+    subject: `${copy!.subject} — Sabbath ${esc(p.sabbathDate)}`,
+    html:
+      `<h2>Bulletin for Sabbath ${esc(p.sabbathDate)}</h2>` +
+      `<p>${esc(copy!.body)}</p>` +
+      (p.deadline ? `<p><strong>Deadline:</strong> ${esc(p.deadline)}.</p>` : "") +
+      `<p><a href="${esc(p.workspaceUrl)}">Open your Weekly Bulletin workspace</a>.</p>`,
+  };
+}
+
+/* ----- Weekly bulletin: Friday 5PM member distribution (§18) ----- */
+
+/** The Friday member email. Professionally designed, branded; highlights + actions, not a dump. */
+export function memberBulletinEmail(p: {
+  sabbathDate: string;
+  sermonTitle?: string;
+  speaker?: string;
+  highlights: string[];
+  bulletinUrl: string;
+  pdfUrl?: string;
+  watchUrl?: string;
+  unsubscribeUrl: string;
+}): Rendered {
+  const navy = "#003B5C";
+  const btn = (href: string, label: string, primary = false) =>
+    `<a href="${esc(href)}" style="display:inline-block;margin:4px 8px 4px 0;padding:11px 20px;border-radius:999px;` +
+    `font-weight:600;text-decoration:none;font-size:14px;` +
+    (primary ? `background:${navy};color:#ffffff;` : `background:#ffffff;color:${navy};border:1px solid ${navy};`) +
+    `">${esc(label)}</a>`;
+  const sermon = p.sermonTitle
+    ? `<p style="margin:0 0 4px;font-size:18px;color:${navy};font-weight:600">${esc(p.sermonTitle)}</p>` +
+      (p.speaker ? `<p style="margin:0 0 16px;color:#53636e">with ${esc(p.speaker)}</p>` : "")
+    : "";
+  const highlights = p.highlights.length
+    ? `<p style="margin:20px 0 8px;font-weight:600;color:${navy}">This week's highlights</p><ul style="margin:0 0 8px;padding-left:20px;color:#132a3a">` +
+      p.highlights.slice(0, 5).map((h) => `<li style="margin:4px 0">${esc(h)}</li>`).join("") +
+      `</ul>`
+    : "";
+  return {
+    subject: `Happy Sabbath — this week's bulletin (${esc(p.sabbathDate)})`,
+    html:
+      `<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;color:#132a3a">` +
+      `<div style="background:${navy};color:#fff;padding:24px;border-radius:12px 12px 0 0">` +
+      `<p style="margin:0;font-size:13px;letter-spacing:.12em;text-transform:uppercase;opacity:.85">McKinney SDA Church</p>` +
+      `<h1 style="margin:6px 0 0;font-size:22px">Happy Sabbath</h1>` +
+      `<p style="margin:6px 0 0;opacity:.9">Sabbath ${esc(p.sabbathDate)}</p></div>` +
+      `<div style="border:1px solid #d6e1e7;border-top:0;border-radius:0 0 12px 12px;padding:24px">` +
+      sermon + highlights +
+      `<div style="margin:20px 0 4px">` +
+      btn(p.bulletinUrl, "Read this week's bulletin", true) +
+      (p.pdfUrl ? btn(p.pdfUrl, "Download PDF") : "") +
+      (p.watchUrl ? btn(p.watchUrl, "Watch Live") : "") +
+      `</div>` +
+      `<p style="margin:20px 0 0;font-size:12px;color:#7a909c">You're receiving this because you're part of the McKinney SDA Church family. ` +
+      `<a href="${esc(p.unsubscribeUrl)}" style="color:#7a909c">Manage your email preferences</a>.</p>` +
+      `</div></div>`,
+  };
+}
+
 /* ===== Phase 5: Membership transfers (§29) ===== */
 
 export function transferReceivedEmail(p: { name: string; direction: "INCOMING" | "OUTGOING"; churchName: string; statusUrl?: string }): Rendered {

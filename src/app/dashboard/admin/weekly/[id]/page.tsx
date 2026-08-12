@@ -2,191 +2,290 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
-import { computeReadiness } from "@/lib/weekly-packet";
-import { PortalPage, PortalSection, EmptyState } from "@/components/portal/home-ui";
-import { reviewSubmissionAction, transitionPacketAction, linkBulletinAction } from "../actions";
+import { getPublishValidation } from "@/lib/weekly-packets";
+import {
+  computeReadiness, canPacketTransition, normalizeSubmissionState, isSubmissionPublic, isSubmissionOpen,
+} from "@/lib/weekly-packet";
+import { toAnnouncementView } from "@/lib/bulletin-view";
+import { submissionStatusBadge } from "@/lib/bulletin-status";
+import { longDate } from "@/lib/dates";
+import { PortalPage } from "@/components/portal/home-ui";
+import { Panel, StatusBadge, MetricTile, MetricRow, WorkflowProgress } from "@/components/portal/dashboard-ui";
+import { Callout } from "@/components/page-ui";
+import { WorshipBuilder } from "@/components/portal/WorshipBuilder";
+import { SubmissionReviewCard } from "@/components/portal/SubmissionReviewCard";
+import {
+  transitionPacketAction, linkBulletinAction, reviewOtherAction,
+} from "../actions";
+import type { WeeklyPacketStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-const KIND_LABEL: Record<string, string> = {
-  ANNOUNCEMENT: "Announcement", EVENT: "Event", SABBATH_PROGRAM_ITEM: "Sabbath program item",
-  PARTICIPANT: "Participant", MINISTRY_UPDATE: "Ministry update", NOTHING_THIS_WEEK: "Nothing this week",
+const NEXT_LABEL: Partial<Record<WeeklyPacketStatus, string>> = {
+  IN_REVIEW: "Move to review",
+  READY: "Mark ready",
+  PUBLISHED: "Publish bulletin",
+  ARCHIVED: "Archive",
+  COLLECTING: "Reopen for submissions",
 };
 
-export default async function PacketDetail({ params }: { params: Promise<{ id: string }> }) {
+export default async function CommandCenter({
+  params, searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string>>;
+}) {
   await requireActor("ADMIN", "PASTOR");
   const { id } = await params;
+  const sp = await searchParams;
 
   const packet = await prisma.weeklyPacket.findUnique({
     where: { id },
     include: {
-      bulletin: { select: { id: true, items: { orderBy: { sortOrder: "asc" }, select: { id: true, title: true, detail: true, participant: true } } } },
-      submissions: { orderBy: { createdAt: "asc" } },
+      bulletin: { include: { items: { orderBy: { sortOrder: "asc" } }, distributions: true } },
+      submissions: { include: { ministry: { select: { name: true } } }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+      reminders: { select: { kind: true } },
     },
   });
   if (!packet) notFound();
 
-  const [departments, submitters] = await Promise.all([
-    prisma.ministry.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.user.findMany({
-      where: { id: { in: [...new Set(packet.submissions.map((s) => s.submittedById).filter(Boolean))] as string[] } },
-      select: { id: true, name: true },
-    }),
+  const [ministries, validation] = await Promise.all([
+    prisma.ministry.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    getPublishValidation(packet.id),
   ]);
-  const deptName = new Map(departments.map((d) => [d.id, d.name]));
-  const submitterName = new Map(submitters.map((u) => [u.id, u.name]));
+  const submitterIds = [...new Set(packet.submissions.map((s) => s.submittedById).filter(Boolean) as string[])];
+  const submitters = await prisma.user.findMany({ where: { id: { in: submitterIds } }, select: { id: true, name: true, email: true } });
+  const submitterName = new Map(submitters.map((u) => [u.id, u.name ?? u.email ?? "—"]));
+  const deptName = new Map(ministries.map((m) => [m.id, m.name]));
+
+  const anns = packet.submissions.filter((s) => s.kind === "ANNOUNCEMENT");
+  const others = packet.submissions.filter((s) => s.kind !== "ANNOUNCEMENT" && s.kind !== "NOTHING_THIS_WEEK");
+  const drafts = anns.filter((s) => normalizeSubmissionState(s.status) === "DRAFT");
+  const awaitingReview = packet.submissions.filter((s) => { const st = normalizeSubmissionState(s.status); return st === "SUBMITTED" || st === "UNDER_REVIEW"; });
+  const changesRequested = anns.filter((s) => normalizeSubmissionState(s.status) === "CHANGES_REQUESTED");
+  const approved = anns.filter((s) => isSubmissionPublic(s.status));
 
   const readiness = computeReadiness({
-    departmentIds: departments.map((d) => d.id),
+    departmentIds: ministries.map((m) => m.id),
     submissions: packet.submissions.map((s) => ({ ministryId: s.ministryId, kind: s.kind, status: s.status })),
     hasOrderOfService: (packet.bulletin?.items.length ?? 0) > 0,
   });
+  const respondedIds = new Set(
+    packet.submissions.filter((s) => s.status !== "REJECTED" && s.ministryId).map((s) => s.ministryId as string),
+  );
 
-  const respondedSet = new Set(packet.submissions.filter((s) => s.status !== "REJECTED" && s.ministryId).map((s) => s.ministryId));
-  const accepted = packet.submissions.filter((s) => s.status === "ACCEPTED" && s.kind !== "NOTHING_THIS_WEEK");
-  const pending = packet.submissions.filter((s) => s.status === "SUBMITTED");
-  const closed = packet.status === "PUBLISHED" || packet.status === "ARCHIVED";
+  const status = packet.status;
+  const transitions = (["IN_REVIEW", "READY", "PUBLISHED", "ARCHIVED", "COLLECTING"] as WeeklyPacketStatus[])
+    .filter((to) => canPacketTransition(status, to));
+  const distribution = packet.bulletin?.distributions.find((d) => d.channel === "FRIDAY_EMAIL");
+  const mondayCount = packet.reminders.filter((r) => r.kind === "MONDAY").length;
+  const wednesdayCount = packet.reminders.filter((r) => r.kind === "WEDNESDAY").length;
 
-  const NEXT: Record<string, { to: string; label: string }[]> = {
-    COLLECTING: [{ to: "IN_REVIEW", label: "Move to review" }],
-    IN_REVIEW: [{ to: "READY", label: "Mark ready" }, { to: "COLLECTING", label: "Back to collecting" }],
-    READY: [{ to: "PUBLISHED", label: "Publish" }, { to: "IN_REVIEW", label: "Back to review" }],
-    PUBLISHED: [{ to: "ARCHIVED", label: "Archive" }],
-    ARCHIVED: [],
-  };
+  const statusTone = status === "PUBLISHED" ? "success" : status === "READY" ? "info" : status === "ARCHIVED" ? "default" : "warn";
+  const steps = [
+    { label: "Submissions collected", done: readiness.respondedDepartments > 0 },
+    { label: "All reviewed", done: awaitingReview.length === 0 && approved.length > 0 },
+    { label: "Order of service ready", done: (packet.bulletin?.items.length ?? 0) > 0 },
+    { label: "Published", done: status === "PUBLISHED" || status === "ARCHIVED" },
+  ];
 
   return (
     <PortalPage
-      title={`Sabbath ${packet.sabbathDate.toLocaleDateString("en-US", { dateStyle: "long" })}`}
-      intro={`Status: ${packet.status.toLowerCase().replace(/_/g, " ")}`}
+      title="Bulletin Command Center"
+      intro={<Link href="/dashboard/admin/weekly" className="text-sm text-primary hover:underline">← All weekly bulletins</Link>}
     >
-      {/* Readiness + lifecycle */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between gap-4">
+      {/* Header / status */}
+      <Panel className="p-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted">Readiness</p>
-            <p className="text-3xl font-bold text-denim-800 dark:text-gold">{readiness.score}%</p>
-            <p className="text-sm text-muted">{readiness.respondedDepartments}/{readiness.totalDepartments} ministries responded · {readiness.hasOrderOfService ? "order of service set" : "no order of service yet"}</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="font-serif text-xl font-semibold text-fg">Sabbath {longDate(packet.sabbathDate)}</h2>
+              <StatusBadge tone={statusTone}>{status}</StatusBadge>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {packet.bulletin ? (
+                <>
+                  <Link href={`/dashboard/admin/weekly/${packet.id}/preview`} className="btn btn-outline text-sm" prefetch={false}>Preview online</Link>
+                  <Link href={`/dashboard/admin/weekly/${packet.id}/preview/print`} className="btn btn-outline text-sm" prefetch={false}>Preview print</Link>
+                </>
+              ) : null}
+              {status === "PUBLISHED" && packet.bulletin?.slug ? (
+                <Link href={`/bulletin/${packet.bulletin.slug}`} className="btn btn-outline text-sm" prefetch={false}>View live</Link>
+              ) : null}
+            </div>
+            <nav className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
+              <a href="#overview" className="hover:text-primary">Overview</a>
+              <a href="#submissions" className="hover:text-primary">Submissions</a>
+              <a href="#worship" className="hover:text-primary">Worship</a>
+              <a href="#publish" className="hover:text-primary">Publish</a>
+              <a href="#distribution" className="hover:text-primary">Distribution</a>
+            </nav>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {NEXT[packet.status]!.map((n) => (
-              <form key={n.to} action={transitionPacketAction}>
+          <div className="w-full max-w-xs shrink-0">
+            <WorkflowProgress value={readiness.score} steps={steps} />
+          </div>
+        </div>
+      </Panel>
+
+      {/* Overview */}
+      <section id="overview" className="scroll-mt-20 space-y-4">
+        <MetricRow>
+          <MetricTile label="Departments in" value={`${readiness.respondedDepartments}/${readiness.totalDepartments}`} hint="responded" tone="info" />
+          <MetricTile label="Outstanding" value={readiness.missingDepartmentIds.length} hint="no response yet" tone={readiness.missingDepartmentIds.length ? "warn" : "success"} />
+          <MetricTile label="Drafts" value={drafts.length} hint="not submitted" />
+          <MetricTile label="Awaiting review" value={awaitingReview.length} tone={awaitingReview.length ? "warn" : "success"} />
+          <MetricTile label="Changes req." value={changesRequested.length} tone={changesRequested.length ? "warn" : "default"} />
+          <MetricTile label="Approved" value={approved.length} tone="success" />
+        </MetricRow>
+
+        {readiness.missingDepartmentIds.length > 0 ? (
+          <Panel title="Departments still outstanding" className="p-5">
+            <div className="flex flex-wrap gap-2">
+              {readiness.missingDepartmentIds.map((mid) => (
+                <span key={mid} className="chip bg-accent/10 text-accent-strong">{deptName.get(mid) ?? mid}</span>
+              ))}
+              {ministries.filter((m) => respondedIds.has(m.id)).map((m) => (
+                <span key={m.id} className="chip bg-primary/10 text-primary">✓ {m.name}</span>
+              ))}
+            </div>
+          </Panel>
+        ) : null}
+      </section>
+
+      {/* Submissions */}
+      <section id="submissions" className="scroll-mt-20 space-y-4">
+        <h2 className="font-serif text-lg font-semibold text-fg">Submissions review</h2>
+        {sp.rerror ? <Callout tone="warn">{sp.rerror}</Callout> : null}
+        {packet.submissions.length === 0 ? (
+          <Panel className="p-8"><p className="text-center text-sm text-muted">No submissions yet.</p></Panel>
+        ) : (
+          <div className="space-y-4">
+            {anns.map((s, i) => (
+              <SubmissionReviewCard
+                key={s.id}
+                packetId={packet.id}
+                submission={s}
+                ministryName={s.ministry?.name ?? (s.ministryId ? deptName.get(s.ministryId) : null) ?? null}
+                submitter={s.submittedById ? submitterName.get(s.submittedById) ?? null : null}
+                preview={toAnnouncementView(s)}
+                isFirst={i === 0}
+                isLast={i === anns.length - 1}
+              />
+            ))}
+            {others.length > 0 ? (
+              <Panel title="Other submissions (program items, participants)" className="divide-y divide-line">
+                {others.map((s) => {
+                  const badge = submissionStatusBadge(s.status);
+                  const open = isSubmissionOpen(s.status);
+                  return (
+                    <div key={s.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-fg">{s.title || s.kind.replace(/_/g, " ")}</p>
+                        <p className="text-xs text-muted">{s.kind.replace(/_/g, " ").toLowerCase()} · {s.ministry?.name ?? "—"}{s.body ? ` · ${s.body.slice(0, 60)}` : ""}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>
+                        {open ? (
+                          <form action={reviewOtherAction} className="flex gap-1">
+                            <input type="hidden" name="packetId" value={packet.id} />
+                            <input type="hidden" name="submissionId" value={s.id} />
+                            <button type="submit" name="decision" value="accept" className="rounded-lg border border-line px-2 py-1 text-xs font-medium text-primary hover:bg-surface-2">Accept</button>
+                            <button type="submit" name="decision" value="reject" className="rounded-lg border border-line px-2 py-1 text-xs font-medium text-muted hover:bg-surface-2">Reject</button>
+                          </form>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </Panel>
+            ) : null}
+          </div>
+        )}
+      </section>
+
+      {/* Worship */}
+      <section id="worship" className="scroll-mt-20 space-y-4">
+        <h2 className="font-serif text-lg font-semibold text-fg">Worship service</h2>
+        {sp.saved ? <Callout tone="success">Saved.</Callout> : null}
+        {!packet.bulletin ? (
+          <Panel className="p-5">
+            <p className="mb-3 text-sm text-muted">This week doesn't have an order of service yet.</p>
+            <form action={linkBulletinAction}>
+              <input type="hidden" name="packetId" value={packet.id} />
+              <button type="submit" className="btn btn-primary text-sm">Create the order of service</button>
+            </form>
+          </Panel>
+        ) : (
+          <WorshipBuilder packetId={packet.id} bulletin={packet.bulletin} items={packet.bulletin.items} />
+        )}
+      </section>
+
+      {/* Publish */}
+      <section id="publish" className="scroll-mt-20 space-y-4">
+        <h2 className="font-serif text-lg font-semibold text-fg">Validate &amp; publish</h2>
+        {sp.perror ? <Callout tone="warn" title="Publication blocked">{sp.perror}</Callout> : null}
+        <Panel className="p-5">
+          {validation.errors.length === 0 ? (
+            <Callout tone="success" title="Ready to publish">No blocking issues found.</Callout>
+          ) : (
+            <Callout tone="warn" title="Must be resolved before publishing">
+              <ul className="list-disc space-y-1 pl-5">{validation.errors.map((e, i) => <li key={i}>{e}</li>)}</ul>
+            </Callout>
+          )}
+          {validation.warnings.length > 0 ? (
+            <div className="mt-3 rounded-lg border border-line bg-surface-2/50 p-4 text-sm">
+              <p className="mb-1 font-medium text-fg">Warnings (optional)</p>
+              <ul className="list-disc space-y-1 pl-5 text-muted">{validation.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
+            </div>
+          ) : null}
+
+          <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-5">
+            {transitions.map((to) => (
+              <form key={to} action={transitionPacketAction}>
                 <input type="hidden" name="packetId" value={packet.id} />
-                <input type="hidden" name="to" value={n.to} />
+                <input type="hidden" name="to" value={to} />
                 <input type="hidden" name="version" value={packet.version} />
-                <button className={n.to === "PUBLISHED" ? "btn btn-primary text-sm" : "rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2"}>{n.label}</button>
+                <button
+                  type="submit"
+                  className={`btn text-sm ${to === "PUBLISHED" ? "btn-primary" : "btn-outline"}`}
+                  disabled={to === "PUBLISHED" && !validation.canPublish}
+                >
+                  {NEXT_LABEL[to] ?? to}
+                </button>
               </form>
             ))}
+            {transitions.length === 0 ? <p className="text-sm text-muted">No lifecycle actions available from “{status}”.</p> : null}
           </div>
-        </div>
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-line">
-          <span className="block h-full bg-primary" style={{ width: `${readiness.score}%` }} />
-        </div>
-      </div>
+        </Panel>
+      </section>
 
-      {/* Department checklist */}
-      <PortalSection title="Department checklist">
-        <div className="flex flex-wrap gap-2">
-          {departments.map((d) => {
-            const done = respondedSet.has(d.id);
-            return (
-              <span key={d.id} className={`rounded-full px-3 py-1 text-sm ${done ? "bg-denim-50 text-denim-800" : "border border-orange/40 bg-orange/10 text-fg"}`}>
-                {done ? "✓ " : "• "}{d.name}
-              </span>
-            );
-          })}
-          {!departments.length && <span className="text-sm text-muted">No ministries defined.</span>}
-        </div>
-      </PortalSection>
-
-      {/* Order of service */}
-      <PortalSection title="Order of service">
-        {packet.bulletin ? (
-          <div className="card p-4 text-sm">
-            {packet.bulletin.items.length ? (
-              <ol className="space-y-1">
-                {packet.bulletin.items.map((it) => (
-                  <li key={it.id} className="flex justify-between gap-3">
-                    <span className="text-fg">{it.title}{it.detail ? ` — ${it.detail}` : ""}</span>
-                    {it.participant && <span className="text-muted">{it.participant}</span>}
-                  </li>
-                ))}
-              </ol>
+      {/* Distribution */}
+      <section id="distribution" className="scroll-mt-20 space-y-4">
+        <h2 className="font-serif text-lg font-semibold text-fg">Distribution &amp; reminders</h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Panel className="p-5">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted">Friday member email</p>
+            {distribution ? (
+              <>
+                <p className="mt-1 font-serif text-lg text-fg">{distribution.status}</p>
+                <p className="text-xs text-muted">{distribution.sentCount} sent · {distribution.suppressedCount} suppressed of {distribution.recipientCount}</p>
+              </>
             ) : (
-              <p className="text-muted">No items yet. <Link href={`/dashboard/admin/bulletin/${packet.bulletin.id}`} className="text-primary hover:text-primary-hover">Edit the order of service →</Link></p>
+              <p className="mt-1 text-sm text-muted">Not sent yet. Sends automatically Friday at 5:00 PM CT once published.</p>
             )}
-            {packet.bulletin.items.length > 0 && (
-              <Link href={`/dashboard/admin/bulletin/${packet.bulletin.id}`} className="mt-2 inline-block text-primary hover:text-primary-hover">Edit the order of service →</Link>
-            )}
-          </div>
-        ) : (
-          <form action={linkBulletinAction}>
-            <input type="hidden" name="packetId" value={packet.id} />
-            <button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-2">Create the order of service</button>
-          </form>
-        )}
-      </PortalSection>
-
-      {/* Submissions to review */}
-      <PortalSection title={`Submissions (${packet.submissions.length}) — ${pending.length} awaiting review`}>
-        {packet.submissions.length ? (
-          <div className="space-y-2">
-            {packet.submissions.map((s) => (
-              <div key={s.id} className="card p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-fg">{s.title || KIND_LABEL[s.kind]}</p>
-                    <p className="text-xs text-muted">
-                      {KIND_LABEL[s.kind]}
-                      {s.ministryId ? ` · ${deptName.get(s.ministryId) ?? "—"}` : ""}
-                      {s.submittedById ? ` · ${submitterName.get(s.submittedById) ?? "—"}` : ""}
-                    </p>
-                    {s.body && <p className="mt-1 text-sm text-muted">{s.body}</p>}
-                    {s.participantName && <p className="mt-1 text-sm text-muted">Participant: {s.participantName}</p>}
-                    {s.reviewNote && <p className="mt-1 text-sm text-muted">Note: {s.reviewNote}</p>}
-                  </div>
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${s.status === "ACCEPTED" ? "bg-denim-50 text-denim-800" : s.status === "REJECTED" ? "bg-orange/10 text-fg" : "bg-gold/20 text-fg"}`}>
-                    {s.status.toLowerCase().replace(/_/g, " ")}
-                  </span>
-                </div>
-                {!closed && s.kind !== "NOTHING_THIS_WEEK" && (
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {(["accept", "reject", "needs_info"] as const).map((decision) => (
-                      <form key={decision} action={reviewSubmissionAction} className="flex items-center gap-1">
-                        <input type="hidden" name="submissionId" value={s.id} />
-                        <input type="hidden" name="packetId" value={packet.id} />
-                        <input type="hidden" name="decision" value={decision} />
-                        {decision !== "accept" && <input name="note" placeholder="note" maxLength={300} className="rounded border border-line-strong bg-surface px-2 py-1 text-xs" />}
-                        <button className={`rounded border border-line-strong px-2 py-1 text-xs font-medium hover:bg-surface-2 ${decision === "accept" ? "text-primary" : decision === "reject" ? "text-accent-strong" : ""}`}>
-                          {decision === "accept" ? "Accept" : decision === "reject" ? "Reject" : "Needs info"}
-                        </button>
-                      </form>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState title="No submissions yet" hint="Ministry heads submit from their portal; a weekly request goes out on Mondays." />
-        )}
-      </PortalSection>
-
-      {/* Program preview */}
-      <PortalSection title="Bulletin preview">
-        <div className="card p-5">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted">Accepted items</p>
-          {accepted.length ? (
-            <ul className="mt-2 space-y-1 text-sm">
-              {accepted.map((s) => (
-                <li key={s.id} className="text-fg">{KIND_LABEL[s.kind]}: {s.title}{s.ministryId ? ` (${deptName.get(s.ministryId) ?? ""})` : ""}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-muted">Accept submissions to build the bulletin.</p>
-          )}
+          </Panel>
+          <Panel className="p-5">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted">Monday reminders</p>
+            <p className="mt-1 font-serif text-lg text-fg">{mondayCount}</p>
+            <p className="text-xs text-muted">department heads reminded</p>
+          </Panel>
+          <Panel className="p-5">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted">Wednesday reminders</p>
+            <p className="mt-1 font-serif text-lg text-fg">{wednesdayCount}</p>
+            <p className="text-xs text-muted">targeted follow-ups sent</p>
+          </Panel>
         </div>
-      </PortalSection>
+      </section>
     </PortalPage>
   );
 }

@@ -5,7 +5,10 @@ import { writeAudit } from "./audit";
 import { notify, notifyRoles } from "./notify";
 import { sendEmail } from "./email";
 import { packetSubmissionDecisionEmail, packetPublishedEmail } from "./email-templates";
-import { computeReadiness, canPacketTransition, upcomingSabbath } from "./weekly-packet";
+import {
+  computeReadiness, canPacketTransition, upcomingSabbath, validateBulletinForPublish,
+  isSubmissionPublic, normalizeSubmissionState, isSafeUrl, type BulletinValidation,
+} from "./weekly-packet";
 import { type Actor, ministryScope, hasRole, canReviewContent, ForbiddenError } from "./rbac";
 
 /**
@@ -158,43 +161,126 @@ export async function linkBulletinForPacket(admin: Actor, packetId: string): Pro
   await recomputeReadiness(packetId);
 }
 
-/** Move the packet through its lifecycle (version-guarded). Publish also publishes the bulletin. */
+/**
+ * Assemble the publish-readiness validation for a packet's bulletin (§14). Hard errors block
+ * publication; warnings are advisory. Pure decision lives in `validateBulletinForPublish`.
+ */
+export async function getPublishValidation(packetId: string): Promise<BulletinValidation> {
+  const packet = await prisma.weeklyPacket.findUnique({
+    where: { id: packetId },
+    include: {
+      bulletin: { include: { _count: { select: { items: true } } } },
+      submissions: {
+        where: { kind: "ANNOUNCEMENT" },
+        select: { status: true, registrationUrl: true, externalUrl: true, ctaUrl: true, imageUrl: true },
+      },
+    },
+  });
+  if (!packet) return { errors: ["Packet not found."], warnings: [], canPublish: false };
+
+  const subs = packet.submissions;
+  const approvedAnnouncementCount = subs.filter((s) => isSubmissionPublic(s.status)).length;
+  const pendingReviewCount = subs.filter((s) => {
+    const st = normalizeSubmissionState(s.status);
+    return st === "SUBMITTED" || st === "UNDER_REVIEW";
+  }).length;
+  const changesRequestedCount = subs.filter((s) => normalizeSubmissionState(s.status) === "CHANGES_REQUESTED").length;
+
+  const invalidUrls: string[] = [];
+  for (const s of subs) {
+    for (const u of [s.registrationUrl, s.externalUrl, s.ctaUrl, s.imageUrl]) {
+      if (u && !isSafeUrl(u)) invalidUrls.push(u);
+    }
+  }
+  const b = packet.bulletin;
+  return validateBulletinForPublish({
+    orderOfServiceItemCount: b?._count.items ?? 0,
+    approvedAnnouncementCount,
+    pendingReviewCount,
+    changesRequestedCount,
+    sermonTitle: b?.sermonTitle,
+    speaker: b?.speaker,
+    scripture: b?.scripture,
+    sabbathSchoolTime: b?.sabbathSchoolTime,
+    divineWorshipTime: b?.divineWorshipTime,
+    invalidUrls,
+  });
+}
+
+/**
+ * Move the packet through its lifecycle (version-guarded). PUBLISH runs a final validation
+ * (hard errors block, §14), publishes the linked bulletin as an immutable, versioned artifact,
+ * and promotes its approved announcements to PUBLISHED so every channel renders one dataset.
+ * ARCHIVE retires the edition and its announcements.
+ */
 export async function transitionPacket(
   admin: Actor,
   packetId: string,
   to: WeeklyPacketStatus,
   expectedVersion: number,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; validation?: BulletinValidation }> {
   if (!canReviewContent(admin)) throw new ForbiddenError();
   const packet = await prisma.weeklyPacket.findUniqueOrThrow({ where: { id: packetId } });
   if (!canPacketTransition(packet.status, to)) return { ok: false, error: "That change isn't allowed from the current status." };
 
+  // Governed publication: never publish an incomplete bulletin (§14).
+  if (to === "PUBLISHED") {
+    const validation = await getPublishValidation(packetId);
+    if (!validation.canPublish) {
+      return { ok: false, error: validation.errors.join(" "), validation };
+    }
+  }
+
+  const now = new Date();
   const updated = await prisma.weeklyPacket.updateMany({
     where: { id: packetId, version: expectedVersion },
     data: {
       status: to,
       version: expectedVersion + 1,
-      ...(to === "PUBLISHED" ? { publishedAt: new Date() } : {}),
+      ...(to === "PUBLISHED" ? { publishedAt: now } : {}),
     },
   });
   if (updated.count === 0) return { ok: false, error: "This packet changed since you loaded it — refresh and try again." };
 
   if (to === "PUBLISHED" && packet.bulletinId) {
-    await prisma.bulletin.update({ where: { id: packet.bulletinId }, data: { status: "APPROVED", publishedAt: new Date() } });
+    const bulletin = await prisma.bulletin.findUnique({ where: { id: packet.bulletinId }, select: { slug: true } });
+    await prisma.bulletin.update({
+      where: { id: packet.bulletinId },
+      data: {
+        status: "APPROVED",
+        publishedAt: now,
+        slug: bulletin?.slug ?? dateOnly(packet.sabbathDate),
+        pdfVersion: { increment: 1 }, // new immutable print/PDF revision (§17)
+        pdfGeneratedAt: now,
+      },
+    });
+    // Promote approved announcements to PUBLISHED (single canonical dataset, §21).
+    await prisma.packetSubmission.updateMany({
+      where: { packetId, kind: "ANNOUNCEMENT", status: { in: ["APPROVED", "ACCEPTED"] } },
+      data: { status: "PUBLISHED" },
+    });
+  }
+
+  if (to === "ARCHIVED") {
+    await prisma.packetSubmission.updateMany({
+      where: { packetId, kind: "ANNOUNCEMENT", status: "PUBLISHED" },
+      data: { status: "ARCHIVED" },
+    });
   }
 
   await writeAudit(prisma, { actorId: admin.userId, action: `packet.${to.toLowerCase()}`, entity: "WeeklyPacket", entityId: packetId });
 
   if (to === "PUBLISHED") {
     try {
+      const slug = dateOnly(packet.sabbathDate);
       await notifyRoles(["MINISTRY_HEAD", "ELDER", "PASTOR", "ADMIN"], {
         category: "weekly-packet",
         title: `This week's bulletin is published`,
-        deepLink: "/bulletin",
+        deepLink: `/bulletin/${slug}`,
       });
       const heads = await prisma.userRole.findMany({ where: { active: true, role: "MINISTRY_HEAD" }, select: { userId: true } });
       const emails = await prisma.user.findMany({ where: { id: { in: heads.map((h) => h.userId) } }, select: { email: true } });
-      const { subject, html } = packetPublishedEmail({ sabbathDate: dateOnly(packet.sabbathDate), url: `${env.NEXT_PUBLIC_SITE_URL}/bulletin` });
+      const { subject, html } = packetPublishedEmail({ sabbathDate: slug, url: `${env.NEXT_PUBLIC_SITE_URL}/bulletin/${slug}` });
       for (const u of emails) if (u.email) await sendEmail({ to: u.email, subject, html, type: "TRANSACTIONAL" });
     } catch { /* best-effort */ }
   }
