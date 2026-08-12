@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { parseYear, parseDate, splitName, adultHasData } from "@/lib/member-provision";
+import { parseYear, parseDate, splitName, adultHasData, provisionHousehold } from "@/lib/member-provision";
+import { memberInfoSchema } from "@/lib/member-info";
 
 describe("parseYear", () => {
   it("extracts a plausible 4-digit year", () => {
@@ -47,5 +48,47 @@ describe("adultHasData", () => {
     expect(adultHasData(undefined)).toBe(false);
     expect(adultHasData({})).toBe(false);
     expect(adultHasData({ employment: {} })).toBe(false);
+  });
+});
+
+describe("provisionHousehold — adult birthday lands on the member profile", () => {
+  it("writes each adult's birthday to Member.dateOfBirth on approval", async () => {
+    const payload = memberInfoSchema.parse({
+      householdName: "The Test Family",
+      husband: { fullName: "John Test", email: "john@example.com", birthDate: "1980-05-04" },
+      wife: { fullName: "Jane Test", birthDate: "1982-11-20" }, // no email → create path, no lookup
+      children: [],
+      consent: true,
+    });
+
+    // Fake transaction client capturing what would be written to the DB.
+    const memberWrites: Array<Record<string, unknown>> = [];
+    const tx = {
+      household: {
+        create: async ({ data }: { data: Record<string, unknown> }) => ({ id: "hh1", ...data }),
+        update: async () => ({}),
+      },
+      member: {
+        findUnique: async () => null, // no existing member matches → create
+        create: async ({ data }: { data: Record<string, unknown> }) => {
+          memberWrites.push(data);
+          return { id: `m${memberWrites.length}` };
+        },
+        update: async ({ data }: { data: Record<string, unknown> }) => {
+          memberWrites.push(data);
+          return { id: "existing" };
+        },
+      },
+    } as unknown as Parameters<typeof provisionHousehold>[0];
+
+    await provisionHousehold(tx, payload);
+
+    const adults = memberWrites.filter((m) => m.isMinor === false);
+    const john = adults.find((m) => m.firstName === "John");
+    const jane = adults.find((m) => m.firstName === "Jane");
+
+    // The birthday from the form is stored as Member.dateOfBirth.
+    expect((john?.dateOfBirth as Date | null)?.toISOString()).toBe("1980-05-04T00:00:00.000Z");
+    expect((jane?.dateOfBirth as Date | null)?.toISOString()).toBe("1982-11-20T00:00:00.000Z");
   });
 });
