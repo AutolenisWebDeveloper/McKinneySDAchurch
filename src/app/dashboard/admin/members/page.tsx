@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
 import { PortalPage, PortalSection, EmptyState } from "@/components/portal/home-ui";
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { TextField, SelectField, CheckboxField, FormRow, SubmitButton } from "@/components/forms";
 import { createMember } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -41,39 +41,19 @@ export default async function AdminMembers({ searchParams }: { searchParams: Pro
             </p>
           ) : null}
           <form action={createMember} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="firstName" className={labelClass}>First name</label>
-                <input id="firstName" name="firstName" required maxLength={80} className={`mt-1 ${fieldClass}`} />
-              </div>
-              <div>
-                <label htmlFor="lastName" className={labelClass}>Last name</label>
-                <input id="lastName" name="lastName" required maxLength={80} className={`mt-1 ${fieldClass}`} />
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="email" className={labelClass}>Email <span className="font-normal text-muted">(their login)</span></label>
-                <input id="email" name="email" type="email" required className={`mt-1 ${fieldClass}`} />
-              </div>
-              <div>
-                <label htmlFor="phone" className={labelClass}>Phone <span className="font-normal text-muted">(optional)</span></label>
-                <input id="phone" name="phone" maxLength={40} className={`mt-1 ${fieldClass}`} />
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="membershipStatus" className={labelClass}>Membership status</label>
-                <select id="membershipStatus" name="membershipStatus" defaultValue="ACTIVE" className={`mt-1 ${fieldClass}`}>
-                  {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-                </select>
-              </div>
-              <label className="flex items-end gap-2.5 pb-2.5 text-sm text-fg">
-                <input type="checkbox" name="directoryVisible" className="h-4 w-4 rounded border-line-strong text-primary focus:ring-ring/30" />
-                Show in the member directory
-              </label>
-            </div>
-            <button type="submit" className="btn btn-primary">Create member &amp; login</button>
+            <FormRow>
+              <TextField label="First name" name="firstName" required maxLength={80} />
+              <TextField label="Last name" name="lastName" required maxLength={80} />
+            </FormRow>
+            <FormRow>
+              <TextField label={<>Email <span className="font-normal text-muted">(their login)</span></>} name="email" type="email" required />
+              <TextField label="Phone" name="phone" optional maxLength={40} />
+            </FormRow>
+            <FormRow>
+              <SelectField label="Membership status" name="membershipStatus" defaultValue="ACTIVE" options={STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] ?? s }))} />
+              <CheckboxField label="Show in the member directory" name="directoryVisible" wrapClassName="flex items-end pb-2.5" />
+            </FormRow>
+            <SubmitButton pendingLabel="Creating…">Create member &amp; login</SubmitButton>
           </form>
         </div>
       </PortalSection>

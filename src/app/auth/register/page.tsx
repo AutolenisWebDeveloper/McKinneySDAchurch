@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { registerMember } from "./actions";
-import { fieldClass, labelClass, Honeypot } from "@/components/page-ui";
+import { Honeypot, TextField, FormRow, SubmitButton } from "@/components/forms";
 
 export const dynamic = "force-dynamic";
 
@@ -58,40 +58,23 @@ export default async function Register({ searchParams }: { searchParams: Promise
               )}
 
               <form action={registerMember} className="mt-6 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="firstName" className={`${labelClass} mb-1`}>First name</label>
-                    <input id="firstName" name="firstName" autoComplete="given-name" required maxLength={80} className={fieldClass} />
-                  </div>
-                  <div>
-                    <label htmlFor="lastName" className={`${labelClass} mb-1`}>Last name</label>
-                    <input id="lastName" name="lastName" autoComplete="family-name" required maxLength={80} className={fieldClass} />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="email" className={`${labelClass} mb-1`}>Email</label>
-                  <input id="email" name="email" type="email" autoComplete="email" required className={fieldClass} />
-                </div>
-                <div>
-                  <label htmlFor="phone" className={`${labelClass} mb-1`}>Phone <span className="font-normal text-muted">(optional)</span></label>
-                  <input id="phone" name="phone" type="tel" autoComplete="tel" maxLength={30} className={fieldClass} />
-                </div>
-                <div>
-                  <label htmlFor="verification" className={`${labelClass} mb-1`}>
-                    Anything that helps us find you <span className="font-normal text-muted">(optional)</span>
-                  </label>
-                  <input id="verification" name="verification" maxLength={200} placeholder="e.g. the year you joined" className={fieldClass} />
-                </div>
-                <div>
-                  <label htmlFor="password" className={`${labelClass} mb-1`}>Password</label>
-                  <input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} className={fieldClass} />
-                </div>
-                <div>
-                  <label htmlFor="confirm" className={`${labelClass} mb-1`}>Confirm password</label>
-                  <input id="confirm" name="confirm" type="password" autoComplete="new-password" required minLength={8} className={fieldClass} />
-                </div>
+                <FormRow>
+                  <TextField label="First name" name="firstName" autoComplete="given-name" required maxLength={80} />
+                  <TextField label="Last name" name="lastName" autoComplete="family-name" required maxLength={80} />
+                </FormRow>
+                <TextField label="Email" name="email" type="email" autoComplete="email" required />
+                <TextField label="Phone" name="phone" type="tel" optional autoComplete="tel" maxLength={30} />
+                <TextField
+                  label="Anything that helps us find you"
+                  name="verification"
+                  optional
+                  maxLength={200}
+                  placeholder="e.g. the year you joined"
+                />
+                <TextField label="Password" name="password" type="password" autoComplete="new-password" required minLength={8} />
+                <TextField label="Confirm password" name="confirm" type="password" autoComplete="new-password" required minLength={8} />
                 <Honeypot />
-                <button type="submit" className="btn btn-primary w-full">Request account</button>
+                <SubmitButton fullWidth pendingLabel="Submitting…">Request account</SubmitButton>
               </form>
 
               <div className="mt-5 text-center text-sm">

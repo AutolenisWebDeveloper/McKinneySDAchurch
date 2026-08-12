@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { PageHeader, Card, Callout, FormError, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
+import { PageHeader, Card, Callout } from "@/components/page-ui";
+import { FormError, Honeypot, TextField, TextareaField, SelectField, FormRow, SubmitButton } from "@/components/forms";
 import { Section } from "@/components/ui";
 import { Reveal } from "@/components/motion/Reveal";
 import { church } from "@/components/site-info";
@@ -51,54 +52,41 @@ export default async function CarePage({ searchParams }: { searchParams: Promise
             {error && <div className="mt-4"><FormError>Please add a few details about the need so we can help.</FormError></div>}
 
             <form action={submitCareRequest} className="mt-6 space-y-4">
-              <div>
-                <label htmlFor="category" className={`${labelClass} mb-1`}>What's the need?</label>
-                <select id="category" name="category" required className={fieldClass} defaultValue="Sick">
-                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="urgency" className={`${labelClass} mb-1`}>How urgent is it?</label>
-                <select id="urgency" name="urgency" required className={fieldClass} defaultValue="soon">
-                  <option value="emergency">Emergency — please reach out today</option>
-                  <option value="soon">Soon — within a few days</option>
-                  <option value="whenever">Whenever you can</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="details" className={`${labelClass} mb-1`}>Tell us what's happening</label>
-                <textarea id="details" name="details" required rows={5} maxLength={4000} className={fieldClass} placeholder="Share as much or as little as you'd like." />
-              </div>
+              <SelectField label="What's the need?" name="category" required defaultValue="Sick" options={CATEGORIES} />
+              <SelectField
+                label="How urgent is it?"
+                name="urgency"
+                required
+                defaultValue="soon"
+                options={[
+                  { value: "emergency", label: "Emergency — please reach out today" },
+                  { value: "soon", label: "Soon — within a few days" },
+                  { value: "whenever", label: "Whenever you can" },
+                ]}
+              />
+              <TextareaField
+                label="Tell us what's happening"
+                name="details"
+                required
+                rows={5}
+                maxLength={4000}
+                placeholder="Share as much or as little as you'd like."
+              />
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="personName" className={`${labelClass} mb-1`}>Who needs care? <span className="font-normal text-muted">(optional)</span></label>
-                  <input id="personName" name="personName" maxLength={120} className={fieldClass} placeholder="Name, if not yourself" />
-                </div>
-                <div>
-                  <label htmlFor="relationship" className={`${labelClass} mb-1`}>Your relationship <span className="font-normal text-muted">(optional)</span></label>
-                  <input id="relationship" name="relationship" maxLength={120} className={fieldClass} />
-                </div>
-              </div>
+              <FormRow>
+                <TextField label="Who needs care?" name="personName" optional maxLength={120} placeholder="Name, if not yourself" />
+                <TextField label="Your relationship" name="relationship" optional maxLength={120} />
+              </FormRow>
 
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div>
-                  <label htmlFor="reporterName" className={`${labelClass} mb-1`}>Your name <span className="font-normal text-muted">(optional)</span></label>
-                  <input id="reporterName" name="reporterName" autoComplete="name" maxLength={120} className={fieldClass} />
-                </div>
-                <div>
-                  <label htmlFor="reporterEmail" className={`${labelClass} mb-1`}>Email <span className="font-normal text-muted">(optional)</span></label>
-                  <input id="reporterEmail" name="reporterEmail" type="email" autoComplete="email" maxLength={200} className={fieldClass} />
-                </div>
-                <div>
-                  <label htmlFor="reporterPhone" className={`${labelClass} mb-1`}>Phone <span className="font-normal text-muted">(optional)</span></label>
-                  <input id="reporterPhone" name="reporterPhone" type="tel" autoComplete="tel" maxLength={40} className={fieldClass} />
-                </div>
-              </div>
+              <FormRow cols={3}>
+                <TextField label="Your name" name="reporterName" optional autoComplete="name" maxLength={120} />
+                <TextField label="Email" name="reporterEmail" type="email" optional autoComplete="email" maxLength={200} />
+                <TextField label="Phone" name="reporterPhone" type="tel" optional autoComplete="tel" maxLength={40} />
+              </FormRow>
 
               <Honeypot />
               <p className="text-xs text-muted">Leaving contact details helps us follow up, but you may submit anonymously.</p>
-              <button type="submit" className="btn btn-primary w-full">Send to our pastoral team</button>
+              <SubmitButton fullWidth pendingLabel="Sending…">Send to our pastoral team</SubmitButton>
             </form>
           </Card></Reveal>
         )}

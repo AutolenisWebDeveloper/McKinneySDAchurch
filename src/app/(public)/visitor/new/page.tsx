@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { submitVisitor } from "./actions";
-import { PageHeader, Card, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
+import { PageHeader, Card } from "@/components/page-ui";
+import { Honeypot, TextField, CheckboxField, FormRow, SubmitButton } from "@/components/forms";
 import { Section } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -37,29 +38,15 @@ export default async function VisitorNew({ searchParams }: { searchParams: Promi
       <Section container size="narrow">
         <Card>
           <form action={submitVisitor} className="space-y-4">
-            <div>
-              <label htmlFor="name" className={`${labelClass} mb-1`}>Name</label>
-              <input id="name" name="name" required maxLength={120} className={fieldClass} />
-            </div>
-            <div>
-              <label htmlFor="email" className={`${labelClass} mb-1`}>Email</label>
-              <input id="email" name="email" type="email" required className={fieldClass} />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="phone" className={`${labelClass} mb-1`}>Phone <span className="font-normal text-muted">(optional)</span></label>
-                <input id="phone" name="phone" className={fieldClass} />
-              </div>
-              <div>
-                <label htmlFor="address" className={`${labelClass} mb-1`}>Address <span className="font-normal text-muted">(optional)</span></label>
-                <input id="address" name="address" className={fieldClass} />
-              </div>
-            </div>
-            <label className="flex items-center gap-2 text-sm text-muted">
-              <input type="checkbox" name="marketingOptIn" className="accent-primary" /> Send me weekly invitations and updates.
-            </label>
+            <TextField label="Name" name="name" autoComplete="name" required maxLength={120} />
+            <TextField label="Email" name="email" type="email" autoComplete="email" required />
+            <FormRow>
+              <TextField label="Phone" name="phone" type="tel" optional autoComplete="tel" />
+              <TextField label="Address" name="address" optional autoComplete="street-address" />
+            </FormRow>
+            <CheckboxField label="Send me weekly invitations and updates." name="marketingOptIn" />
             <Honeypot />
-            <button type="submit" className="btn btn-primary">Submit</button>
+            <SubmitButton pendingLabel="Submitting…">Submit</SubmitButton>
           </form>
         </Card>
       </Section>

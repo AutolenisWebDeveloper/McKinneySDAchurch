@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requestBaptism } from "./actions";
-import { PageHeader, Card, Callout, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
+import { PageHeader, Card, Callout } from "@/components/page-ui";
+import { Honeypot, TextField, TextareaField, SubmitButton } from "@/components/forms";
 import { Section } from "@/components/ui";
 import { Reveal } from "@/components/motion/Reveal";
 
@@ -51,24 +52,12 @@ export default async function Baptism({ searchParams }: { searchParams: Promise<
                 <Callout tone="success">Thank you — a pastor will be in touch with you soon.</Callout>
               ) : (
                 <form action={requestBaptism} className="space-y-4">
-                  <div>
-                    <label htmlFor="personName" className={`${labelClass} mb-1`}>Your name</label>
-                    <input id="personName" name="personName" required autoComplete="name" className={fieldClass} />
-                  </div>
-                  <div>
-                    <label htmlFor="contactEmail" className={`${labelClass} mb-1`}>Email <span className="font-normal text-muted">(optional)</span></label>
-                    <input id="contactEmail" name="contactEmail" type="email" autoComplete="email" className={fieldClass} />
-                  </div>
-                  <div>
-                    <label htmlFor="contactPhone" className={`${labelClass} mb-1`}>Phone <span className="font-normal text-muted">(optional)</span></label>
-                    <input id="contactPhone" name="contactPhone" type="tel" autoComplete="tel" className={fieldClass} />
-                  </div>
-                  <div>
-                    <label htmlFor="note" className={`${labelClass} mb-1`}>Anything you'd like us to know <span className="font-normal text-muted">(optional)</span></label>
-                    <textarea id="note" name="note" rows={3} className={fieldClass} />
-                  </div>
+                  <TextField label="Your name" name="personName" required autoComplete="name" />
+                  <TextField label="Email" name="contactEmail" type="email" optional autoComplete="email" />
+                  <TextField label="Phone" name="contactPhone" type="tel" optional autoComplete="tel" />
+                  <TextareaField label="Anything you'd like us to know" name="note" optional rows={3} />
                   <Honeypot />
-                  <button className="btn btn-primary">Send request</button>
+                  <SubmitButton pendingLabel="Sending…">Send request</SubmitButton>
                 </form>
               )}
             </Card>

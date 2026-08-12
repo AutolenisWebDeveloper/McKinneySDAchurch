@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requirePortal } from "@/auth/actor";
 import { prisma } from "@/lib/db";
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { TextField, TextareaField, SelectField, FormRow, SubmitButton } from "@/components/forms";
 import { PortalPage, PortalSection, TaskRow, EmptyState } from "@/components/portal/home-ui";
 import { submitLeadershipMessage } from "./actions";
 
@@ -40,31 +40,22 @@ export default async function MessageLeadership({
             </p>
           )}
           <form action={submitLeadershipMessage} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="category" className={`${labelClass} mb-1`}>Topic</label>
-                <select id="category" name="category" className={fieldClass} defaultValue="Pastoral">
-                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="urgency" className={`${labelClass} mb-1`}>Urgency</label>
-                <select id="urgency" name="urgency" className={fieldClass} defaultValue="normal">
-                  <option value="normal">Whenever you can</option>
-                  <option value="soon">Fairly soon</option>
-                  <option value="urgent">Urgent</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label htmlFor="subject" className={`${labelClass} mb-1`}>Subject</label>
-              <input id="subject" name="subject" required maxLength={160} className={fieldClass} />
-            </div>
-            <div>
-              <label htmlFor="message" className={`${labelClass} mb-1`}>Message</label>
-              <textarea id="message" name="message" required rows={5} maxLength={4000} className={fieldClass} />
-            </div>
-            <button type="submit" className="btn btn-primary w-full">Send to leadership</button>
+            <FormRow>
+              <SelectField label="Topic" name="category" defaultValue="Pastoral" options={CATEGORIES} />
+              <SelectField
+                label="Urgency"
+                name="urgency"
+                defaultValue="normal"
+                options={[
+                  { value: "normal", label: "Whenever you can" },
+                  { value: "soon", label: "Fairly soon" },
+                  { value: "urgent", label: "Urgent" },
+                ]}
+              />
+            </FormRow>
+            <TextField label="Subject" name="subject" required maxLength={160} />
+            <TextareaField label="Message" name="message" required rows={5} maxLength={4000} />
+            <SubmitButton fullWidth pendingLabel="Sending…">Send to leadership</SubmitButton>
           </form>
         </div>
       )}

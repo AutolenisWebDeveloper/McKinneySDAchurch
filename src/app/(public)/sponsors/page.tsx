@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { PageHeader, Card, FormError, fieldClass, labelClass, Honeypot } from "@/components/page-ui";
+import { PageHeader, Card } from "@/components/page-ui";
+import { FormError, Honeypot, TextField, TextareaField, FormRow, SubmitButton } from "@/components/forms";
 import { Section, Eyebrow } from "@/components/ui";
 import { Reveal } from "@/components/motion/Reveal";
 import { church } from "@/components/site-info";
@@ -67,36 +68,24 @@ export default async function Sponsors({ searchParams }: { searchParams: Promise
                 <p className="mt-1 text-sm text-muted">Tell us a little about you and how you'd like to help — we'll take it from there.</p>
                 {error && <div className="mt-4"><FormError>Please complete the required fields.</FormError></div>}
                 <form action={submitSponsor} className="mt-6 space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label htmlFor="name" className={`${labelClass} mb-1`}>Your name</label>
-                      <input id="name" name="name" autoComplete="name" required maxLength={120} className={fieldClass} />
-                    </div>
-                    <div>
-                      <label htmlFor="organization" className={`${labelClass} mb-1`}>Organization <span className="font-normal text-muted">(optional)</span></label>
-                      <input id="organization" name="organization" maxLength={160} className={fieldClass} />
-                    </div>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label htmlFor="email" className={`${labelClass} mb-1`}>Email</label>
-                      <input id="email" name="email" type="email" autoComplete="email" required maxLength={200} className={fieldClass} />
-                    </div>
-                    <div>
-                      <label htmlFor="phone" className={`${labelClass} mb-1`}>Phone <span className="font-normal text-muted">(optional)</span></label>
-                      <input id="phone" name="phone" type="tel" autoComplete="tel" maxLength={40} className={fieldClass} />
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="interest" className={`${labelClass} mb-1`}>What would you like to support? <span className="font-normal text-muted">(optional)</span></label>
-                    <input id="interest" name="interest" maxLength={160} placeholder="e.g. building project, community services, youth" className={fieldClass} />
-                  </div>
-                  <div>
-                    <label htmlFor="message" className={`${labelClass} mb-1`}>Message</label>
-                    <textarea id="message" name="message" required rows={4} maxLength={4000} className={fieldClass} />
-                  </div>
+                  <FormRow>
+                    <TextField label="Your name" name="name" autoComplete="name" required maxLength={120} />
+                    <TextField label="Organization" name="organization" optional maxLength={160} />
+                  </FormRow>
+                  <FormRow>
+                    <TextField label="Email" name="email" type="email" autoComplete="email" required maxLength={200} />
+                    <TextField label="Phone" name="phone" type="tel" optional autoComplete="tel" maxLength={40} />
+                  </FormRow>
+                  <TextField
+                    label="What would you like to support?"
+                    name="interest"
+                    optional
+                    maxLength={160}
+                    placeholder="e.g. building project, community services, youth"
+                  />
+                  <TextareaField label="Message" name="message" required rows={4} maxLength={4000} />
                   <Honeypot />
-                  <button type="submit" className="btn btn-primary w-full">Send inquiry</button>
+                  <SubmitButton fullWidth pendingLabel="Sending…">Send inquiry</SubmitButton>
                 </form>
               </Card></Reveal>
             )}

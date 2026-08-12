@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
-import { fieldClass, labelClass } from "@/components/page-ui";
+import { TextareaField, SelectField, FormRow, SubmitButton } from "@/components/forms";
 import { PortalPage, PortalSection, TaskRow, EmptyState } from "@/components/portal/home-ui";
 import { submitSupport } from "./actions";
 
@@ -31,32 +31,40 @@ export default async function Support({ searchParams }: { searchParams: Promise<
           {error && <p role="alert" className="mb-4 rounded-lg border border-orange/40 bg-orange/10 px-4 py-3 text-sm text-fg">Please describe the problem.</p>}
           <form action={submitSupport} className="space-y-4">
             {from && <input type="hidden" name="page" value={from} />}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="category" className={`${labelClass} mb-1`}>Type</label>
-                <select id="category" name="category" className={fieldClass} defaultValue="Bug">
-                  <option value="Bug">Something is broken</option>
-                  <option value="Access">Access / login</option>
-                  <option value="Question">Question</option>
-                  <option value="Feedback">Feedback</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="priority" className={`${labelClass} mb-1`}>Priority</label>
-                <select id="priority" name="priority" className={fieldClass} defaultValue="normal">
-                  <option value="normal">Normal</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
-              </div>
-            </div>
+            <FormRow>
+              <SelectField
+                label="Type"
+                name="category"
+                defaultValue="Bug"
+                options={[
+                  { value: "Bug", label: "Something is broken" },
+                  { value: "Access", label: "Access / login" },
+                  { value: "Question", label: "Question" },
+                  { value: "Feedback", label: "Feedback" },
+                  { value: "Other", label: "Other" },
+                ]}
+              />
+              <SelectField
+                label="Priority"
+                name="priority"
+                defaultValue="normal"
+                options={[
+                  { value: "normal", label: "Normal" },
+                  { value: "high", label: "High" },
+                  { value: "urgent", label: "Urgent" },
+                ]}
+              />
+            </FormRow>
             {from && <p className="text-xs text-muted">Reporting from <code>{from}</code></p>}
-            <div>
-              <label htmlFor="description" className={`${labelClass} mb-1`}>What happened?</label>
-              <textarea id="description" name="description" required rows={5} maxLength={4000} className={fieldClass} placeholder="Describe what you were doing and what went wrong." />
-            </div>
-            <button type="submit" className="btn btn-primary w-full">Send to support</button>
+            <TextareaField
+              label="What happened?"
+              name="description"
+              required
+              rows={5}
+              maxLength={4000}
+              placeholder="Describe what you were doing and what went wrong."
+            />
+            <SubmitButton fullWidth pendingLabel="Sending…">Send to support</SubmitButton>
           </form>
         </div>
       )}
