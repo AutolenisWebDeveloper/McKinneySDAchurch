@@ -40,6 +40,7 @@ describe("splitName", () => {
 describe("adultHasData", () => {
   it("is true when any field (including nested employment) is set", () => {
     expect(adultHasData({ fullName: "A B" })).toBe(true);
+    expect(adultHasData({ birthDate: "1980-05-04" })).toBe(true);
     expect(adultHasData({ employment: { occupation: "Nurse" } })).toBe(true);
   });
   it("is false for empty/undefined", () => {

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { submitMemberInfo } from "./actions";
 import { ChildrenFields } from "./ChildrenFields";
@@ -14,15 +15,47 @@ export const metadata = {
     "Securely share your household and membership information with McKinney Seventh-day Adventist Church.",
 };
 
-/** One adult's fields (used for both husband and wife). Everything optional. */
-function AdultFields({ prefix, heading }: { prefix: string; heading: string }) {
+/** A numbered section within the long form — gives clear hierarchy and a sense of progress.
+ *  Uses a real <fieldset>/<legend> so the number + title name the group for assistive tech. */
+function StepFieldset({
+  step,
+  title,
+  description,
+  children,
+}: {
+  step: number;
+  title: string;
+  description?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <fieldset className="space-y-4">
-      <legend className="font-serif text-lg font-semibold text-fg">{heading}</legend>
+      <legend className="mb-1 flex w-full items-start gap-3">
+        <span
+          aria-hidden="true"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-serif text-sm font-semibold text-primary"
+        >
+          {step}
+        </span>
+        <span>
+          <span className="block font-serif text-lg font-semibold text-fg">{title}</span>
+          {description && <span className="mt-0.5 block text-sm font-normal text-muted">{description}</span>}
+        </span>
+      </legend>
+      {children}
+    </fieldset>
+  );
+}
+
+/** One adult's fields (used for both husband and wife). Everything optional. */
+function AdultFields({ prefix, heading, step }: { prefix: string; heading: string; step: number }) {
+  return (
+    <StepFieldset step={step} title={heading} description="Leave this section blank if it doesn't apply to your household.">
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField label="Full name" name={`${prefix}_fullName`} maxLength={160} />
+        <TextField label="Date of birth" name={`${prefix}_birthDate`} type="date" />
+        <TextField label="Email address" name={`${prefix}_email`} type="email" maxLength={200} />
         <TextField label="Phone number" name={`${prefix}_phone`} type="tel" maxLength={40} />
-        <TextField label="Email address" name={`${prefix}_email`} type="email" maxLength={200} wrapClassName="sm:col-span-2" />
         <TextField label={<>Baptism year <span className="font-normal text-muted">(if any)</span></>} name={`${prefix}_baptismYear`} inputMode="numeric" maxLength={4} placeholder="e.g. 2009" />
         <TextField label={<>Year joined McKinney SDA <span className="font-normal text-muted">(if any)</span></>} name={`${prefix}_joinedYear`} inputMode="numeric" maxLength={4} />
         <TextareaField label="Current ministry involvement" name={`${prefix}_current`} rows={2} maxLength={2000} placeholder="Ministries or roles you currently serve in" wrapClassName="sm:col-span-2" />
@@ -41,7 +74,7 @@ function AdultFields({ prefix, heading }: { prefix: string; heading: string }) {
           <TextareaField label="Skills or services you'd offer the church voluntarily" name={`${prefix}_skills`} rows={2} maxLength={2000} placeholder="e.g. accounting, carpentry, music, IT, medical, translation…" wrapClassName="sm:col-span-2" />
         </div>
       </details>
-    </fieldset>
+    </StepFieldset>
   );
 }
 
@@ -80,43 +113,53 @@ export default async function MemberInfoForm({ searchParams }: { searchParams: P
         ) : null}
 
         <Reveal as="div" className="mt-6"><Card>
-          <form action={submitMemberInfo} className="space-y-10">
+          <div className="mb-8 flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-4">
+            <svg className="mt-0.5 h-5 w-5 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <p className="text-sm text-muted">
+              Takes about five minutes. Only your <span className="font-medium text-fg">household name</span> and{" "}
+              <span className="font-medium text-fg">consent</span> are required — share whatever else you're comfortable with,
+              and leave the rest blank. Everything is encrypted and used only for church care and administration.
+            </p>
+          </div>
+
+          <form action={submitMemberInfo} className="space-y-8">
             <Honeypot />
             {invite ? <input type="hidden" name="invite" value={invite} /> : null}
 
-            {/* Household */}
-            <fieldset className="space-y-4">
-              <legend className="font-serif text-lg font-semibold text-fg">Household</legend>
+            {/* 1 — Household */}
+            <StepFieldset step={1} title="Household" description="Your family's shared details — where we send mail and celebrate milestones.">
               <TextField label="Household / family name" name="householdName" required maxLength={200} placeholder="e.g. The Johnson Family" />
               <TextareaField label="Home address" name="address" rows={2} maxLength={500} placeholder="Street, city, state, ZIP" />
               <TextField label={<>Wedding anniversary <span className="font-normal text-muted">(if applicable)</span></>} name="anniversary" type="date" />
-            </fieldset>
+            </StepFieldset>
 
-            <div className="border-t border-line pt-8"><AdultFields prefix="husband" heading="Husband" /></div>
-            <div className="border-t border-line pt-8"><AdultFields prefix="wife" heading="Wife" /></div>
+            <div className="border-t border-line pt-8"><AdultFields prefix="husband" heading="Husband" step={2} /></div>
+            <div className="border-t border-line pt-8"><AdultFields prefix="wife" heading="Wife" step={3} /></div>
 
-            {/* Children */}
+            {/* 4 — Children */}
             <div className="border-t border-line pt-8">
-              <div className="mb-4">
-                <h2 className="font-serif text-lg font-semibold text-fg">Children</h2>
-                <p className="mt-1 text-sm text-muted">Add each child in your household. Leave blank if none.</p>
-              </div>
-              <ChildrenFields />
+              <StepFieldset step={4} title="Children" description="Add each child in your household. Leave blank if none.">
+                <ChildrenFields />
+              </StepFieldset>
             </div>
 
-            {/* Consent */}
+            {/* Consent + submit */}
             <div className="border-t border-line pt-8">
-              <CheckboxField
-                name="consent"
-                required
-                label={
-                  <>
-                    I consent to McKinney Seventh-day Adventist Church securely storing and using the
-                    information above for church administration and pastoral care.
-                  </>
-                }
-              />
-              <SubmitButton className="btn btn-primary mt-6" pendingLabel="Submitting…">Submit information</SubmitButton>
+              <div className="rounded-xl border border-primary/30 bg-denim-50 p-5 dark:bg-white/5">
+                <CheckboxField
+                  name="consent"
+                  required
+                  label={
+                    <>
+                      I consent to McKinney Seventh-day Adventist Church securely storing and using the
+                      information above for church administration and pastoral care.
+                    </>
+                  }
+                />
+              </div>
+              <SubmitButton className="btn btn-primary mt-6" fullWidth pendingLabel="Submitting…">Submit information</SubmitButton>
             </div>
           </form>
         </Card></Reveal>

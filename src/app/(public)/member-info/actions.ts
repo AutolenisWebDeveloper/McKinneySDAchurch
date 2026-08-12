@@ -20,6 +20,7 @@ function adultFromForm(fd: FormData, p: string): Adult {
   const hasEmployment = Object.values(employment).some(Boolean);
   return {
     fullName: blankToUndef(fd.get(`${p}_fullName`)),
+    birthDate: blankToUndef(fd.get(`${p}_birthDate`)),
     phone: blankToUndef(fd.get(`${p}_phone`)),
     email: blankToUndef(fd.get(`${p}_email`)),
     baptismYear: blankToUndef(fd.get(`${p}_baptismYear`)),
