@@ -292,6 +292,33 @@ export function SubmitButton({ children = "Save changes", className = "btn btn-p
   );
 }
 
+/**
+ * Submit button that asks for confirmation before submitting a mutating action. Preferred over
+ * SubmitButton for row-level actions whose server action revalidates in place (no redirect), so
+ * there is no ambiguous "pending" state to get stuck — the confirm dialog is the feedback.
+ */
+export function ConfirmButton({
+  children,
+  confirm,
+  className = "btn btn-outline",
+}: {
+  children: ReactNode;
+  confirm: string;
+  className?: string;
+}) {
+  return (
+    <button
+      type="submit"
+      className={className}
+      onClick={(e) => {
+        if (!window.confirm(confirm)) e.preventDefault();
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
 /** Sticky footer that pins Save/Cancel to the viewport bottom on long forms. */
 export function StickyActions({ children }: { children: ReactNode }) {
   return (
