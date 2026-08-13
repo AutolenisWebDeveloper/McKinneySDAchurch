@@ -19,6 +19,8 @@ export const authOptions: NextAuthOptions = {
         if (!user) return null;
         const ok = await verifyPassword(creds.password, user.passwordHash);
         if (!ok) return null;
+        // An admin-disabled account cannot sign in (distinct from "never activated").
+        if (user.disabledAt) throw new Error("ACCOUNT_DISABLED");
         // Self-registered accounts stay pending until an admin approves them
         // (activatedAt is set on approval, and on invite acceptance).
         if (!user.activatedAt) throw new Error("ACCOUNT_PENDING");
@@ -35,8 +37,9 @@ export const authOptions: NextAuthOptions = {
       // Re-check sessionVersion against DB to honor revocation.
       const uid = (token as { id?: string }).id;
       if (uid) {
-        const current = await prisma.user.findUnique({ where: { id: uid }, select: { sessionVersion: true, role: true, ministryId: true } });
-        if (!current || current.sessionVersion !== (token as { sessionVersion?: number }).sessionVersion) {
+        const current = await prisma.user.findUnique({ where: { id: uid }, select: { sessionVersion: true, role: true, ministryId: true, disabledAt: true } });
+        // Drop the session on a version mismatch (revocation) or if the account was disabled.
+        if (!current || current.disabledAt || current.sessionVersion !== (token as { sessionVersion?: number }).sessionVersion) {
           return { ...session, user: undefined as never };
         }
         (session as { user: Record<string, unknown> }).user = {

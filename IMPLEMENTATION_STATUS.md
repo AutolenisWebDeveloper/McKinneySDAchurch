@@ -6,6 +6,55 @@ now being extended to the merged Master Directive (Phases 1–10) starting with 
 
 ---
 
+## Admin member & household lifecycle management (this pass)
+
+Gives Admins full control over members, households, roles, and account access from the Admin
+dashboard (§13/§48). Extends the existing member/household pages and reuses the authorization
+writer — **no parallel system**: role changes still flow through `src/lib/user-roles.ts`
+(`assignRole`/`revokeRole`), and all lifecycle mutations go through one new service.
+
+- 🟡 **Schema (migration `20260813000000_admin_member_household_lifecycle`).** Three additive,
+  nullable timestamps only (no data change): `User.disabledAt` (admin-disabled login — distinct
+  from "never activated"), `Member.deactivatedAt`, `Household.deactivatedAt`. `membershipStatus`
+  is left untouched as the eAdventist mirror; app-level activation is its own reversible axis.
+- ✅ **Pure lifecycle helpers** `src/lib/member-lifecycle.ts` — status labels, `memberAccessState`
+  (no-login / pending / active / disabled), and the `canHardDelete` two-step safety gate.
+  Table-tested (`src/tests/member-lifecycle.test.ts`, 4 cases).
+- 🟡 **Service** `src/lib/member-admin.ts` — the single writer for: create household, member↔
+  household association (add / move / remove), account-access enable/disable, member and whole-
+  household deactivate/reactivate (cascading to member logins), and **permanent delete** of a
+  member or household. Every mutation is transactional and audited.
+  - **Delete is deliberately two-step**: an entity must be deactivated first. Member delete
+    removes owned child rows (attendance, care alerts, pastoral notes, media consents, offices,
+    committee memberships, screening, minor guardian-consents) and nulls optional back-refs
+    (dependents' guardian pointer, transfers, fundraisers, account-request matches) so those
+    records survive; the linked login is **disabled and retained** (never deleted) to preserve
+    referential integrity (audit authorship). Household delete **detaches members, never deletes
+    people**.
+- 🟡 **Auth:** `authorize` rejects a disabled login (`ACCOUNT_DISABLED`, surfaced on the login
+  form); the session callback also drops any live session whose account is disabled (belt-and-
+  braces with the `sessionVersion` bump every disable performs).
+- 🟡 **UI:** the member detail page now manages household association, account access
+  (enable/disable + set-password), roles (assign/revoke chips — **Admin/Pastor only**),
+  deactivate/reactivate, and permanent delete (**Admin/Pastor only**); the households page adds a
+  create form; the household detail page adds member add/remove, deactivate/reactivate, and
+  delete. Deactivated members/households are badged in the lists; the Accounts page badges
+  disabled logins. Role assignment and permanent deletion are hidden from Church Secretary
+  (CLERK), who retains membership management.
+
+**Safeguarding note (reviewed):** no new minor login path — deactivation/deletion never creates
+an account; household cascade only sets flags/disables existing adult logins (minors have none).
+Deleting a guardian nulls dependents' guardian pointer but keeps the child records. Directory,
+search, and export filters are unchanged. Minors remain manageable only by Admin or a same-
+household guardian.
+
+**Verified here:** `prisma validate` clean; `prisma generate` clean; **typecheck clean**;
+**vitest 317/317** (+4 lifecycle); **production build compiles** (all `/dashboard/admin/*` routes
+present). 🟡 The migration + end-to-end DB smoke are **not run in this environment** (no Postgres);
+run `prisma migrate deploy` + a smoke test as the authoritative gate.
+
+---
+
 ## Calendar — governed event management & publishing (this pass)
 
 Transformed the calendar from a two-state admin-published `Event` into a complete, governed
