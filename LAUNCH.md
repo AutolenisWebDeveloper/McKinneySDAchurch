@@ -12,7 +12,8 @@ Set every key from `src/env.ts` (validated at boot; the app refuses to start if 
 
 | Variable | Required | Notes |
 |---|---|---|
-| `DATABASE_URL` | yes | PostgreSQL connection string (use a pooled URL on serverless). |
+| `DATABASE_URL` | yes | App runtime connection. On serverless use the **pooled** URL (Supabase PgBouncer, port 6543). |
+| `DIRECT_URL` | yes | **Direct** (non-pooled) connection for Prisma migrate/validate/db push (Supabase port 5432). PgBouncer cannot run migrations. Locally/CI, same value as `DATABASE_URL`. |
 | `NEXT_PUBLIC_SITE_URL` | yes | e.g. `https://mckinneysda.org` (no trailing slash). |
 | `NEXTAUTH_SECRET` | yes | 32+ random bytes: `openssl rand -base64 32`. |
 | `ENCRYPTION_KEY` | yes | 32+ chars; encrypts prayer requests, pastoral notes, board minutes, MFA secrets. **Rotating it makes existing ciphertext unreadable — store it safely.** |
@@ -30,7 +31,17 @@ Generate secrets: `openssl rand -base64 32` (run once each; never reuse across e
 
 ## 2. Database
 
-1. **[verify]** Run migrations: `npx prisma migrate deploy` (a new migration adds the construction campaign + fundraising models — `ConstructionPhase`, `BuildingPledge`, `GivingLevel`, `ProjectFaq`, `ProjectPhoto`, `FundraisingCampaign`, `Fundraiser`, `Donation`).
+0. **Migrations apply automatically on deploy.** Set the Vercel **Build Command** to
+   `prisma generate && prisma migrate deploy && next build` so every deploy applies committed
+   migrations before building. This requires `DIRECT_URL` to be set (the pooled `DATABASE_URL`
+   cannot run migrations). Prisma's build-time client generation reads `DATABASE_URL`; the
+   migrate step reads `DIRECT_URL`. Without this step the schema drifts behind the code —
+   pages that query new columns then error in production.
+   - The production database has been **baselined**: `_prisma_migrations` records all migrations
+     through `20260812140000_calendar_governed_events` as applied, so `migrate deploy` is a no-op
+     against current prod and only *future* migrations run.
+1. **[verify]** Run migrations manually if not on the automated build: `npx prisma migrate deploy`
+   (needs `DIRECT_URL`).
 2. **[verify]** Add the full-text search index the search feature needs (see `README`):
    a `tsvector` GENERATED column on `ReferenceDocument` + a GIN index. Search returns no
    hits until this exists.

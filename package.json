@@ -16,6 +16,7 @@
     "prisma:validate": "prisma validate",
     "prisma:format": "prisma format",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:bulletin": "tsx prisma/seed-bulletin-aug8.ts",
