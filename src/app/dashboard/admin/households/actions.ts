@@ -8,6 +8,13 @@ import { requireRole } from "@/lib/rbac";
 import { writeAudit } from "@/lib/audit";
 import { blankToUndef } from "@/lib/member-info";
 import { parseDate } from "@/lib/member-provision";
+import {
+  createHousehold,
+  setMemberHousehold,
+  deactivateHousehold,
+  reactivateHousehold,
+  deleteHousehold,
+} from "@/lib/member-admin";
 
 const schema = z.object({
   id: z.string().min(1),
@@ -59,4 +66,58 @@ export async function updateHousehold(formData: FormData) {
   revalidatePath("/dashboard/admin/households");
   revalidatePath(`/dashboard/admin/households/${d.id}`);
   redirect(`/dashboard/admin/households/${d.id}?saved=1`);
+}
+
+/** Create a new household, then open it so the admin can fill in details and add members. */
+export async function createHouseholdAction(formData: FormData) {
+  const actor = await getActor();
+  const familyName = blankToUndef(formData.get("familyName"));
+  const city = blankToUndef(formData.get("city"));
+  const state = blankToUndef(formData.get("state"));
+  const { id } = await createHousehold(actor, { familyName, city, state });
+  revalidatePath("/dashboard/admin/households");
+  redirect(`/dashboard/admin/households/${id}?created=1`);
+}
+
+/** Add an existing member to this household (from the household detail page). */
+export async function addMemberToHousehold(formData: FormData) {
+  const actor = await getActor();
+  const householdId = String(formData.get("householdId"));
+  const memberId = String(formData.get("memberId"));
+  if (memberId) await setMemberHousehold(actor, memberId, householdId);
+  revalidatePath(`/dashboard/admin/households/${householdId}`);
+  redirect(`/dashboard/admin/households/${householdId}?mem=1`);
+}
+
+/** Remove a member from this household (the member record is kept). */
+export async function removeMemberFromHousehold(formData: FormData) {
+  const actor = await getActor();
+  const householdId = String(formData.get("householdId"));
+  const memberId = String(formData.get("memberId"));
+  if (memberId) await setMemberHousehold(actor, memberId, null);
+  revalidatePath(`/dashboard/admin/households/${householdId}`);
+  redirect(`/dashboard/admin/households/${householdId}?mem=1`);
+}
+
+/** Deactivate or reactivate a whole household (cascades to members + their logins). */
+export async function toggleHouseholdActive(formData: FormData) {
+  const actor = await getActor();
+  const householdId = String(formData.get("id"));
+  const deactivate = String(formData.get("op")) === "deactivate";
+  const res = deactivate ? await deactivateHousehold(actor, householdId) : await reactivateHousehold(actor, householdId);
+  revalidatePath(`/dashboard/admin/households/${householdId}`);
+  revalidatePath("/dashboard/admin/households");
+  redirect(`/dashboard/admin/households/${householdId}?${res.ok ? `act=${deactivate ? "off" : "on"}` : `err=${res.error ?? "1"}`}`);
+}
+
+/** Permanently delete a household (must be deactivated first). Members are detached, not deleted. */
+export async function deleteHouseholdAction(formData: FormData) {
+  const actor = await getActor();
+  const householdId = String(formData.get("id"));
+  const res = await deleteHousehold(actor, householdId);
+  if (res.ok) {
+    revalidatePath("/dashboard/admin/households");
+    redirect("/dashboard/admin/households?deleted=1");
+  }
+  redirect(`/dashboard/admin/households/${householdId}?err=${res.error ?? "1"}`);
 }

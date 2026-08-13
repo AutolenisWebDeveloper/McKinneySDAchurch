@@ -13,7 +13,7 @@ export default async function Accounts({ searchParams }: { searchParams: Promise
   const [ministries, invites, accounts] = await Promise.all([
     prisma.ministry.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.invite.findMany({ orderBy: { createdAt: "desc" }, take: 50, include: { invitedBy: { select: { name: true } } } }),
-    prisma.user.findMany({ where: { activatedAt: { not: null } }, orderBy: { role: "asc" }, select: { id: true, name: true, email: true, role: true, ministry: { select: { name: true } } } }),
+    prisma.user.findMany({ where: { activatedAt: { not: null } }, orderBy: { role: "asc" }, select: { id: true, name: true, email: true, role: true, disabledAt: true, ministry: { select: { name: true } } } }),
   ]);
   const now = new Date();
   const pending = invites.filter((i) => isInviteAcceptable(i, now));
@@ -49,7 +49,10 @@ export default async function Accounts({ searchParams }: { searchParams: Promise
             return (
               <li key={u.id} className="rounded-lg border border-line px-3 py-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium">{u.name ?? u.email}</span>
+                  <span className="flex items-center gap-2 font-medium">
+                    {u.name ?? u.email}
+                    {u.disabledAt ? <span className="rounded-full bg-accent-strong/10 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-accent-strong">Disabled</span> : null}
+                  </span>
                   <span className="text-xs text-muted">{u.email}</span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">

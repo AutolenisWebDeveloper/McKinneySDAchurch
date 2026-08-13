@@ -13,6 +13,16 @@ import { sendEmail } from "@/lib/email";
 import { church } from "@/components/site-info";
 import { blankToUndef, EMPLOYMENT_STATUSES } from "@/lib/member-info";
 import { parseYear } from "@/lib/member-provision";
+import {
+  setMemberHousehold,
+  setMemberAccountAccess,
+  deactivateMember,
+  reactivateMember,
+  deleteMember,
+} from "@/lib/member-admin";
+import { assignRole, revokeRole } from "@/lib/user-roles";
+import { MANAGEABLE_ROLES } from "@/lib/accounts";
+import type { Role } from "@prisma/client";
 
 const STATUSES = ["ACTIVE", "MISSING", "REMOVED", "TRANSFERRED_OUT", "DECEASED"] as const;
 
@@ -199,4 +209,72 @@ export async function sendPasswordSetup(formData: FormData) {
   }
   await writeAudit(prisma, { actorId: actor.userId, action: "member.password_setup", entity: "Member", entityId: id, metadata: { sent } });
   redirect(`/dashboard/admin/members/${id}?pw=${sent ? "sent" : "failed"}`);
+}
+
+/** Link a member to a household, move them, or remove them (empty householdId). */
+export async function setMemberHouseholdAction(formData: FormData) {
+  const actor = await getActor();
+  const memberId = String(formData.get("id"));
+  const householdId = formData.get("householdId") ? String(formData.get("householdId")) : null;
+  const res = await setMemberHousehold(actor, memberId, householdId);
+  revalidatePath(`/dashboard/admin/members/${memberId}`);
+  revalidatePath("/dashboard/admin/households");
+  redirect(`/dashboard/admin/members/${memberId}?${res.ok ? "hh=1" : `err=${res.error ?? "1"}`}`);
+}
+
+/** Deactivate or reactivate a member (also toggles their linked login). */
+export async function toggleMemberActive(formData: FormData) {
+  const actor = await getActor();
+  const memberId = String(formData.get("id"));
+  const deactivate = String(formData.get("op")) === "deactivate";
+  const res = deactivate ? await deactivateMember(actor, memberId) : await reactivateMember(actor, memberId);
+  revalidatePath(`/dashboard/admin/members/${memberId}`);
+  revalidatePath("/dashboard/admin/members");
+  redirect(`/dashboard/admin/members/${memberId}?${res.ok ? `act=${deactivate ? "off" : "on"}` : `err=${res.error ?? "1"}`}`);
+}
+
+/** Enable or disable a member's login without touching their membership record. */
+export async function toggleAccountAccess(formData: FormData) {
+  const actor = await getActor();
+  const memberId = String(formData.get("id"));
+  const enable = String(formData.get("op")) === "enable";
+  const res = await setMemberAccountAccess(actor, memberId, enable);
+  revalidatePath(`/dashboard/admin/members/${memberId}`);
+  redirect(`/dashboard/admin/members/${memberId}?${res.ok ? `acc=${enable ? "on" : "off"}` : `err=${res.error ?? "1"}`}`);
+}
+
+/** Grant a role to the member's linked login (reuses the authorization writer). */
+export async function assignMemberRole(formData: FormData) {
+  const actor = await getActor();
+  const memberId = String(formData.get("memberId"));
+  const userId = String(formData.get("userId"));
+  const role = String(formData.get("role"));
+  const ministryId = formData.get("ministryId") ? String(formData.get("ministryId")) : null;
+  if (userId && (MANAGEABLE_ROLES as string[]).includes(role)) {
+    await assignRole(actor, userId, role as Role, ministryId);
+  }
+  revalidatePath(`/dashboard/admin/members/${memberId}`);
+  redirect(`/dashboard/admin/members/${memberId}?role=1`);
+}
+
+/** Revoke a specific role assignment from the member's linked login. */
+export async function revokeMemberRole(formData: FormData) {
+  const actor = await getActor();
+  const memberId = String(formData.get("memberId"));
+  const userRoleId = String(formData.get("userRoleId"));
+  if (userRoleId) await revokeRole(actor, userRoleId);
+  revalidatePath(`/dashboard/admin/members/${memberId}`);
+  redirect(`/dashboard/admin/members/${memberId}?role=1`);
+}
+
+/** Permanently delete a member (must be deactivated first). Redirects to the list on success. */
+export async function deleteMemberAction(formData: FormData) {
+  const actor = await getActor();
+  const memberId = String(formData.get("id"));
+  const res = await deleteMember(actor, memberId);
+  if (res.ok) {
+    revalidatePath("/dashboard/admin/members");
+    redirect("/dashboard/admin/members?deleted=1");
+  }
+  redirect(`/dashboard/admin/members/${memberId}?err=${res.error ?? "1"}`);
 }

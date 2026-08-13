@@ -25,7 +25,9 @@ export function LoginForm() {
       setError(
         res?.error === "ACCOUNT_PENDING"
           ? "Your account is awaiting administrator approval. You’ll be able to sign in once it’s approved."
-          : "That email and password didn’t match. Please try again.",
+          : res?.error === "ACCOUNT_DISABLED"
+            ? "This account has been disabled. Please contact a church administrator."
+            : "That email and password didn’t match. Please try again.",
       );
       return;
     }

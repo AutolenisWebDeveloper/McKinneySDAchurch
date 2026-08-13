@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import type { EventStatus } from "@prisma/client";
 import {
   ALL_EVENT_STATUSES,
   EVENT_TRANSITIONS,

@@ -171,6 +171,7 @@ model User {
   mfaSecret       String? // encrypted at rest
   sessionVersion  Int       @default(0) // bump to revoke all sessions
   activatedAt     DateTime? // set when an invited user accepts (scaffold delta vs v4 §5)
+  disabledAt      DateTime? // admin-disabled login; set = sign-in blocked (distinct from "never activated")
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -270,6 +271,9 @@ model Household {
   /// resolved in queries; not a FK relation to keep the Household↔Member link simple).
   primaryContactId String?
   notes            String?
+  /// App-level household deactivation (reversible). Distinct from deletion; when set, the
+  /// household and its members are treated as inactive and member logins are disabled.
+  deactivatedAt    DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   members          Member[]
@@ -290,6 +294,10 @@ model Member {
   directoryVisible Boolean          @default(false)
   showAddress      Boolean          @default(false)
   lastAttendance   DateTime?
+  /// App-level member deactivation (reversible), independent of membershipStatus (the
+  /// eAdventist mirror) and of hard deletion. When set, the member is treated as inactive
+  /// and any linked login is disabled.
+  deactivatedAt    DateTime?
 
   // ----- Individual profile detail (from the Member Information Form) -----
   baptismYear       Int? // year baptized (form captures a year, not a full date)
