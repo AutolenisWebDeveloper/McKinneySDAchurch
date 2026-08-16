@@ -1,13 +1,24 @@
 #!/bin/bash
-# SessionStart hook for Claude Code on the web.
+# SessionStart hook for Claude Code on the web (ASYNC mode).
 # Installs Node dependencies and generates the Prisma client so that typecheck,
 # lint, and the Vitest suite work in a fresh remote session.
+#
+# This hook runs ASYNCHRONOUSLY: it emits the async directive on its first line
+# of stdout, then the harness lets the session start while the install continues
+# in the background. Trade-off: the session starts faster, but there is a brief
+# window where dependencies / env vars may not be ready yet if the agent acts
+# immediately.
 set -euo pipefail
 
-# Only run in the remote (Claude Code on the web) environment.
+# Only run in the remote (Claude Code on the web) environment. Exit before emitting
+# the async directive so local runs stay a synchronous no-op.
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi
+
+# Tell the harness to run the rest of this hook in the background (async mode).
+# Must be the first stdout the harness reads.
+echo '{"async": true, "asyncTimeout": 300000}'
 
 cd "${CLAUDE_PROJECT_DIR:-.}"
 
