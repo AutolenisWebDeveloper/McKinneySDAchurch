@@ -25,8 +25,15 @@ function Rank({ rank }: { rank: number }) {
 
 export default async function Leaders() {
   // All confirmed, fundraiser-attributed donations, aggregated per person (across campaigns).
+  // Recognition survives a normal close, but a fundraiser the church DECLINED or ARCHIVED must
+  // disappear from public surfaces — moderation has to actually take the name down, and the
+  // display name on a Supporter-owned page is free text typed by an unauthenticated visitor.
   const rows = await safe(prisma.donation.findMany({
-    where: { status: "CONFIRMED", fundraiserId: { not: null } },
+    where: {
+      status: "CONFIRMED",
+      fundraiserId: { not: null },
+      fundraiser: { status: { in: ["ACTIVE", "CLOSED"] } },
+    },
     select: { amount: true, fundraiser: { select: { ownerUserId: true, displayName: true } } },
   }), []);
   const byPerson = new Map<string, { name: string; total: number }>();

@@ -20,14 +20,6 @@ describe("fundraiser suggestion from the giving designation", () => {
     expect(suggestFundraiser(gift("Team-Ada"), CANDIDATES)).toBe("f1");
   });
 
-  it("matches a slug embedded in a longer fund label", () => {
-    expect(suggestFundraiser(gift("Building Fund - team-ada"), CANDIDATES)).toBe("f1");
-  });
-
-  it("falls back to the title or display name", () => {
-    expect(suggestFundraiser(gift("gift for the johnson family"), CANDIDATES)).toBe("f2");
-  });
-
   it("suggests nothing when the designation names no fundraiser", () => {
     expect(suggestFundraiser(gift("Building Fund"), CANDIDATES)).toBeNull();
     expect(suggestFundraiser(gift("Tithe"), CANDIDATES)).toBeNull();
@@ -39,9 +31,27 @@ describe("fundraiser suggestion from the giving designation", () => {
     expect(suggestFundraiser(gift("team-ada"), [])).toBeNull();
   });
 
-  it("does not fire on a trivially short accidental substring", () => {
-    const shortSlug: AttributionCandidate[] = [{ id: "x", slug: "ab", title: "Ab", displayName: "Ab" }];
-    expect(suggestFundraiser(gift("Sabbath school offering"), shortSlug)).toBeNull();
+  /**
+   * Attribution hijack: slug/title/display name are all chosen by the fundraiser's owner, and on
+   * the Supporter path by an unauthenticated visitor. Substring matching would let someone name
+   * their fundraiser after the church's own designation and be pre-selected as the destination
+   * for every ordinary building-fund gift in the batch.
+   */
+  it("cannot be hijacked by a fundraiser named after the church's own designation", () => {
+    const attacker: AttributionCandidate[] = [
+      { id: "evil", slug: "building-fund", title: "Building Fund", displayName: "Building" },
+      ...CANDIDATES,
+    ];
+    expect(suggestFundraiser(gift("Building Fund"), attacker)).toBeNull();
+    expect(suggestFundraiser(gift("Local Church Budget"), attacker)).toBeNull();
+    expect(suggestFundraiser(gift("Building Fund - November"), attacker)).toBeNull();
+    // The attacker's own handoff still resolves, because that designation IS its slug.
+    expect(suggestFundraiser(gift("building-fund"), attacker)).toBe("evil");
+  });
+
+  it("does not match a slug merely embedded in a longer designation", () => {
+    expect(suggestFundraiser(gift("Building Fund - team-ada"), CANDIDATES)).toBeNull();
+    expect(suggestFundraiser(gift("gift for the johnson family"), CANDIDATES)).toBeNull();
   });
 });
 

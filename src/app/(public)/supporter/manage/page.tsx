@@ -3,10 +3,12 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { qrDataUrl } from "@/lib/qr";
 import { shareTargets } from "@/lib/fundraising";
-import { loadFundraiserById, loadActivity, loadShareLibrary } from "@/lib/fundraisers";
+import { loadFundraiserForSupporter, loadActivity, loadShareLibrary } from "@/lib/fundraisers";
 import { getSupporterSession } from "@/lib/supporter-auth";
-import { PageHeader, Callout } from "@/components/page-ui";
+import { PageHeader, Callout, fieldClass, labelClass } from "@/components/page-ui";
 import { Section } from "@/components/ui";
+import { saveSupporterFundraiser, resubmitSupporterFundraiser, signOutSupporter } from "../actions";
+import { GOAL_MIN, GOAL_MAX } from "@/lib/fundraiser-workflow";
 import { CopyField } from "@/components/portal/CopyField";
 import { ProgressMeter, StatusPill, StatusNotice, FactList, fundraiserFacts, formatDate } from "@/components/portal/fundraiser-ui";
 
@@ -17,8 +19,10 @@ const TABS = [
   { key: "overview", label: "Overview" },
   { key: "share", label: "Share" },
   { key: "activity", label: "Activity" },
+  { key: "edit", label: "Edit" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
+
 
 /**
  * The Supporter's minimal manage view (§15). It shows exactly what a member's workspace shows
@@ -32,26 +36,27 @@ type TabKey = (typeof TABS)[number]["key"];
 export default async function SupporterManage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; error?: string; saved?: string; resubmitted?: string }>;
 }) {
   const session = await getSupporterSession();
   if (!session) redirect("/supporter/expired");
 
   const q = await searchParams;
-  const tab: TabKey = TABS.some((t) => t.key === q.tab) ? (q.tab as TabKey) : "overview";
+  const requested: TabKey = TABS.some((t) => t.key === q.tab) ? (q.tab as TabKey) : "overview";
 
+  // The loader proves the supporter→fundraiser pairing in its own query, so ownership migrated
+  // to a member ends this session's access immediately, without a separate check to forget.
   const [f, supporter] = await Promise.all([
-    loadFundraiserById(session.fundraiserId),
+    loadFundraiserForSupporter(session.supporterId, session.fundraiserId),
     prisma.supporter.findUnique({ where: { id: session.supporterId }, select: { name: true, deactivatedAt: true } }),
   ]);
+  if (!f || !supporter || supporter.deactivatedAt) redirect("/supporter/expired");
 
-  // Re-verify the pairing: the cookie names both ids, and the fundraiser must still belong to
-  // this supporter. Ownership migrated to a member ends the supporter's access immediately.
-  const owned = await prisma.fundraiser.findFirst({
-    where: { id: session.fundraiserId, supporterId: session.supporterId },
-    select: { id: true },
-  });
-  if (!f || !supporter || supporter.deactivatedAt || !owned) redirect("/supporter/expired");
+  // Edit is offered only while the church is waiting on the owner. A live page stays read-only,
+  // which keeps the manage view minimal without leaving a "changes requested" owner stranded.
+  const canEdit = f.canEdit;
+  const visibleTabs = TABS.filter((t) => t.key !== "edit" || canEdit);
+  const tab: TabKey = requested === "edit" && !canEdit ? "overview" : requested;
 
   return (
     <>
@@ -67,11 +72,21 @@ export default async function SupporterManage({
           )}
         </div>
 
+        {q.error && <div role="alert" className="mt-4"><Callout tone="warn">{q.error}</Callout></div>}
+        {q.saved && <div className="mt-4"><Callout tone="success">Saved. Send it back for review when you&rsquo;re ready.</Callout></div>}
+        {q.resubmitted && <div className="mt-4"><Callout tone="success">Sent back to the church for review. We&rsquo;ll email you the moment it&rsquo;s approved.</Callout></div>}
+
         {f.status !== "ACTIVE" && <div className="mt-4"><StatusNotice f={f} /></div>}
+
+        {f.status === "CHANGES_REQUESTED" && (
+          <form action={resubmitSupporterFundraiser} className="mt-4">
+            <button type="submit" className="btn btn-accent">Send back for review</button>
+          </form>
+        )}
 
         <nav aria-label="Fundraiser sections" className="mt-6">
           <ul className="flex flex-wrap gap-1 border-b border-line">
-            {TABS.map((t) => {
+            {visibleTabs.map((t) => {
               const active = t.key === tab;
               return (
                 <li key={t.key}>
@@ -118,17 +133,23 @@ export default async function SupporterManage({
 
           {tab === "share" && <SupporterShare f={f} />}
           {tab === "activity" && <SupporterActivity id={f.id} />}
+          {tab === "edit" && <SupporterEdit f={f} />}
         </div>
 
-        <p className="mt-8 text-sm text-muted">
-          This is your fundraiser&rsquo;s own page — you don&rsquo;t have a church member account, and you don&rsquo;t need one.
-        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
+          <p className="text-sm text-muted">
+            This is your fundraiser&rsquo;s own page — you don&rsquo;t have a church member account, and you don&rsquo;t need one.
+          </p>
+          <form action={signOutSupporter}>
+            <button type="submit" className="btn btn-outline px-4 py-2 text-sm">Sign out of this link</button>
+          </form>
+        </div>
       </Section>
     </>
   );
 }
 
-async function SupporterShare({ f }: { f: NonNullable<Awaited<ReturnType<typeof loadFundraiserById>>> }) {
+async function SupporterShare({ f }: { f: NonNullable<Awaited<ReturnType<typeof loadFundraiserForSupporter>>> }) {
   if (f.status !== "ACTIVE") {
     return <Callout tone="info">Sharing opens as soon as the church approves your fundraiser. We&rsquo;ll email you.</Callout>;
   }
@@ -203,5 +224,44 @@ async function SupporterActivity({ id }: { id: string }) {
         We never show who gave or how much any one person gave — only your verified progress.
       </p>
     </div>
+  );
+}
+
+/**
+ * The Supporter's edit form. Only the fields §8 treats as self-service plus the title — a
+ * Supporter only ever reaches this while the fundraiser is theirs to change, so a title edit
+ * here cannot take a live page offline.
+ */
+function SupporterEdit({ f }: { f: NonNullable<Awaited<ReturnType<typeof loadFundraiserForSupporter>>> }) {
+  return (
+    <form action={saveSupporterFundraiser} className="card space-y-4 p-6">
+      <div>
+        <label className={labelClass} htmlFor="title">Fundraiser title</label>
+        <input id="title" name="title" type="text" required maxLength={120} defaultValue={f.title} className={`${fieldClass} mt-1`} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className={labelClass} htmlFor="personalGoal">Your goal (US dollars)</label>
+          <input
+            id="personalGoal" name="personalGoal" type="number" required
+            min={Math.max(GOAL_MIN, f.progress.raised)} max={GOAL_MAX} step={1}
+            defaultValue={f.progress.goal} className={`${fieldClass} mt-1`}
+          />
+        </div>
+        <div>
+          <label className={labelClass} htmlFor="targetDate">Target date</label>
+          <input
+            id="targetDate" name="targetDate" type="date" required
+            defaultValue={f.targetDate ? f.targetDate.toISOString().slice(0, 10) : ""}
+            className={`${fieldClass} mt-1`}
+          />
+        </div>
+      </div>
+      <div>
+        <label className={labelClass} htmlFor="story">Why you&rsquo;re raising</label>
+        <textarea id="story" name="story" rows={6} maxLength={2000} defaultValue={f.story ?? ""} className={`${fieldClass} mt-1`} />
+      </div>
+      <button type="submit" className="btn btn-accent">Save changes</button>
+    </form>
   );
 }

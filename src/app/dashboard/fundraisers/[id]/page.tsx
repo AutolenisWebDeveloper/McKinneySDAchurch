@@ -31,7 +31,7 @@ export default async function ManageFundraiser({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string; error?: string; saved?: string; submitted?: string; done?: string }>;
+  searchParams: Promise<{ tab?: string; error?: string; saved?: string; submitted?: string; drafted?: string; done?: string }>;
 }) {
   const actor = await requireActor();
   const { id } = await params;
@@ -56,7 +56,16 @@ export default async function ManageFundraiser({
 
       {q.error && <div role="alert"><Notice tone="attention" title="That didn't work">{q.error}</Notice></div>}
       {q.submitted && <Notice tone="quiet" title="Sent for review">We'll let you know as soon as a church administrator has looked at it.</Notice>}
-      {q.saved && <Notice tone="quiet" title="Saved">Your changes are live on your page.</Notice>}
+      {q.drafted && <Notice tone="quiet" title="Draft saved">Only you can see it. Send it for review when you're ready.</Notice>}
+      {q.saved === "saved" && <Notice tone="quiet" title="Saved">Your changes are live on your page.</Notice>}
+      {q.saved === "resubmitted" && (
+        <Notice tone="attention" title="Saved — and sent back for review">
+          Changing the title means a church administrator needs to look at your page again, so it&rsquo;s
+          offline until they approve it. Anyone opening your link right now won&rsquo;t find it. We&rsquo;ll let you
+          know as soon as it&rsquo;s back.
+        </Notice>
+      )}
+      {q.saved === "saved-quiet" && <Notice tone="quiet" title="Saved">Your changes are stored. Your page isn&rsquo;t public yet.</Notice>}
       {q.done === "close" && <Notice tone="quiet" title="Fundraiser closed">Your page is no longer accepting shares. Everything already given is safely with the church.</Notice>}
 
       {f.status !== "ACTIVE" && <StatusNotice f={f} />}
@@ -262,14 +271,13 @@ async function Share({ f }: { f: NonNullable<Awaited<ReturnType<typeof loadFundr
           <ul className="mt-4 grid gap-4 sm:grid-cols-2">
             {library.graphics.map((g) => (
               <li key={g.id} className="rounded-lg border border-line p-3">
-                {/* Plain <img>: the source is an admin-supplied campaign asset on an arbitrary host. */}
-                <img src={g.imageUrl ?? ""} alt={g.title} className="w-full rounded" loading="lazy" />
+                {/* Plain <img>: the source is an admin-supplied campaign asset on an arbitrary host.
+                    loadShareLibrary() guarantees imageUrl is present, so this cannot render empty. */}
+                <img src={g.imageUrl} alt={g.title} className="w-full rounded" loading="lazy" />
                 <p className="mt-2 text-sm font-medium text-fg">{g.title}</p>
-                {g.imageUrl && (
-                  <a href={g.imageUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-primary hover:text-primary-hover">
-                    Open full size ↗
-                  </a>
-                )}
+                <a href={g.imageUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-primary hover:text-primary-hover">
+                  Open full size ↗
+                </a>
               </li>
             ))}
           </ul>

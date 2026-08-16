@@ -101,6 +101,27 @@ describe("family fundraisers and the household permission (§10)", () => {
     expect(canManageHouseholdFundraising(OTHER, household, member)).toBe(false);
     expect(canViewFundraiser(OTHER, family, { household, member })).toBe(false);
   });
+
+  /**
+   * Regression: a caller that passes its OWN household row (rather than the fundraiser's) must
+   * not accidentally authorize itself. Previously canManageHouseholdFundraising compared that
+   * row against itself, so every household head could read any other household's fundraiser.
+   */
+  it("never authorizes across households, even when handed the actor's own household row", () => {
+    const foreign = { type: "FAMILY", householdId: "h2" } as const;
+    const actorsOwnHousehold = { id: "h1", primaryContactId: "m-u1" };
+    const headOfH1 = { id: "m-u1", canManageHouseholdFundraising: true };
+
+    expect(canEditFundraiser(MEMBER, foreign, { household: actorsOwnHousehold, member: headOfH1 })).toBe(false);
+    expect(canViewFundraiser(MEMBER, foreign, { household: actorsOwnHousehold, member: headOfH1 })).toBe(false);
+    // ...and it still works for the actor's real household.
+    expect(canEditFundraiser(MEMBER, { type: "FAMILY", householdId: "h1" }, { household: actorsOwnHousehold, member: headOfH1 })).toBe(true);
+  });
+
+  it("refuses a family fundraiser with no household at all", () => {
+    expect(canEditFundraiser(MEMBER, { type: "FAMILY", householdId: null }, {})).toBe(false);
+    expect(canViewFundraiser(MEMBER, { type: "FAMILY", householdId: null }, {})).toBe(false);
+  });
 });
 
 describe("ministry fundraisers (§5)", () => {
@@ -163,22 +184,24 @@ describe("the central can() policy routes fundraiser actions", () => {
 
 describe("supporter sessions are scoped to one fundraiser (§15)", () => {
   const future = Date.now() + 60_000;
+  /** The cookie payload is domain-separated so only a supporter-session token can parse. */
+  const session = (supporterId: string, fundraiserId: string, exp: number | string) =>
+    signToken(`sup|${supporterId}:${fundraiserId}:${exp}`);
 
   it("accepts a well-formed, unexpired, correctly signed cookie", () => {
-    const cookie = signToken(`sup1:fund1:${future}`);
-    expect(parseSupporterSession(cookie, Date.now())).toEqual({ supporterId: "sup1", fundraiserId: "fund1" });
+    expect(parseSupporterSession(session("sup1", "fund1", future), Date.now()))
+      .toEqual({ supporterId: "sup1", fundraiserId: "fund1" });
   });
 
   it("rejects an expired session", () => {
-    const cookie = signToken(`sup1:fund1:${Date.now() - 1000}`);
-    expect(parseSupporterSession(cookie, Date.now())).toBeNull();
+    expect(parseSupporterSession(session("sup1", "fund1", Date.now() - 1000), Date.now())).toBeNull();
   });
 
   it("rejects a forged or tampered cookie", () => {
-    const cookie = signToken(`sup1:fund1:${future}`);
+    const cookie = session("sup1", "fund1", future);
     const [body, sig] = cookie.split(".");
     // Swap in a different fundraiser id and keep the old signature.
-    const tampered = `${Buffer.from(`sup1:fund2:${future}`).toString("base64url")}.${sig}`;
+    const tampered = `${Buffer.from(`sup|sup1:fund2:${future}`).toString("base64url")}.${sig}`;
     expect(parseSupporterSession(tampered, Date.now())).toBeNull();
     // Truncated / garbage values are rejected too.
     expect(parseSupporterSession(body ?? "", Date.now())).toBeNull();
@@ -186,13 +209,23 @@ describe("supporter sessions are scoped to one fundraiser (§15)", () => {
     expect(parseSupporterSession("", Date.now())).toBeNull();
   });
 
+  /**
+   * signToken/verifyToken are a generic HMAC shared with the unsubscribe tokens. Without a
+   * domain separator, any OTHER validly-signed payload that happens to be shaped `a:b:<epoch>`
+   * would be accepted here as a supporter session for an arbitrary fundraiser.
+   */
+  it("rejects a validly signed token that was not minted as a supporter session", () => {
+    expect(parseSupporterSession(signToken(`sup1:fund1:${future}`), Date.now())).toBeNull();
+    expect(parseSupporterSession(signToken(`unsub|sup1:fund1:${future}`), Date.now())).toBeNull();
+  });
+
   it("rejects a signed payload that is missing a field", () => {
-    expect(parseSupporterSession(signToken(`sup1:${future}`), Date.now())).toBeNull();
-    expect(parseSupporterSession(signToken("sup1:fund1:not-a-number"), Date.now())).toBeNull();
+    expect(parseSupporterSession(signToken(`sup|sup1:${future}`), Date.now())).toBeNull();
+    expect(parseSupporterSession(session("sup1", "fund1", "not-a-number"), Date.now())).toBeNull();
   });
 
   it("carries no role, portal, household, or ministry — a supporter session is only two ids", () => {
-    const session = parseSupporterSession(signToken(`sup1:fund1:${future}`), Date.now());
-    expect(Object.keys(session ?? {}).sort()).toEqual(["fundraiserId", "supporterId"]);
+    const parsed = parseSupporterSession(session("sup1", "fund1", future), Date.now());
+    expect(Object.keys(parsed ?? {}).sort()).toEqual(["fundraiserId", "supporterId"]);
   });
 });

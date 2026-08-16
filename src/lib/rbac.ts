@@ -218,7 +218,12 @@ export function canEditFundraiser(
     case "PERSONAL":
       return !f.supporterId && !!f.ownerUserId && f.ownerUserId === a.userId;
     case "FAMILY":
-      return !!f.householdId && canManageHouseholdFundraising(a, ctx.household ?? (f.householdId ? { id: f.householdId } : null), ctx.member ?? null);
+      // Compare the actor against the FUNDRAISER's household, before consulting any context the
+      // caller supplied. A caller that passes its own household row (the natural mistake) would
+      // otherwise make canManageHouseholdFundraising compare that row against itself, and every
+      // household head would gain read access to every other household's family fundraiser.
+      if (!f.householdId || a.householdId !== f.householdId) return false;
+      return canManageHouseholdFundraising(a, ctx.household ?? { id: f.householdId }, ctx.member ?? null);
     case "MINISTRY":
       return !!f.ministryId && canManageFundraiserForMinistry(a, f.ministryId);
     default:

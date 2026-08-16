@@ -56,18 +56,16 @@ export function suggestFundraiser(gift: GiftRow, candidates: AttributionCandidat
   const fund = (gift.fund ?? "").trim().toLowerCase();
   if (!fund) return null;
 
+  // EXACT slug match only, and only against the value our own giving handoff writes.
+  //
+  // Fuzzy matching here is an attribution-hijack vector: a fundraiser's slug is built from its
+  // owner-supplied display name and title, and anyone — including an unauthenticated visitor on
+  // the Supporter path — can choose them. A fundraiser titled "Building Fund" would otherwise
+  // substring-match the designation on every ordinary building-fund gift and claim the entire
+  // batch. Requiring the whole designation to equal the slug means only a gift that actually
+  // came through that fundraiser's handoff can suggest it.
   const exact = candidates.find((c) => c.slug.toLowerCase() === fund);
-  if (exact) return exact.id;
-
-  const contained = candidates.find((c) => c.slug.length >= 4 && fund.includes(c.slug.toLowerCase()));
-  if (contained) return contained.id;
-
-  const named = candidates.find((c) => {
-    const t = c.title.trim().toLowerCase();
-    const n = c.displayName.trim().toLowerCase();
-    return (t.length >= 4 && fund.includes(t)) || (n.length >= 4 && fund.includes(n));
-  });
-  return named?.id ?? null;
+  return exact?.id ?? null;
 }
 
 /** Match parsed gifts to PENDING donations by amount + (email or name). One-to-one. */

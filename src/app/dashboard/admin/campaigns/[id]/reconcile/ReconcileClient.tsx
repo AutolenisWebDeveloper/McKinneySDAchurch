@@ -43,12 +43,10 @@ export function ReconcileClient({ campaignId }: { campaignId: string }) {
         return;
       }
       setP(j.data);
-      // Start from the suggested attribution so the common case is one click.
-      const initial: Record<number, string> = {};
-      j.data.unmatchedGifts.forEach((g: Gift, i: number) => {
-        if (g.suggestedFundraiserId) initial[i] = g.suggestedFundraiserId;
-      });
-      setAttribution(initial);
+      // Deliberately NOT pre-selected. A suggestion is a hint derived from the giving
+      // designation; attributing money is the treasurer's decision, so it must be an
+      // affirmative choice per row rather than something a single bulk button inherits.
+      setAttribution({});
     } catch {
       setErr("We couldn't reach the server. Try again in a moment.");
     } finally {
@@ -162,7 +160,10 @@ export function ReconcileClient({ campaignId }: { campaignId: string }) {
                         >
                           <option value="">No fundraiser</option>
                           {p.fundraisers.map((f) => (
-                            <option key={f.id} value={f.id}>{f.title} — {f.displayName}</option>
+                            <option key={f.id} value={f.id}>
+                              {f.title} — {f.displayName}
+                              {g.suggestedFundraiserId === f.id ? " (came through this page)" : ""}
+                            </option>
                           ))}
                         </select>
                       </label>

@@ -108,6 +108,9 @@ export async function verifiedRaised(fundraiserId: string, db: Prisma.Transactio
   return agg._sum.amount ?? 0;
 }
 
+/** The states in which a Supporter-owned fundraiser is the owner's to change (§7). */
+const SUPPORTER_EDITABLE: FundraiserStatus[] = ["DRAFT", "CHANGES_REQUESTED"];
+
 /* --------------------------------------------------------------- view models */
 
 export type FundraiserSummary = {
@@ -148,7 +151,9 @@ const SUMMARY_SELECT = {
   householdId: true, ministryId: true, memberId: true,
   household: { select: { familyName: true } },
   ministry: { select: { name: true } },
-  donations: { where: { status: "CONFIRMED" as const }, select: { amount: true, status: true, confirmedAt: true } },
+  // email/donorName are selected ONLY so supporterCount can de-duplicate the same giver; they
+  // are consumed inside toSummary and never reach FundraiserSummary or any rendered surface.
+  donations: { where: { status: "CONFIRMED" as const }, select: { amount: true, status: true, confirmedAt: true, email: true, donorName: true } },
   _count: { select: { referrals: true } },
 } satisfies Prisma.FundraiserSelect;
 
@@ -234,17 +239,31 @@ export async function loadFundraiserForActor(actor: Actor, id: string): Promise<
   };
   const [member, household] = await Promise.all([
     actor.memberId ? prisma.member.findUnique({ where: { id: actor.memberId }, select: { id: true, canManageHouseholdFundraising: true } }) : null,
-    actor.householdId ? prisma.household.findUnique({ where: { id: actor.householdId }, select: { id: true, primaryContactId: true } }) : null,
+    // The FUNDRAISER's household, not the actor's — rbac.ts refuses a cross-household ref
+    // regardless, but passing the right row keeps this call site honest on its own terms.
+    row.householdId ? prisma.household.findUnique({ where: { id: row.householdId }, select: { id: true, primaryContactId: true } }) : null,
   ]);
   const canEdit = canEditFundraiser(actor, ref, { household, member });
   if (!canEdit && !canViewFundraiser(actor, ref, { household, member })) return null;
   return toSummary(row, { canEdit, isOwn: row.type === "PERSONAL" && row.ownerUserId === actor.userId });
 }
 
-/** A single fundraiser by id with no actor — used by the Supporter's scoped manage view. */
-export async function loadFundraiserById(id: string): Promise<FundraiserSummary | null> {
-  const row = await prisma.fundraiser.findUnique({ where: { id }, select: SUMMARY_SELECT });
-  return row ? toSummary(row, { canEdit: true, isOwn: true }) : null;
+/**
+ * A Supporter's own fundraiser. Ownership is proven inside the query rather than trusted from
+ * the caller, so this cannot be turned into an "any fundraiser by id" loader by a future caller
+ * that forgets the check. `canEdit` reflects the real §7 rule: only while the church is waiting
+ * on the owner.
+ */
+export async function loadFundraiserForSupporter(
+  supporterId: string,
+  fundraiserId: string,
+): Promise<FundraiserSummary | null> {
+  const row = await prisma.fundraiser.findFirst({
+    where: { id: fundraiserId, supporterId },
+    select: SUMMARY_SELECT,
+  });
+  if (!row) return null;
+  return toSummary(row, { canEdit: SUPPORTER_EDITABLE.includes(row.status), isOwn: true });
 }
 
 /** The donor-free Activity feed for a fundraiser (§2). */
@@ -268,15 +287,21 @@ export async function loadActivity(fundraiserId: string) {
   return buildActivity({ approvedAt: f.approvedAt, goal: f.personalGoal, donations: f.donations, referrals });
 }
 
-/** Approved share copy and graphics offered in the Share tab (§16). */
+/**
+ * Approved share copy and graphics offered in the Share tab (§16). An asset missing the field
+ * its kind depends on is filtered out here rather than at each call site, so an owner is never
+ * offered an empty message or a graphic that would render as a broken image box.
+ */
 export async function loadShareLibrary() {
   const assets = await prisma.fundraisingAsset.findMany({
     where: { active: true },
     orderBy: [{ kind: "asc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
   });
   return {
-    messages: assets.filter((a) => a.kind === "MESSAGE"),
-    graphics: assets.filter((a) => a.kind === "GRAPHIC"),
+    messages: assets.filter((a) => a.kind === "MESSAGE" && !!a.body?.trim()),
+    graphics: assets
+      .filter((a) => a.kind === "GRAPHIC" && !!a.imageUrl?.trim())
+      .map((a) => ({ ...a, imageUrl: a.imageUrl as string })),
   };
 }
 
@@ -491,6 +516,78 @@ export async function transitionFundraiser(
   await notifyOwnerOfDecision(updated.id, action, opts.note ?? null);
   if (action === "submit") await notifyReviewers(updated.id, updated.title);
   return updated;
+}
+
+/* ------------------------------------------------------ supporter-owned edits */
+
+/**
+ * Edit and resubmit for a Supporter-owned fundraiser (§7, §15).
+ *
+ * A Supporter is deliberately NOT an Actor — they hold no Role and rbac.ts refuses every
+ * Supporter-owned fundraiser to every Actor on purpose. So these take a verified supporterId
+ * from the signed session instead, prove ownership in the query itself, and then reuse the
+ * exact same pure rules the member path uses. There is no second rule set.
+ *
+ * Editing is limited to the states that are waiting on the owner. A live page stays read-only
+ * for a Supporter, which keeps §15's minimal manage view intact while still closing §7's
+ * "Changes Requested → edit + resubmit" loop.
+ */
+async function supporterOwned(supporterId: string, fundraiserId: string) {
+  const f = await prisma.fundraiser.findFirst({
+    where: { id: fundraiserId, supporterId },
+    select: { id: true, status: true, title: true, type: true, supporter: { select: { deactivatedAt: true } } },
+  });
+  if (!f || f.supporter?.deactivatedAt) throw new FundraiserError("That fundraiser is no longer available.");
+  return f;
+}
+
+export async function editSupporterFundraiser(
+  supporterId: string,
+  fundraiserId: string,
+  patch: EditablePatch,
+): Promise<void> {
+  const current = await supporterOwned(supporterId, fundraiserId);
+  if (!SUPPORTER_EDITABLE.includes(current.status)) {
+    throw new FundraiserError("This fundraiser can't be edited right now. Reply to any email from us and the church office will help.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const raised = await verifiedRaised(fundraiserId, tx);
+    const decision = decideEdit(
+      { status: current.status, title: current.title, type: current.type, verifiedRaised: raised, minGoal: GOAL_MIN, maxGoal: GOAL_MAX },
+      patch,
+    );
+    if (!decision.ok) throw new FundraiserError(decision.reason);
+    await tx.fundraiser.update({
+      where: { id: fundraiserId },
+      data: {
+        ...(patch.title !== undefined ? { title: patch.title.trim() } : {}),
+        ...(patch.story !== undefined ? { story: patch.story?.trim() || null } : {}),
+        ...(patch.targetDate !== undefined ? { targetDate: patch.targetDate } : {}),
+        ...(patch.personalGoal !== undefined ? { personalGoal: patch.personalGoal } : {}),
+      },
+    });
+  });
+  // No AuditLog entry: AuditLog.actorId is a required foreign key to User, and a Supporter is
+  // deliberately not a User. Writing a synthetic id would violate the constraint and roll the
+  // owner's edit back. This is a non-member editing their own unpublished page — the review
+  // that follows, and every admin decision on it, are audited against a real user.
+}
+
+export async function submitSupporterFundraiser(supporterId: string, fundraiserId: string): Promise<void> {
+  const current = await supporterOwned(supporterId, fundraiserId);
+  const t = transition(current.status, "submit", "owner");
+  if (!t.ok) throw new FundraiserError(t.reason);
+
+  const claimed = await prisma.fundraiser.updateMany({
+    where: { id: fundraiserId, status: current.status },
+    data: { status: t.status, submittedAt: new Date(), reviewNote: null },
+  });
+  if (claimed.count !== 1) throw new FundraiserError("Someone else just updated this fundraiser. Reload and try again.");
+
+  // See editSupporterFundraiser: no AuditLog row for a non-User actor. `submittedAt` on the
+  // fundraiser records the transition, and the admin's decision on it is audited.
+  await notifyReviewers(fundraiserId, current.title);
 }
 
 /* ------------------------------------------------------- candidate attribution */
@@ -716,7 +813,7 @@ async function notifyReviewers(fundraiserId: string, title: string): Promise<voi
 }
 
 /** The owner-facing events from §14, delivered on the owner's own channel. */
-const DECISION_COPY: Partial<Record<FundraiserAction, { title: string; body: (note: string | null) => string; template: string }>> = {
+const DECISION_COPY: Partial<Record<FundraiserAction, { title: string; body: (note: string | null) => string; template: string; issueLink?: boolean }>> = {
   approve: {
     title: "Your fundraiser is approved",
     body: () => "It's live and ready to share. Send your link to family and friends.",
@@ -726,11 +823,19 @@ const DECISION_COPY: Partial<Record<FundraiserAction, { title: string; body: (no
     title: "Your fundraiser needs changes",
     body: (note) => note ?? "A church administrator has asked for a change before it can go live.",
     template: "fundraiser.changes_requested",
+    // A Supporter has no portal, so the email is their ONLY way back in. Without a link the
+    // request is a dead end: they are told to change something they cannot reach.
+    issueLink: true,
   },
   reject: {
     title: "Your fundraiser was not approved",
     body: (note) => note ?? "A church administrator was not able to approve this fundraiser.",
     template: "fundraiser.rejected",
+  },
+  reopen: {
+    title: "Your fundraiser is being looked at again",
+    body: () => "A church administrator reopened it for review. We'll let you know the outcome.",
+    template: "fundraiser.reopened",
   },
 };
 
@@ -750,8 +855,9 @@ async function notifyOwnerOfDecision(fundraiserId: string, action: FundraiserAct
     body: copy.body(note),
     template: copy.template,
     vars: { note: note ?? "" },
-    /** An approval is the one event where the Supporter needs a fresh manage link. */
-    issueLink: action === "approve",
+    // Approval and change-requests both need a fresh manage link: one to start sharing, the
+    // other to actually make the change being asked for.
+    issueLink: copy.issueLink ?? action === "approve",
   });
 }
 

@@ -74,6 +74,12 @@ export type VerifiedDonationLike = {
   amount: number;
   status: string;
   confirmedAt?: Date | null;
+  /**
+   * Used ONLY to avoid counting the same person twice. Never rendered, never returned by any
+   * display helper — see supporterCount.
+   */
+  email?: string | null;
+  donorName?: string | null;
 };
 
 /** Treasurer-verified dollars. The single input to every progress figure. */
@@ -131,7 +137,18 @@ export function verifiedThisMonth(donations: VerifiedDonationLike[], now: Date =
  * as null so the surface omits the figure rather than showing a hollow "0 supporters".
  */
 export function supporterCount(donations: VerifiedDonationLike[]): number | null {
-  const n = donations.filter((d) => d.status === "CONFIRMED").length;
+  const confirmed = donations.filter((d) => d.status === "CONFIRMED");
+  if (!confirmed.length) return null;
+  // Count PEOPLE, not gifts: someone who gives twice is one supporter. Rows with nothing to
+  // identify them by fall back to counting individually, which is the safe over-count.
+  let anonymous = 0;
+  const seen = new Set<string>();
+  for (const d of confirmed) {
+    const key = d.email?.trim().toLowerCase() || d.donorName?.trim().toLowerCase();
+    if (key) seen.add(key);
+    else anonymous += 1;
+  }
+  const n = seen.size + anonymous;
   return n > 0 ? n : null;
 }
 
@@ -156,8 +173,9 @@ export type ActivityEntry = {
 
 /**
  * The owner-facing Activity feed (§2). Derived entirely from the verified ledger — it shows
- * verified-progress increments, milestone crossings, and referral starts, and it CANNOT leak
- * donor information because no donor field is accepted as input.
+ * verified-progress increments, milestone crossings, and referral starts. Donor identity can
+ * never reach it: the only fields read here are amount, status and confirmedAt, and amounts are
+ * aggregated per reconciliation batch so no individual gift is published either.
  *
  * Milestones are replayed against the current goal, so an owner who raises their goal sees the
  * milestone history recomputed against the goal they are actually working toward.
@@ -174,9 +192,22 @@ export function buildActivity(input: {
     out.push({ at: input.approvedAt, kind: "approved", text: "Approved and ready to share" });
   }
 
-  const confirmed = input.donations
-    .filter((d) => d.status === "CONFIRMED" && d.confirmedAt)
-    .map((d) => ({ amount: d.amount, at: d.confirmedAt as Date }))
+  /**
+   * Confirmed gifts, GROUPED BY RECONCILIATION. Gifts confirmed in the same treasurer batch
+   * share a `confirmedAt`, so grouping on it yields one entry per reconciliation — which is what
+   * §3 describes ("post at reconciliation"). Emitting a line per gift would publish each
+   * individual amount, and an owner who shared their link with a handful of people could match
+   * amount and date back to the person who gave it. The batch total carries the same
+   * encouragement without that inference.
+   */
+  const byBatch = new Map<number, number>();
+  for (const d of input.donations) {
+    if (d.status !== "CONFIRMED" || !d.confirmedAt) continue;
+    const key = d.confirmedAt.getTime();
+    byBatch.set(key, (byBatch.get(key) ?? 0) + d.amount);
+  }
+  const confirmed = [...byBatch.entries()]
+    .map(([ms, amount]) => ({ amount, at: new Date(ms) }))
     .sort((a, b) => a.at.getTime() - b.at.getTime());
 
   let running = 0;

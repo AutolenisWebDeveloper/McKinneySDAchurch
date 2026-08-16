@@ -2,11 +2,11 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/db";
 import { getActor } from "@/auth/actor";
-import { ForbiddenError, canCreateFundraiser, canManageHouseholdFundraising, canManageFundraiserForMinistry, ministryScope, hasRole } from "@/lib/rbac";
+import { ForbiddenError, canManageFundraiserForMinistry } from "@/lib/rbac";
 import { canCreateType, GOAL_MIN, GOAL_MAX, type FundraiserAction } from "@/lib/fundraiser-workflow";
-import { createFundraiser, editFundraiser, transitionFundraiser, buildingCampaign, FundraiserError } from "@/lib/fundraisers";
+import { createFundraiser, editFundraiser, transitionFundraiser, FundraiserError } from "@/lib/fundraisers";
+import { creationContext } from "./context";
 
 /**
  * Member-side fundraiser actions. Every one re-derives the actor server-side and re-checks
@@ -15,38 +15,9 @@ import { createFundraiser, editFundraiser, transitionFundraiser, buildingCampaig
  * sees what to do next.
  */
 
-/** Everything needed to decide what this member may create, read once and reused. */
-export async function creationContext() {
-  const actor = await getActor();
-  const [member, household, campaign] = await Promise.all([
-    actor.memberId
-      ? prisma.member.findUnique({
-          where: { id: actor.memberId },
-          select: { id: true, firstName: true, lastName: true, isMinor: true, deactivatedAt: true, canManageHouseholdFundraising: true },
-        })
-      : null,
-    actor.householdId
-      ? prisma.household.findUnique({ where: { id: actor.householdId }, select: { id: true, familyName: true, primaryContactId: true } })
-      : null,
-    buildingCampaign(),
-  ]);
-  const scope = ministryScope(actor);
-  const ministries = scope.length
-    ? await prisma.ministry.findMany({ where: { id: { in: scope } }, select: { id: true, name: true }, orderBy: { name: "asc" } })
-    : [];
-  return {
-    actor,
-    member,
-    household,
-    campaign,
-    ministries,
-    eligible: canCreateFundraiser(actor, member),
-    canFamily: canManageHouseholdFundraising(actor, household, member),
-    isAdmin: hasRole(actor, "ADMIN", "PASTOR"),
-  };
-}
-
 const createSchema = z.object({
+  /** Which button was pressed: keep it as a draft, or send it for review now (§6, §7). */
+  intent: z.enum(["draft", "submit"]).default("submit"),
   type: z.enum(["PERSONAL", "FAMILY", "MINISTRY"]),
   ministryId: z.string().optional(),
   title: z.string().trim().min(1, "Give your fundraiser a title.").max(120),
@@ -63,6 +34,7 @@ export async function startFundraiser(formData: FormData) {
   const back = "/dashboard/fundraisers/new";
 
   const parsed = createSchema.safeParse({
+    intent: formData.get("intent") || "submit",
     type: formData.get("type"),
     ministryId: formData.get("ministryId") || undefined,
     title: formData.get("title"),
@@ -92,8 +64,17 @@ export async function startFundraiser(formData: FormData) {
   );
   if (!allowed) throw new ForbiddenError();
 
+  if (d.type === "FAMILY" && !ctx.household?.id) {
+    return redirect(`${back}?error=${encodeURIComponent("A family fundraiser needs a household. Ask the church office to set yours up first.")}`);
+  }
+
   if (d.type === "MINISTRY") {
-    if (!d.ministryId || !canManageFundraiserForMinistry(ctx.actor, d.ministryId)) throw new ForbiddenError();
+    // No ministry chosen is a form problem, not an authorization one — say so instead of
+    // throwing the actor onto the generic error page.
+    if (!d.ministryId) {
+      return redirect(`${back}?error=${encodeURIComponent("Choose which ministry or team you're raising for.")}`);
+    }
+    if (!canManageFundraiserForMinistry(ctx.actor, d.ministryId)) throw new ForbiddenError();
   }
 
   try {
@@ -112,17 +93,28 @@ export async function startFundraiser(formData: FormData) {
         memberId: ctx.actor.memberId ?? null,
         householdId: d.type === "FAMILY" ? ctx.household?.id ?? null : null,
         ministryId: d.type === "MINISTRY" ? d.ministryId ?? null : null,
-        submit: true,
+        submit: d.intent === "submit",
       },
       ctx.actor.userId,
     );
     revalidatePath("/dashboard/member");
     revalidatePath("/dashboard/fundraisers");
-    redirect(`/dashboard/fundraisers/${f.id}?submitted=1`);
+    redirect(`/dashboard/fundraisers/${f.id}?${d.intent === "submit" ? "submitted=1" : "drafted=1"}`);
   } catch (e) {
     if (e instanceof FundraiserError) return redirect(`${back}?error=${encodeURIComponent(e.message)}`);
+    // The partial unique indexes allow only one live fundraiser per household and per ministry.
+    // Hitting one is an ordinary "you already have one", not a server fault.
+    if (isUniqueViolation(e)) {
+      const who = d.type === "FAMILY" ? "household" : "ministry";
+      return redirect(`${back}?error=${encodeURIComponent(`Your ${who} already has a fundraiser in progress. Close it before starting another.`)}`);
+    }
     throw e;
   }
+}
+
+/** Prisma's unique-constraint error, without importing the whole runtime error namespace. */
+function isUniqueViolation(e: unknown): boolean {
+  return typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002";
 }
 
 const editSchema = z.object({
@@ -152,8 +144,9 @@ export async function saveFundraiser(formData: FormData) {
   }
   const d = parsed.data;
 
+  let updated;
   try {
-    await editFundraiser(actor, d.id, {
+    updated = await editFundraiser(actor, d.id, {
       title: d.title,
       displayName: d.displayName,
       personalGoal: d.personalGoal,
@@ -167,7 +160,11 @@ export async function saveFundraiser(formData: FormData) {
   }
   revalidatePath("/dashboard/member");
   revalidatePath(`/dashboard/fundraisers/${d.id}`);
-  redirect(`/dashboard/fundraisers/${d.id}?saved=1`);
+  // Report what actually happened. An edit that changed the title takes an ACTIVE page back
+  // into review, so its public page stops resolving — telling the owner their changes are
+  // "live" in that moment would be false, and their supporters would hit a dead link.
+  const outcome = updated.status === "PENDING_REVIEW" ? "resubmitted" : updated.status === "ACTIVE" ? "saved" : "saved-quiet";
+  redirect(`/dashboard/fundraisers/${d.id}?saved=${outcome}`);
 }
 
 /** Owner-side lifecycle actions: submit for review, or close a live fundraiser. */

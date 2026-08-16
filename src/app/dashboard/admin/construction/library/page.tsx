@@ -65,8 +65,16 @@ export default async function FundraisingLibrary({
           <ul className="grid gap-3 sm:grid-cols-2">
             {graphics.map((g) => (
               <li key={g.id} className="card p-4">
-                {/* Plain <img>: the source is an admin-supplied campaign asset on an arbitrary host. */}
-                <img src={g.imageUrl ?? ""} alt={g.title} className="w-full rounded" loading="lazy" />
+                {g.imageUrl ? (
+                  // Plain <img>: the source is an admin-supplied campaign asset on an arbitrary host.
+                  <img src={g.imageUrl} alt={g.title} className="w-full rounded" loading="lazy" />
+                ) : (
+                  // A graphic saved without an address would render as a broken box, and owners
+                  // are never offered it — say so here so an admin can fix or remove it.
+                  <p className="rounded border border-dashed border-line-strong p-4 text-sm text-muted">
+                    No image address on this graphic, so it isn&rsquo;t offered to fundraiser owners.
+                  </p>
+                )}
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                   <p className="font-semibold text-fg">{g.title}</p>
                   <ToggleForm id={g.id} active={g.active} />

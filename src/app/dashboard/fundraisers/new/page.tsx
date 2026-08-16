@@ -2,7 +2,8 @@ import Link from "next/link";
 import { PortalPage } from "@/components/portal/home-ui";
 import { Notice } from "@/components/portal/fundraiser-ui";
 import { eligibleTypes, FUNDRAISER_TYPE_LABEL, GOAL_MIN, GOAL_MAX } from "@/lib/fundraiser-workflow";
-import { creationContext, startFundraiser } from "../actions";
+import { creationContext } from "../context";
+import { startFundraiser } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -148,9 +149,13 @@ export default async function NewFundraiser({
             We'll let you know the moment it's approved, and then you can share it.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <button type="submit" className="btn btn-accent">Submit for review</button>
+            <button type="submit" name="intent" value="submit" className="btn btn-accent">Submit for review</button>
+            <button type="submit" name="intent" value="draft" className="btn btn-outline">Save as draft</button>
             <Link href="/dashboard/fundraisers" className="btn btn-outline">Cancel</Link>
           </div>
+          <p className={hint}>
+            Saving a draft keeps it private — nobody sees it until you send it for review.
+          </p>
         </Step>
       </form>
     </PortalPage>

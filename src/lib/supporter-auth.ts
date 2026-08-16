@@ -19,6 +19,12 @@ import { env } from "@/env";
  */
 
 const COOKIE = "supporter_session";
+/**
+ * Domain separator. signToken/verifyToken are a generic HMAC shared with the unsubscribe
+ * tokens, so without a tag any future signed payload shaped `a:b:<epoch>` would verify as a
+ * valid supporter session. The tag makes this token only ever mean this one thing.
+ */
+const SESSION_TAG = "sup";
 /** How long an emailed link stays redeemable. */
 const LINK_TTL_MS = 24 * 60 * 60 * 1000;
 /** How long a redeemed manage session lasts. */
@@ -71,7 +77,7 @@ export async function redeemManageLink(rawToken: string): Promise<SupporterSessi
 /** Start the scoped manage session by setting the signed cookie. */
 export async function startSupporterSession(session: SupporterSession): Promise<void> {
   const expires = Date.now() + SESSION_TTL_MS;
-  const value = signToken(`${session.supporterId}:${session.fundraiserId}:${expires}`);
+  const value = signToken(`${SESSION_TAG}|${session.supporterId}:${session.fundraiserId}:${expires}`);
   const jar = await cookies();
   jar.set(COOKIE, value, {
     httpOnly: true,
@@ -84,7 +90,16 @@ export async function startSupporterSession(session: SupporterSession): Promise<
 
 export async function endSupporterSession(): Promise<void> {
   const jar = await cookies();
-  jar.delete({ name: COOKIE, path: "/supporter" });
+  // Overwrite-and-expire rather than delete(): the cookie is path-scoped, and an expiring set
+  // with the SAME attributes is the reliable way to clear it in every browser.
+  jar.set(COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: env.NEXT_PUBLIC_SITE_URL.startsWith("https://"),
+    path: "/supporter",
+    maxAge: 0,
+    expires: new Date(0),
+  });
 }
 
 /** The current supporter session, or null. Signature and expiry are both verified. */
@@ -102,7 +117,9 @@ export async function getSupporterSession(): Promise<SupporterSession | null> {
 export function parseSupporterSession(cookieValue: string, now: number = Date.now()): SupporterSession | null {
   const payload = verifyToken(cookieValue);
   if (!payload) return null;
-  const [supporterId, fundraiserId, expires] = payload.split(":");
+  const [tag, rest] = splitOnce(payload, "|");
+  if (tag !== SESSION_TAG || !rest) return null;
+  const [supporterId, fundraiserId, expires] = rest.split(":");
   if (!supporterId || !fundraiserId || !expires) return null;
   const exp = Number(expires);
   if (!Number.isFinite(exp) || exp <= now) return null;
@@ -113,13 +130,24 @@ export function parseSupporterSession(cookieValue: string, now: number = Date.no
  * Resolve the Supporter record for an email, creating it if new. Keyed by normalized email,
  * exactly like EmailIdentity, so the same person never ends up with two Supporter records.
  */
-export async function upsertSupporter(name: string, email: string): Promise<{ id: string; email: string }> {
+export async function upsertSupporter(
+  name: string,
+  email: string,
+  opts: { adultAttested?: boolean } = {},
+): Promise<{ id: string; email: string }> {
   const emailNormalized = normalizeEmail(email);
+  // Only ever set the attestation, never clear one already on file.
+  const attested = opts.adultAttested ? { adultAttestedAt: new Date() } : {};
   const row = await prisma.supporter.upsert({
     where: { emailNormalized },
-    update: { name },
-    create: { name, email: email.trim(), emailNormalized },
+    update: { name, ...attested },
+    create: { name, email: email.trim(), emailNormalized, ...attested },
     select: { id: true, email: true },
   });
   return row;
+}
+
+function splitOnce(value: string, sep: string): [string, string | null] {
+  const i = value.indexOf(sep);
+  return i === -1 ? [value, null] : [value.slice(0, i), value.slice(i + sep.length)];
 }

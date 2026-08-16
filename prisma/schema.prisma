@@ -1488,6 +1488,10 @@ model Supporter {
   name            String
   email           String
   emailNormalized String    @unique
+  /// Recorded when the Supporter attested they are 18 or older at sign-up. A non-member's page
+  /// carries their name publicly, and minors cannot self-register anywhere on this platform, so
+  /// the attestation is required before a Supporter fundraiser can be created.
+  adultAttestedAt DateTime?
   /// Set when an admin migrates this Supporter's fundraisers to a Member identity.
   linkedMemberId  String?
   deactivatedAt   DateTime?

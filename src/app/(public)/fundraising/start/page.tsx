@@ -141,6 +141,17 @@ export default async function StartFundraiser({
                 <textarea id="story" name="story" rows={5} maxLength={2000} className={`${fieldClass} mt-1`} />
               </div>
 
+              <label className="flex items-start gap-3 rounded-lg border border-line bg-surface-2 p-3">
+                <input id="adult" name="adult" type="checkbox" required className="mt-1" />
+                <span className="text-sm text-fg">
+                  I&rsquo;m 18 or older.
+                  <span className="mt-0.5 block text-muted">
+                    Fundraising pages show the name you give us publicly, so we ask everyone running one to
+                    confirm this. Under 18? Ask a parent or guardian to start it with you.
+                  </span>
+                </span>
+              </label>
+
               <div>
                 <button type="submit" className="btn btn-accent">Send for review</button>
                 <p className="mt-3 text-sm text-muted">
