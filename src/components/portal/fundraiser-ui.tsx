@@ -67,12 +67,14 @@ export function ProgressMeter({
 
   return (
     <div>
+      {/* Tabular figures so the amount and percentage keep their place as they change —
+          a progress readout that shifts sideways on every gift reads as unstable. */}
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className={`font-serif font-semibold text-denim-800 dark:text-gold ${amountClass}`}>{formatUsd(raised)}</span>
-        {goal > 0 && <span className="text-muted">of {formatUsd(goal)} raised</span>}
+        <span className={`font-serif font-semibold tabular-nums text-denim-800 dark:text-gold ${amountClass}`}>{formatUsd(raised)}</span>
+        {goal > 0 && <span className="tabular-nums text-muted">of {formatUsd(goal)} raised</span>}
       </p>
       {goal > 0 && (
-        <p className={`mt-1 font-semibold ${goalReached ? "text-accent-strong" : "text-fg"}`}>
+        <p className={`mt-1 font-semibold tabular-nums ${goalReached ? "text-accent-strong" : "text-fg"}`}>
           {pct}% complete
         </p>
       )}
@@ -90,7 +92,11 @@ export function ProgressMeter({
           className={`h-full rounded-full transition-[width] duration-700 motion-reduce:transition-none ${goalReached ? "bg-gold" : "bg-accent-strong"}`}
           style={{ width: `${Math.max(barPct, raised > 0 ? 2 : 0)}%` }}
         />
+        {/* Milestone ticks mark progress against the goal, so they only mean something once
+            there is progress. On an empty track they read as a segmented control rather than a
+            starting line, so the zero state gets a plain trough. */}
         {goal > 0 &&
+          raised > 0 &&
           MILESTONES.filter((m) => m < 100).map((m) => (
             <span
               key={m}
@@ -102,7 +108,7 @@ export function ProgressMeter({
       </div>
 
       {goal > 0 && (
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm tabular-nums text-muted">
           {goalReached ? "Goal reached — giving stays open." : `${formatUsd(remaining)} to go`}
         </p>
       )}
@@ -124,7 +130,7 @@ export function FactList({ facts }: { facts: { label: string; value: ReactNode |
       {shown.map((f) => (
         <div key={f.label}>
           <dt className="text-xs font-semibold uppercase tracking-widest text-muted">{f.label}</dt>
-          <dd className="mt-0.5 font-semibold text-fg">{f.value}</dd>
+          <dd className="mt-0.5 font-semibold tabular-nums text-fg">{f.value}</dd>
         </div>
       ))}
     </dl>
@@ -228,7 +234,7 @@ export function FundraiserWidget({
   if (!primary) {
     return (
       <section className="card overflow-hidden">
-        <div className="border-l-4 border-accent-strong p-5 sm:p-6">
+        <div className="p-5 sm:p-6">
           <h2 className="font-serif text-xl font-semibold text-fg">Help build our future home</h2>
           <p className="mt-2 max-w-prose text-muted">
             Create your own fundraising page, set a goal, and invite family and friends to support the
@@ -261,7 +267,7 @@ export function FundraiserWidget({
   return (
     <section className="space-y-3">
       <div className="card overflow-hidden">
-        <div className="border-l-4 border-accent-strong p-5 sm:p-6">
+        <div className="p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <h2 className="font-serif text-xl font-semibold text-fg">{heading}</h2>

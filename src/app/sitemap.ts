@@ -4,7 +4,11 @@ import { env } from "@/env";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
-  const staticPaths = ["", "/about", "/beliefs", "/church-manual", "/ministries", "/calendar", "/sermons", "/prayer", "/give", "/plan-a-visit", "/contact", "/search", "/privacy", "/terms", "/accessibility"];
+  // Individual fundraiser pages (/f/<slug>) are deliberately NOT listed. They are public so a
+  // member can share their own link, but each one carries a person's name and story — the
+  // church should not be the party actively submitting them to search engines. The church-level
+  // entry point is listed instead, so someone searching for how to help can still find it.
+  const staticPaths = ["", "/about", "/beliefs", "/church-manual", "/ministries", "/calendar", "/sermons", "/prayer", "/give", "/plan-a-visit", "/contact", "/search", "/privacy", "/terms", "/accessibility", "/fundraising", "/fundraising/start"];
   const entries: MetadataRoute.Sitemap = staticPaths.map((p) => ({ url: `${base}${p}`, changeFrequency: "weekly", priority: p === "" ? 1 : 0.6 }));
   try {
     const [beliefs, ministries, sermons, events] = await Promise.all([

@@ -3,13 +3,14 @@ import Link from "next/link";
 import { requireActor } from "@/auth/actor";
 import { prisma } from "@/lib/db";
 import { formatUsd, campaignTotals, fundraiserTotals, rankFundraisers } from "@/lib/fundraising";
-import { confirmDonation, cancelDonation, setCampaignStatus } from "../actions";
+import { confirmDonation, cancelDonation, setCampaignStatus, setCampaignFundraising } from "../actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function CampaignDetail({ params }: { params: Promise<{ id: string }> }) {
   await requireActor("ADMIN", "PASTOR", "TREASURER");
   const { id } = await params;
+  const project = await prisma.constructionProject.findFirst({ where: { active: true }, select: { id: true, title: true } });
   const c = await prisma.fundraisingCampaign.findUnique({
     where: { id },
     include: { donations: { orderBy: { createdAt: "desc" }, include: { fundraiser: { select: { displayName: true } } } }, fundraisers: { select: { id: true, displayName: true } } },
@@ -32,6 +33,26 @@ export default async function CampaignDetail({ params }: { params: Promise<{ id:
         </div>
         <p className="text-sm text-muted mt-1">{formatUsd(totals.confirmed)} confirmed · {formatUsd(totals.pledged)} pledged · {totals.count} gifts · public page <Link href={`/fundraising/${c.slug}`} className="underline">/fundraising/{c.slug}</Link> · <Link href={`/dashboard/admin/campaigns/${c.id}/reconcile`} className="underline">reconcile with AdventistGiving</Link></p>
       </div>
+
+      <section>
+        <h2 className="font-semibold mb-2">Member fundraising</h2>
+        <form action={setCampaignFundraising} className="rounded border border-black/10 dark:border-white/10 p-3 space-y-2 text-sm">
+          <input type="hidden" name="id" value={c.id} />
+          <label className="flex items-center gap-2">
+            <input type="checkbox" name="allowMemberFundraisers" defaultChecked={c.allowMemberFundraisers} />
+            Let members and supporters create fundraisers for this campaign
+          </label>
+          {project ? (
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="constructionProjectId" value={project.id} defaultChecked={c.constructionProjectId === project.id} />
+              Tie to the building project ({project.title}) — required for the My Building Fundraiser surfaces
+            </label>
+          ) : (
+            <p className="text-muted">No active building project, so this campaign can&apos;t be tied to one yet.</p>
+          )}
+          <button className="rounded border border-black/20 dark:border-white/20 px-3 py-1">Save fundraising settings</button>
+        </form>
+      </section>
 
       <section>
         <h2 className="font-semibold mb-2">Wall of Fame — top fundraisers</h2>

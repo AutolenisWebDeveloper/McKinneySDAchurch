@@ -24,6 +24,8 @@ const schema = z.object({
   targetDate: z.coerce.date(),
   story: z.string().trim().max(2000).optional(),
   referralToken: z.string().trim().max(64).optional(),
+  /** Safeguarding: minors cannot self-register anywhere on this platform (§ safeguarding). */
+  adult: z.literal("on", { errorMap: () => ({ message: "Please confirm you're 18 or older to run a fundraiser." }) }),
   website: z.string().max(0).optional(), // honeypot
 });
 
@@ -39,6 +41,7 @@ export async function startSupporterFundraiser(formData: FormData) {
     targetDate: formData.get("targetDate"),
     story: formData.get("story") || undefined,
     referralToken: ref || undefined,
+    adult: formData.get("adult") ?? "",
     website: formData.get("website") ?? "",
   });
   if (!parsed.success) {
@@ -59,7 +62,7 @@ export async function startSupporterFundraiser(formData: FormData) {
   }
 
   try {
-    const supporter = await upsertSupporter(d.name, d.email);
+    const supporter = await upsertSupporter(d.name, d.email, { adultAttested: true });
     const f = await createFundraiser(
       {
         campaignId: campaign.id,

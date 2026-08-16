@@ -80,6 +80,23 @@ describe("this month, supporters, referrals, target date", () => {
     expect(verifiedThisMonth(ledger, now)).toBeLessThan(verifiedTotal(ledger));
   });
 
+  it("counts people, not gifts — one person giving twice is one supporter", () => {
+    const repeat = [
+      { amount: 100, status: "CONFIRMED", email: "Ada@Example.org", donorName: "Ada" },
+      { amount: 250, status: "CONFIRMED", email: "ada@example.org", donorName: "Ada Johnson" },
+      { amount: 50, status: "CONFIRMED", email: null, donorName: "Bo" },
+    ];
+    expect(supporterCount(repeat)).toBe(2);
+  });
+
+  it("over-counts rather than under-counts when a gift identifies nobody", () => {
+    const anon = [
+      { amount: 100, status: "CONFIRMED", email: null, donorName: null },
+      { amount: 100, status: "CONFIRMED", email: null, donorName: null },
+    ];
+    expect(supporterCount(anon)).toBe(2);
+  });
+
   it("omits the supporter count rather than showing zero", () => {
     expect(supporterCount(ledger)).toBe(3);
     expect(supporterCount([{ amount: 100, status: "PENDING" }])).toBeNull();
@@ -116,7 +133,7 @@ describe("activity feed (§2) — no donor information, ever", () => {
     expect([...times].sort((a, b) => b - a)).toEqual(times);
   });
 
-  it("keeps a milestone directly under the gift that caused it when a batch confirms at once", () => {
+  it("reports one total per reconciliation batch, never per individual gift", () => {
     // A single reconciliation run confirms several gifts with the identical timestamp.
     const sameInstant = at("2026-08-05T10:00:00Z");
     const batch = buildActivity({
@@ -126,13 +143,31 @@ describe("activity feed (§2) — no donor information, ever", () => {
         { amount: 3000, status: "CONFIRMED", confirmedAt: sameInstant },
       ],
     });
-    // Newest-first: the second gift and the 50% it crossed, then the first gift and its 25%.
+    // One $6,000 line, not two $3,000 lines — the individual gift amounts never appear. The
+    // batch crosses both 25% and 50% at once, and each of those still gets its own entry.
     expect(batch.map((e) => e.text)).toEqual([
       "You reached 50% of your goal",
-      "$3,000 added to your verified fundraising progress",
       "You reached 25% of your goal",
-      "$3,000 added to your verified fundraising progress",
+      "$6,000 added to your verified fundraising progress",
     ]);
+    expect(batch.filter((e) => e.kind === "verified_progress")).toHaveLength(1);
+    expect(JSON.stringify(batch)).not.toContain("3,000");
+  });
+
+  it("cannot be used to infer a single donor's gift from a shared timestamp", () => {
+    // Two people gave different amounts, reconciled together. Neither amount is published.
+    const together = at("2026-08-09T09:00:00Z");
+    const feed = buildActivity({
+      goal: 50000,
+      donations: [
+        { amount: 25, status: "CONFIRMED", confirmedAt: together },
+        { amount: 4975, status: "CONFIRMED", confirmedAt: together },
+      ],
+    });
+    const blob = JSON.stringify(feed);
+    expect(blob).toContain("$5,000 added");
+    expect(blob).not.toContain("$25 ");
+    expect(blob).not.toContain("4,975");
   });
 
   it("opens with the approval entry for a fundraiser with no gifts yet", () => {
@@ -141,8 +176,9 @@ describe("activity feed (§2) — no donor information, ever", () => {
     expect(zero[0]).toMatchObject({ kind: "approved", text: "Approved and ready to share" });
   });
 
-  it("posts a verified-progress entry per confirmed gift and skips pending ones", () => {
+  it("posts a verified-progress entry per reconciliation and skips pending ones", () => {
     const progress = activity.filter((a) => a.kind === "verified_progress");
+    // The two confirmed gifts were reconciled on different days, so they stay separate.
     expect(progress).toHaveLength(2);
     expect(progress.some((p) => p.text.includes("9,999"))).toBe(false);
     expect(progress.some((p) => p.text === "$2,600 added to your verified fundraising progress")).toBe(true);

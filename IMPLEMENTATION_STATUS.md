@@ -6,6 +6,69 @@ now being extended to the merged Master Directive (Phases 1–10) starting with 
 
 ---
 
+## My Building Fundraiser — end-to-end review pass (this pass)
+
+An independent review of the merged feature (PR #66) using the project Skills plus the
+`superpowers` and `impeccable` plugins — both of which ARE installed at
+`.claude/plugins/`, contrary to the stale note in CLAUDE.md's capability hierarchy.
+
+Fixed, each with a regression test where the defect was testable:
+
+- 🔒 **Cross-household IDOR (P0).** `canEditFundraiser` resolved the household permission
+  against whatever household row the caller passed, and `loadFundraiserForActor` passed the
+  ACTOR's. The guard therefore compared a household to itself, letting any household head open
+  any other household's FAMILY fundraiser — story, goal, verified totals and the Activity feed.
+  `rbac.ts` now compares the actor against the FUNDRAISER's household first, so no call site can
+  defeat it. Red-green verified.
+- 🔒 **Attribution hijack.** `suggestFundraiser` substring-matched owner-chosen slug/title/display
+  name against the giving designation, so a fundraiser titled "Building Fund" would be
+  pre-selected as the destination for every unmatched gift in a batch. Exact slug match only, and
+  the reconciliation screen no longer pre-selects a suggestion — attributing money is now an
+  affirmative per-row choice.
+- 🔒 **Supporter session token** is domain-separated (`sup|…`), so no other validly-signed token
+  of the same shape can be replayed as a supporter session.
+- 🛡️ **Safeguarding: adult attestation** on the Supporter path (new nullable
+  `Supporter.adultAttestedAt`). It was the one surface where a self-asserted identity reached a
+  public church page with no age signal; the approval queue now also flags non-member pages.
+- 🐞 **Public leaderboards were not status-aware.** A DECLINED or ARCHIVED fundraiser kept its
+  owner's name on `/fundraising/leaders`, and closing a fundraiser silently renamed its
+  Wall-of-Fame row to "Member". Both now read `{ACTIVE, CLOSED}`.
+- 🐞 **Milestone notifications were suppressed** for treasurers confirming gifts one at a time —
+  `confirmDonation` wrote the status directly instead of going through `confirmAttribution`.
+- 🐞 **Supporter "changes requested" was a dead end**: the email said "reply and we'll send you a
+  link" and no such flow existed. Supporters now get a manage link on that event and an Edit tab
+  plus resubmit, available only while the fundraiser is theirs to change.
+- 🐞 **"Your changes are live" was shown when a title edit had just taken the page offline.**
+- 🐞 **DRAFT was unreachable** despite being modelled, labelled and specified — "Save as draft"
+  added to the creation flow.
+- 🐞 Ministry type was offered to members who could not use it and then crashed on submit;
+  eligibility now uses the same predicate as the write path.
+- 🐞 Activity emitted one line per gift, so a small owner could infer who gave what. Entries are
+  aggregated per reconciliation batch, which is also what §3 describes.
+- 🐞 `supporterCount` counted gifts, not people. `loadShareLibrary` no longer offers an asset
+  missing the field its kind needs (the broken-image case). Uniqueness collisions and a missing
+  household now produce plain messages instead of the generic error page.
+- 🧹 `creationContext` moved out of the `"use server"` module (it was a callable endpoint
+  returning the actor's role set); `loadFundraiserById` replaced by
+  `loadFundraiserForSupporter`, which proves ownership in its own query.
+- 🎨 Removed the `border-l-4` side-tab accent the Impeccable detector flags; tabular figures so
+  money and percentages don't jitter; milestone ticks hidden at the zero state where they read as
+  a broken segmented control; a loading skeleton for the fundraiser routes.
+- ⚙️ **Campaign configuration** — `allowMemberFundraisers` and the building-project link were
+  settable only at campaign creation, so a church whose campaign already existed could never turn
+  the feature on. Both are now editable on the campaign page.
+
+Note on the audit trail: a Supporter is not a `User`, and `AuditLog.actorId` is a required FK to
+`User`. Supporter self-edits therefore write no audit row (a synthetic id rolled the edit back);
+`submittedAt`/`updatedAt` record the change and every admin decision on it is audited normally.
+
+**Verified:** `prisma validate`, `migrate deploy` from an empty database, drift-free, `lint`,
+`typecheck`, `test` (46 files / 428 tests), `build`, and the Playwright security suite
+(15/15) — plus a live pass over every changed surface at desktop, mobile and dark, which found
+no overflow, broken images, missing alt text, heading-order breaks or unlabelled controls.
+
+---
+
 ## My Building Fundraiser — member dashboard integration (this pass)
 
 Integrates peer-to-peer fundraising into the **existing** Member Portal per

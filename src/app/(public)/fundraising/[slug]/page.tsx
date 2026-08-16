@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { safe } from "@/lib/safe";
+import { buildingCampaign } from "@/lib/fundraisers";
 import { formatUsd, campaignTotals, fundraiserTotals, rankFundraisers, confirmedTotal } from "@/lib/fundraising";
 import { DonateForm } from "@/components/DonateForm";
 import { Container } from "@/components/ui";
@@ -17,9 +18,18 @@ export default async function CampaignPage({ params, searchParams }: { params: P
     where: { slug },
     // Only ACTIVE fundraisers are publicly listed — a draft, in-review, rejected, closed or
     // archived page must never be reachable or advertised from a public surface (§7, §18).
-    include: { donations: { select: { amount: true, status: true, fundraiserId: true } }, fundraisers: { where: { status: "ACTIVE" }, include: { donations: { select: { amount: true, status: true } } } } },
+    include: {
+      donations: { select: { amount: true, status: true, fundraiserId: true } },
+      // ACTIVE and CLOSED both feed the Wall of Fame: a fundraiser that finished successfully
+      // and was closed still earned its recognition, and omitting it would leave its dollars on
+      // the board under the anonymous "Member" fallback. DECLINED/ARCHIVED stay off entirely.
+      fundraisers: { where: { status: { in: ["ACTIVE", "CLOSED"] } }, include: { donations: { select: { amount: true, status: true } } } },
+    },
   }), null);
   if (!c || c.status === "DRAFT") notFound();
+  // The creation flow is bound to the Building Project campaign, so only that one offers the CTA.
+  const building = await safe(buildingCampaign(), null);
+  const isBuildingCampaign = !!building && building.id === c.id && c.allowMemberFundraisers;
   const totals = campaignTotals(c.donations, c.goal);
   const names = Object.fromEntries(c.fundraisers.map((f) => [f.id, f.displayName]));
   const board = rankFundraisers(fundraiserTotals(c.donations, names)).slice(0, 10);
@@ -77,13 +87,15 @@ export default async function CampaignPage({ params, searchParams }: { params: P
           <Reveal as="section" className="mt-12">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-title font-serif font-semibold text-fg">Member fundraisers</h2>
-              {/* Public entry point: it signs a member in to their own dashboard flow and
-                  offers a non-member the Supporter path, so nobody hits a login wall here. */}
-              <Link href="/fundraising/start" className="text-sm font-semibold text-primary hover:text-primary-hover">Start your own →</Link>
+              {/* Only advertised for the campaign the creation flow actually targets. Any other
+                  campaign would send someone to a form that can't create a fundraiser for it. */}
+              {isBuildingCampaign && (
+                <Link href="/fundraising/start" className="text-sm font-semibold text-primary hover:text-primary-hover">Start your own →</Link>
+              )}
             </div>
-            {c.fundraisers.length ? (
+            {c.fundraisers.filter((f) => f.status === "ACTIVE").length ? (
               <ul className="space-y-2">
-                {c.fundraisers.map((f) => (
+                {c.fundraisers.filter((f) => f.status === "ACTIVE").map((f) => (
                   <li key={f.id} className="flex items-center justify-between rounded-lg border border-line bg-surface px-4 py-3">
                     <Link href={`/f/${f.slug}`} className="font-medium text-fg hover:text-primary">{f.title} <span className="text-sm text-muted">· {f.displayName}</span></Link>
                     <span className="text-sm text-muted">{formatUsd(confirmedTotal(f.donations))}</span>

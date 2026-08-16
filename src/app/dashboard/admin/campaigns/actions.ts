@@ -36,6 +36,34 @@ export async function createCampaign(formData: FormData) {
   redirect(`/dashboard/admin/campaigns/${c.id}`);
 }
 
+/**
+ * Turn member fundraising on/off for a campaign and tie it to the building project.
+ *
+ * Both flags were previously settable only at creation, which meant a church whose building
+ * campaign already existed had no way to switch the feature on — the fundraiser surfaces would
+ * simply report "not open right now" forever, with creating a second campaign as the only cure.
+ */
+export async function setCampaignFundraising(formData: FormData) {
+  const a = await admin();
+  const id = String(formData.get("id"));
+  const allowMemberFundraisers = formData.get("allowMemberFundraisers") === "on";
+  const constructionProjectId = String(formData.get("constructionProjectId") ?? "") || null;
+  await prisma.fundraisingCampaign.update({
+    where: { id },
+    data: { allowMemberFundraisers, constructionProjectId },
+  });
+  await writeAudit(prisma, {
+    actorId: a.userId,
+    action: "campaign.fundraising.configure",
+    entity: "FundraisingCampaign",
+    entityId: id,
+    metadata: { allowMemberFundraisers, tiedToProject: !!constructionProjectId },
+  });
+  revalidatePath(`/dashboard/admin/campaigns/${id}`);
+  revalidatePath("/dashboard/admin/construction/fundraisers");
+  revalidatePath("/dashboard/member");
+}
+
 export async function setCampaignStatus(formData: FormData) {
   await admin();
   const id = String(formData.get("id"));
@@ -45,21 +73,24 @@ export async function setCampaignStatus(formData: FormData) {
   revalidatePath(`/dashboard/admin/campaigns/${id}`);
 }
 
-/** Confirm a donation as actually received (reconciled against AdventistGiving). Rolls into a
- *  linked construction project's headline "raised" if the campaign is tied to one. */
+/**
+ * Confirm a single donation as actually received (reconciled against AdventistGiving).
+ *
+ * This delegates to confirmAttribution so that confirming gifts ONE AT A TIME — the treasurer's
+ * habit before batch reconciliation existed — goes through the same path as a batch. Writing the
+ * status here directly would roll the money into the project but silently skip the fundraiser's
+ * milestone notifications, so an owner would never be told they hit 50%.
+ */
 export async function confirmDonation(formData: FormData) {
   const a = await admin();
   const id = String(formData.get("id"));
-  await prisma.$transaction(async (tx) => {
-    const don = await tx.donation.findUniqueOrThrow({ where: { id }, include: { campaign: true } });
-    if (don.status === "CONFIRMED") return;
-    await tx.donation.update({ where: { id }, data: { status: "CONFIRMED", confirmedAt: new Date() } });
-    if (don.campaign.constructionProjectId) {
-      await tx.constructionProject.update({ where: { id: don.campaign.constructionProjectId }, data: { currentRaised: { increment: don.amount } } });
-    }
-    await writeAudit(tx, { actorId: a.userId, action: "donation.confirm", entity: "Donation", entityId: id, metadata: { amount: don.amount } });
-  });
-  revalidatePath(`/dashboard/admin/campaigns/${String(formData.get("campaignId"))}`);
+  const campaignId = String(formData.get("campaignId"));
+  const don = await prisma.donation.findUnique({ where: { id }, select: { campaignId: true, status: true } });
+  if (don && don.status === "PENDING") {
+    await confirmAttribution(a, { campaignId: don.campaignId, donationIds: [id] });
+  }
+  revalidatePath(`/dashboard/admin/campaigns/${campaignId}`);
+  revalidatePath("/dashboard/admin/construction/fundraisers");
 }
 
 export async function cancelDonation(formData: FormData) {

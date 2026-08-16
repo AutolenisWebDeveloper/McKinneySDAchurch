@@ -41,7 +41,7 @@ export default async function AdminFundraisers({
       personalGoal: true, targetDate: true, reviewNote: true, submittedAt: true, createdAt: true,
       household: { select: { familyName: true } },
       ministry: { select: { name: true } },
-      supporter: { select: { id: true, name: true, email: true, emailNormalized: true, deactivatedAt: true } },
+      supporter: { select: { id: true, name: true, email: true, emailNormalized: true, deactivatedAt: true, adultAttestedAt: true } },
       donations: { select: { amount: true, status: true } },
       _count: { select: { referrals: true, handoffs: true } },
     },
@@ -112,6 +112,12 @@ export default async function AdminFundraisers({
                   {r.submittedAt && <> · submitted {formatDate(r.submittedAt)}</>}
                 </p>
 
+                {r.supporter && (
+                  <p className="mt-2 text-sm text-accent-strong">
+                    Non-member page. Approving publishes this name on the church website — check it belongs to an
+                    adult you can identify{!r.supporter.adultAttestedAt ? ", and note they did not confirm they're 18 or older" : ""}.
+                  </p>
+                )}
                 {isReviewer ? (
                 <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                   <form action={reviewFundraiser} className="contents">
@@ -250,11 +256,18 @@ function FundraiserHeading({
           {FUNDRAISER_TYPE_LABEL[r.type as keyof typeof FUNDRAISER_TYPE_LABEL]} · {owner}
           {r.supporter && <> · <span className="font-medium">Supporter</span> ({r.supporter.email})</>}
         </p>
-        {r.status === "ACTIVE" && (
-          <a href={publicUrl(r.slug)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-primary hover:text-primary-hover">
-            /f/{r.slug} ↗
-          </a>
-        )}
+        <span className="flex flex-wrap items-center gap-3">
+          {/* Admins can open any fundraiser's workspace, which is how a stuck owner — especially
+              a Supporter with no portal — gets helped without hand-typing a URL. */}
+          <Link href={`/dashboard/fundraisers/${r.id}`} className="text-sm font-semibold text-primary hover:text-primary-hover">
+            Open fundraiser
+          </Link>
+          {r.status === "ACTIVE" && (
+            <a href={publicUrl(r.slug)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-primary hover:text-primary-hover">
+              /f/{r.slug} ↗
+            </a>
+          )}
+        </span>
       </div>
       <StatusPill status={r.status as never} />
     </div>
