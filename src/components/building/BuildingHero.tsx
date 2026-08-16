@@ -13,7 +13,7 @@ export function BuildingHero({
   projectTitle,
   targetLabel,
   videoSources,
-  poster = "/image/rendering-approach.jpg",
+  poster = "/image/exterior-arrival.jpg",
 }: {
   projectTitle?: string | null;
   targetLabel?: string | null;

@@ -32,6 +32,7 @@ export default async function SabbathSchool() {
         title="Sabbath School"
         lede="Before worship each Sabbath, we gather in classes for every age to study Scripture together and share life."
         tone="denim"
+        image={{ src: "/image/classroom.jpg" }}
         actions={<Link href="/plan-a-visit" className="btn btn-ghost-light">Plan a visit</Link>}
       />
       <Section>

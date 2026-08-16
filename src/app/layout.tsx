@@ -22,6 +22,21 @@ export const metadata = {
     description:
       "A Christ-centered Seventh-day Adventist congregation in McKinney, Texas. Join us for worship each Sabbath.",
     type: "website",
+    images: [
+      {
+        url: "/image/og-home.jpg",
+        width: 1200,
+        height: 630,
+        alt: "The McKinney Seventh-day Adventist Church exterior and signage",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "McKinney Seventh-day Adventist Church",
+    description:
+      "A Christ-centered Seventh-day Adventist congregation in McKinney, Texas. Join us for worship each Sabbath.",
+    images: ["/image/og-home.jpg"],
   },
 };
 

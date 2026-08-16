@@ -55,6 +55,7 @@ export default async function Ministries() {
       <PageHeader
         eyebrow="Get involved"
         tone="denim"
+        image={{ src: "/image/fellowship-tables.jpg" }}
         title="Ministries & Departments"
         lede="Every department of our church exists to help people know Jesus and grow in Him. Explore what each one does, meet the leader who serves it, and find where you belong."
         actions={

@@ -34,6 +34,7 @@ export default async function Give() {
         title="Generosity is worship"
         lede="Returning tithe and giving offerings is an act of gratitude to God. Giving is handled securely through AdventistGiving — we never see or store your card details."
         tone="denim"
+        image={{ src: "/image/lobby-welcome.jpg" }}
         actions={env.ADVENTIST_GIVING_URL ? (
           <a href={env.ADVENTIST_GIVING_URL} target="_blank" rel={EXT} className="btn btn-accent">Give with AdventistGiving</a>
         ) : undefined}

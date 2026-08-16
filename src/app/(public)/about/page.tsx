@@ -33,6 +33,7 @@ export default function About() {
         title="A church family, growing in grace"
         lede="McKinney Seventh-day Adventist Church is a community of ordinary people following Jesus together in McKinney, Texas — worshiping each Sabbath, caring for one another, and looking forward to a better world to come."
         tone="denim"
+        image={{ src: "/image/fellowship-hall.jpg" }}
         actions={<>
           <Link href="/plan-a-visit" className="btn btn-white">Plan a visit</Link>
           <Link href="/beliefs" className="btn btn-ghost-light">What we believe</Link>
