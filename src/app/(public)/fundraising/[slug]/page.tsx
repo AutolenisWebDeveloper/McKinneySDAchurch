@@ -15,7 +15,9 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   const { donated } = await searchParams;
   const c = await safe(prisma.fundraisingCampaign.findUnique({
     where: { slug },
-    include: { donations: { select: { amount: true, status: true, fundraiserId: true } }, fundraisers: { where: { active: true }, include: { donations: { select: { amount: true, status: true } } } } },
+    // Only ACTIVE fundraisers are publicly listed — a draft, in-review, rejected, closed or
+    // archived page must never be reachable or advertised from a public surface (§7, §18).
+    include: { donations: { select: { amount: true, status: true, fundraiserId: true } }, fundraisers: { where: { status: "ACTIVE" }, include: { donations: { select: { amount: true, status: true } } } } },
   }), null);
   if (!c || c.status === "DRAFT") notFound();
   const totals = campaignTotals(c.donations, c.goal);
@@ -75,7 +77,9 @@ export default async function CampaignPage({ params, searchParams }: { params: P
           <Reveal as="section" className="mt-12">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-title font-serif font-semibold text-fg">Member fundraisers</h2>
-              <Link href="/dashboard/fundraisers" className="text-sm font-semibold text-primary hover:text-primary-hover">Start your own →</Link>
+              {/* Public entry point: it signs a member in to their own dashboard flow and
+                  offers a non-member the Supporter path, so nobody hits a login wall here. */}
+              <Link href="/fundraising/start" className="text-sm font-semibold text-primary hover:text-primary-hover">Start your own →</Link>
             </div>
             {c.fundraisers.length ? (
               <ul className="space-y-2">

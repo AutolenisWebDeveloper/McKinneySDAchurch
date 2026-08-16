@@ -6,6 +6,55 @@ now being extended to the merged Master Directive (Phases 1–10) starting with 
 
 ---
 
+## My Building Fundraiser — member dashboard integration (this pass)
+
+Integrates peer-to-peer fundraising into the **existing** Member Portal per
+`SPEC_Member_Dashboard_My_Building_Fundraiser.md` (§1–§20). Nothing parallel was created: the
+existing `FundraisingCampaign` / `Fundraiser` / `Donation` models, the member route
+`/dashboard/fundraisers`, the public `/f/[slug]` page, the admin campaign surface, the
+AdventistGiving CSV reconciliation, `rbac.ts`, `notify.ts`, and the email registry were all
+extended in place. Plan and reconciliation map: `docs/my-building-fundraiser-plan.md`.
+
+- ✅ **Data model** — `Fundraiser` gains `type`/`status`/owning identity/`targetDate`/
+  `referralToken`/review fields; new `GivingHandoff` (candidate attribution, no donor identity
+  or amount), `Supporter` + `SupporterLoginToken` (non-member carve-out), `FundraisingAsset`
+  (share library), `Member.canManageHouseholdFundraising`. Migration
+  `20260815000000_building_fundraiser` **backfills `status` from the legacy `active` flag and
+  backfills referral tokens before enforcing constraints**; partial unique indexes enforce one
+  live fundraiser per household and per ministry.
+- ✅ **Verified-amount semantics (§3)** — no denormalized total exists; every displayed figure
+  derives from `Donation.status = CONFIRMED`. Over-goal shows the true amount and percentage
+  with the bar capped at 100%. Unreliable supporter/referral counts are omitted, not zeroed.
+- ✅ **Status engine + edit rules (§7, §8)** — pure, fully unit-tested state machine in
+  `src/lib/fundraiser-workflow.ts`; guarded server-side in `src/lib/fundraisers.ts` with an
+  optimistic-concurrency `updateMany` guard. Goal floor = current verified raised.
+- ✅ **Attribution (§4)** — the giving handoff `/f/[slug]/give` records a candidate attribution
+  and redirects to `ADVENTIST_GIVING_URL`; only treasurer confirmation during CSV reconciliation
+  sets verified. Referral tokens captured on public "Start a Fundraiser" links.
+- ✅ **Member surfaces (§1, §2, §9–§11, §13)** — status-aware widget mounted inside the existing
+  `/dashboard/member` page; workspace with Overview / Share / Activity; creation flow; edit.
+- ✅ **Public page (§12)** and **Supporter identity (§15)** — passwordless single-use magic link
+  exchanged for an HMAC-signed session scoped to ONE fundraiser; no Member Portal access.
+- ✅ **Admin (§16)** — approval queue, campaign view (verified vs candidate), content library,
+  attribution confirmation, close/archive, admin-initiated Supporter→Member migration.
+- ✅ **Notifications (§14)** — existing `Notification` centre for members, existing Resend +
+  template registry for Supporters. No second notification system.
+- ✅ **Verified in this repo:** `prisma validate`, `prisma migrate deploy` (from scratch),
+  `typecheck`, `lint`, `test` (46 files / 423 tests), `build`. Every §7/§18 state was rendered
+  against a real Postgres and checked, including: the spec's `$7,500 of $10,000 — 75%` and
+  over-goal `$11,200 of $10,000 — 112%` (bar capped); non-ACTIVE pages disclose no content;
+  approve → notification + audit + public page live; a $6,000 gift crossing 25/50/75% notified
+  each milestone exactly once; a Supporter session reaching zero Member Portal routes.
+- ⚠️ **Known pre-existing platform behavior (not introduced here):** `notFound()` on dynamic
+  routes returns HTTP 200 with the not-found page body (verified identically on the pre-existing
+  `/fundraising/[slug]` and `/sermons/[id]`). Content is correctly withheld; only the status
+  code is wrong, app-wide.
+- **Decisions applied, open for sign-off:** member eligibility = any authenticated, non-minor,
+  non-deactivated member (§5); Supporter→Member migration is **admin-initiated**, never
+  automatic on an email match (§15).
+
+---
+
 ## Admin member & household lifecycle management (this pass)
 
 Gives Admins full control over members, households, roles, and account access from the Admin

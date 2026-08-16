@@ -7,6 +7,7 @@ import { getActor } from "@/auth/actor";
 import { requireRole } from "@/lib/rbac";
 import { writeAudit } from "@/lib/audit";
 import { slugify } from "@/lib/fundraising";
+import { confirmAttribution, importVerifiedGifts } from "@/lib/fundraisers";
 
 async function admin() { const a = await getActor(); requireRole(a, "ADMIN", "PASTOR", "TREASURER"); return a; }
 async function uniqueSlug(base: string): Promise<string> {
@@ -69,36 +70,29 @@ export async function cancelDonation(formData: FormData) {
   revalidatePath(`/dashboard/admin/campaigns/${String(formData.get("campaignId"))}`);
 }
 
-/** Confirm a batch of matched donations (reconciled against AdventistGiving). Rolls into a linked project. */
+/**
+ * Confirm a batch of matched donations as verified (reconciled against AdventistGiving). Both
+ * this and importUnmatchedGifts delegate to lib/fundraisers.ts, so there is exactly one place
+ * where a gift becomes verified — and it is the same place that fires milestone notifications
+ * to the fundraiser's owner.
+ */
 export async function confirmMatched(campaignId: string, donationIds: string[]) {
   const a = await admin();
-  if (!donationIds.length) return { confirmed: 0 };
-  await prisma.$transaction(async (tx) => {
-    const campaign = await tx.fundraisingCampaign.findUniqueOrThrow({ where: { id: campaignId }, select: { constructionProjectId: true } });
-    const dons = await tx.donation.findMany({ where: { id: { in: donationIds }, campaignId, status: "PENDING" } });
-    for (const d of dons) {
-      await tx.donation.update({ where: { id: d.id }, data: { status: "CONFIRMED", confirmedAt: new Date() } });
-      if (campaign.constructionProjectId) await tx.constructionProject.update({ where: { id: campaign.constructionProjectId }, data: { currentRaised: { increment: d.amount } } });
-    }
-    await writeAudit(tx, { actorId: a.userId, action: "donation.reconcile.confirm", entity: "FundraisingCampaign", entityId: campaignId, metadata: { count: dons.length } });
-  });
+  const res = await confirmAttribution(a, { campaignId, donationIds });
   revalidatePath(`/dashboard/admin/campaigns/${campaignId}`);
-  return { confirmed: donationIds.length };
+  revalidatePath("/dashboard/admin/construction/fundraisers");
+  return { confirmed: res.confirmed };
 }
 
-/** Record unmatched AdventistGiving gifts as new CONFIRMED donations on the campaign (no fundraiser). */
-export async function importUnmatchedGifts(campaignId: string, gifts: { donorName: string; email: string | null; amount: number }[]) {
+/** Record AdventistGiving gifts that have no pending pledge as new verified donations,
+ *  attributed to a fundraiser where the treasurer has said which one. */
+export async function importUnmatchedGifts(
+  campaignId: string,
+  gifts: { donorName: string; email: string | null; amount: number; fundraiserId?: string | null }[],
+) {
   const a = await admin();
-  if (!gifts.length) return { imported: 0 };
-  await prisma.$transaction(async (tx) => {
-    const campaign = await tx.fundraisingCampaign.findUniqueOrThrow({ where: { id: campaignId }, select: { constructionProjectId: true } });
-    for (const g of gifts) {
-      if (!g.amount) continue;
-      await tx.donation.create({ data: { campaignId, donorName: g.donorName || "AdventistGiving donor", email: g.email ?? undefined, amount: g.amount, kind: "GIVEN", status: "CONFIRMED", confirmedAt: new Date() } });
-      if (campaign.constructionProjectId) await tx.constructionProject.update({ where: { id: campaign.constructionProjectId }, data: { currentRaised: { increment: g.amount } } });
-    }
-    await writeAudit(tx, { actorId: a.userId, action: "donation.reconcile.import", entity: "FundraisingCampaign", entityId: campaignId, metadata: { count: gifts.length } });
-  });
+  const res = await importVerifiedGifts(a, { campaignId, gifts });
   revalidatePath(`/dashboard/admin/campaigns/${campaignId}`);
-  return { imported: gifts.length };
+  revalidatePath("/dashboard/admin/construction/fundraisers");
+  return { imported: res.imported };
 }

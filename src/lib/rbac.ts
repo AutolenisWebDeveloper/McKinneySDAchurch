@@ -154,6 +154,96 @@ export function canManageDependent(
   );
 }
 
+/* =====================================================================================
+ * Fundraising — My Building Fundraiser (§5, §8, §10, §16). Ownership is polymorphic by
+ * fundraiser type, so "can this actor act on this fundraiser" is decided here rather than
+ * inline at each route. A Supporter is NEVER an Actor: a non-member reaches only their own
+ * fundraiser through a scoped magic-link session (see lib/supporter-auth.ts), so nothing in
+ * this module can grant a Supporter member-portal access.
+ * ===================================================================================== */
+
+export type FundraiserRef = {
+  type: "PERSONAL" | "FAMILY" | "MINISTRY";
+  ownerUserId?: string | null;
+  householdId?: string | null;
+  ministryId?: string | null;
+  supporterId?: string | null;
+};
+
+/** A member's own eligibility to own a fundraiser at all. Minors never qualify (safeguarding). */
+export type FundraiserEligibility = {
+  isMinor?: boolean;
+  deactivatedAt?: Date | null;
+};
+
+export function canCreateFundraiser(a: Actor, member: FundraiserEligibility | null | undefined): boolean {
+  // Decision (§5, default): any authenticated, non-minor member whose record is active.
+  // Admin/Pastor may always act, including on behalf of the campaign.
+  if (isAdmin(a)) return true;
+  if (!hasRole(a, "MEMBER")) return false;
+  if (!member) return false;
+  return !member.isMinor && !member.deactivatedAt;
+}
+
+/** May this actor create a FAMILY fundraiser for this household? (§10) */
+export function canManageHouseholdFundraising(
+  a: Actor,
+  household: { id: string; primaryContactId?: string | null } | null | undefined,
+  member: { id: string; canManageHouseholdFundraising?: boolean } | null | undefined,
+): boolean {
+  if (isAdmin(a)) return true;
+  if (!household || !member) return false;
+  if (a.householdId !== household.id) return false;
+  return !!member.canManageHouseholdFundraising || household.primaryContactId === member.id;
+}
+
+/** May this actor raise on behalf of this ministry/team? Mirrors the calendar's owner scope. */
+export function canManageFundraiserForMinistry(a: Actor, ministryId: string): boolean {
+  if (isAdmin(a)) return true;
+  return hasRole(a, "MINISTRY_HEAD") && ministryScope(a).includes(ministryId);
+}
+
+/**
+ * May this actor EDIT the fundraiser (change goal/story/graphic/date, submit, close)?
+ * A Supporter-owned fundraiser is never editable by a member actor — only by an admin, or by
+ * the Supporter through their own scoped session.
+ */
+export function canEditFundraiser(
+  a: Actor,
+  f: FundraiserRef,
+  ctx: { member?: { id: string; canManageHouseholdFundraising?: boolean } | null; household?: { id: string; primaryContactId?: string | null } | null } = {},
+): boolean {
+  if (isAdmin(a)) return true;
+  switch (f.type) {
+    case "PERSONAL":
+      return !f.supporterId && !!f.ownerUserId && f.ownerUserId === a.userId;
+    case "FAMILY":
+      return !!f.householdId && canManageHouseholdFundraising(a, ctx.household ?? (f.householdId ? { id: f.householdId } : null), ctx.member ?? null);
+    case "MINISTRY":
+      return !!f.ministryId && canManageFundraiserForMinistry(a, f.ministryId);
+    default:
+      return false;
+  }
+}
+
+/**
+ * May this actor SEE and SHARE the fundraiser from inside the portal? Broader than edit: every
+ * household member can view/share their family's fundraiser, and every member of a ministry
+ * can view/share the ministry's, even without edit rights (§10).
+ */
+export function canViewFundraiser(a: Actor, f: FundraiserRef, ctx: Parameters<typeof canEditFundraiser>[2] = {}): boolean {
+  if (canEditFundraiser(a, f, ctx)) return true;
+  if (f.type === "FAMILY") return !!f.householdId && f.householdId === a.householdId;
+  if (f.type === "MINISTRY") return !!f.ministryId && ministryScope(a).includes(f.ministryId);
+  return false;
+}
+
+/** Approve / request changes / reject / archive / reassign — the church office only (§16). */
+export const canReviewFundraiser = (a: Actor) => isAdmin(a);
+
+/** Confirm a gift ↔ fundraiser match from the AdventistGiving CSV. This is what sets verified. */
+export const canConfirmAttribution = (a: Actor) => canManageGiving(a);
+
 /* ---- Safeguarding gate: no assignment to minor-facing roles without a live clearance ---- */
 export type Screening = { status: string; expiresAt: Date | null } | null | undefined;
 export function isScreeningCurrent(s: Screening, now = new Date()): boolean {
@@ -241,11 +331,13 @@ export type Action =
   | "accountRequest.review"
   | "document.read" | "document.download" | "document.manage"
   | "role.manage"
-  | "giving.manage";
+  | "giving.manage"
+  | "fundraiser.view" | "fundraiser.edit" | "fundraiser.review" | "fundraiser.confirmAttribution";
 
 /** Resource shape depends on the action: WorkItem actions take a WorkItemRef; document
- *  actions take a DocumentRef; role-only actions take no resource. */
-export type Resource = WorkItemRef | DocumentRef;
+ *  actions take a DocumentRef; fundraiser actions take a FundraiserRef; role-only actions
+ *  take no resource. */
+export type Resource = WorkItemRef | DocumentRef | FundraiserRef;
 
 export function can(actor: Actor, action: Action, resource?: Resource): boolean {
   switch (action) {
@@ -292,6 +384,14 @@ export function can(actor: Actor, action: Action, resource?: Resource): boolean 
       return canManageRoles(actor);
     case "giving.manage":
       return canManageGiving(actor);
+    case "fundraiser.view":
+      return resource ? canViewFundraiser(actor, resource as FundraiserRef) : false;
+    case "fundraiser.edit":
+      return resource ? canEditFundraiser(actor, resource as FundraiserRef) : false;
+    case "fundraiser.review":
+      return canReviewFundraiser(actor);
+    case "fundraiser.confirmAttribution":
+      return canConfirmAttribution(actor);
     default:
       return false;
   }

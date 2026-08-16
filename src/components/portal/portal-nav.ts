@@ -35,11 +35,17 @@ export function portalNav(portal: PortalKey, _actor: Actor): NavGroup[] {
           ],
         },
         {
+          label: "Building Project",
+          items: [
+            { href: "/construction", label: "Building Project", icon: "building" },
+            { href: "/dashboard/fundraisers", label: "My Fundraiser", icon: "fundraisers" },
+          ],
+        },
+        {
           label: "Church",
           items: [
             { href: "/dashboard/directory", label: "Directory", icon: "directory" },
             { href: "/dashboard/search", label: "Search", icon: "search" },
-            { href: "/dashboard/fundraisers", label: "My Fundraisers", icon: "fundraisers" },
             { href: "/dashboard/manual", label: "Church Manual", icon: "manual" },
           ],
         },
@@ -127,6 +133,7 @@ export function portalNav(portal: PortalKey, _actor: Actor): NavGroup[] {
             { href: "/dashboard/admin/offerings", label: "Offering Calendar", icon: "finance" },
             { href: "/dashboard/admin/campaigns", label: "Campaigns", icon: "campaign" },
             { href: "/dashboard/admin/construction", label: "Building Fund", icon: "building" },
+            { href: "/dashboard/admin/construction/fundraisers", label: "Fundraisers", icon: "fundraisers" },
           ],
         },
         {
@@ -194,7 +201,12 @@ export function portalNav(portal: PortalKey, _actor: Actor): NavGroup[] {
         },
         {
           label: "Building",
-          items: [{ href: "/dashboard/admin/construction", label: "Building Project", icon: "building" }],
+          items: [
+            { href: "/dashboard/admin/construction", label: "Building Project", icon: "building" },
+            { href: "/dashboard/admin/construction/fundraisers", label: "Fundraisers", icon: "fundraisers" },
+            { href: "/dashboard/admin/construction/library", label: "Share Library", icon: "content" },
+            { href: "/dashboard/admin/campaigns", label: "Campaigns", icon: "campaign" },
+          ],
         },
       ];
 
@@ -248,6 +260,7 @@ export function quickCreateActions(portal: PortalKey): NavItem[] {
       ];
     case "member":
       return [
+        { href: "/dashboard/fundraisers/new", label: "Start my fundraiser", icon: "fundraisers" },
         { href: "/dashboard/member/message", label: "Message leadership", icon: "message" },
         { href: "/dashboard/member/transfer", label: "Request transfer", icon: "transfer" },
       ];

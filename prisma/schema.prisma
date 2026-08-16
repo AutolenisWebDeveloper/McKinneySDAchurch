@@ -256,10 +256,11 @@ model Ministry {
   userRoles         UserRole[]         @relation("UserRoleMinistry")
   workItems         WorkItem[]         @relation("WorkItemMinistry")
   packetSubmissions PacketSubmission[] @relation("PacketSubmissionMinistry")
+  fundraisers       Fundraiser[]       @relation("MinistryFundraisers")
 }
 
 model Household {
-  id               String    @id @default(cuid())
+  id               String       @id @default(cuid())
   familyName       String?
   addressLine1     String?
   city             String?
@@ -275,9 +276,10 @@ model Household {
   /// App-level household deactivation (reversible). Distinct from deletion; when set, the
   /// household and its members are treated as inactive and member logins are disabled.
   deactivatedAt    DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   members          Member[]
+  fundraisers      Fundraiser[] @relation("HouseholdFundraisers")
 }
 
 model Member {
@@ -309,6 +311,11 @@ model Member {
   employer          String?
   employmentStatus  String? // EMPLOYED | SELF_EMPLOYED | RETIRED | STUDENT | UNEMPLOYED
   skills            String? // professional skills/services offered voluntarily
+
+  /// Household-level "manage fundraising" permission (§10): may create, authorize, and edit
+  /// the household's family fundraiser. Other household members can view and share it only.
+  /// The household's designated primary contact is treated as holding this implicitly.
+  canManageHouseholdFundraising Boolean @default(false)
 
   householdId String?
   household   Household? @relation(fields: [householdId], references: [id])
@@ -1338,6 +1345,36 @@ enum DonationKind {
   GIVEN
 }
 
+/// Who a fundraiser is raising on behalf of. PERSONAL is owned by one member (or Supporter),
+/// FAMILY by a household, MINISTRY by a ministry/team. Eligibility to create each type is
+/// decided in rbac.ts, never in the UI.
+enum FundraiserType {
+  PERSONAL
+  FAMILY
+  MINISTRY
+}
+
+/// A fundraiser's reviewed lifecycle. Transitions are guarded server-side by the pure state
+/// machine in src/lib/fundraiser-workflow.ts; nothing goes public before ACTIVE. "Goal
+/// reached" is a DERIVED flag (verified raised >= goal), not a status — an over-goal
+/// fundraiser stays ACTIVE and keeps accepting gifts.
+enum FundraiserStatus {
+  DRAFT // created, not yet submitted
+  PENDING_REVIEW // submitted, awaiting an admin decision
+  CHANGES_REQUESTED // returned to the owner with a note
+  REJECTED // declined (admin may reopen to PENDING_REVIEW)
+  ACTIVE // approved; public page live and shareable
+  CLOSED // ended by the owner or an admin; read-only
+  ARCHIVED // retired by an admin; hidden from member surfaces, retained for records
+}
+
+/// Approved share copy and campaign graphics offered in the Share tab. Managed by admins in
+/// the Building Project content library.
+enum FundraisingAssetKind {
+  MESSAGE
+  GRAPHIC
+}
+
 model FundraisingCampaign {
   id                     String         @id @default(cuid())
   slug                   String         @unique
@@ -1358,23 +1395,142 @@ model FundraisingCampaign {
   @@index([status])
 }
 
+/// One person's / household's / ministry's fundraising page for a campaign. The fundraiser
+/// belongs to an EXISTING identity — a member's User+Member, or (non-member carve-out) a
+/// Supporter. There is no separate fundraiser account, login, or profile.
+///
+/// Verified progress is NOT stored here: it is always derived from Donation rows with
+/// status = CONFIRMED, so there is exactly one source of truth for money and no denormalized
+/// total can drift from the ledger.
+///
+/// "One live family fundraiser per household" and "one live fundraiser per ministry" are
+/// enforced by partial unique indexes created in the migration (Prisma's @@unique cannot
+/// express the `WHERE status IN (...)` predicate), matching the UserRole pattern.
 model Fundraiser {
-  id           String              @id @default(cuid())
-  campaignId   String
-  campaign     FundraisingCampaign @relation(fields: [campaignId], references: [id])
-  memberId     String?
-  member       Member?             @relation("MemberFundraisers", fields: [memberId], references: [id])
-  ownerUserId  String?
-  slug         String              @unique
+  id     String           @id @default(cuid())
+  type   FundraiserType   @default(PERSONAL)
+  status FundraiserStatus @default(DRAFT)
+
+  campaignId String
+  campaign   FundraisingCampaign @relation(fields: [campaignId], references: [id])
+
+  // ----- Ownership. Exactly one owning identity, by type:
+  // PERSONAL -> ownerUserId+memberId (member) or supporterId (non-member)
+  // FAMILY   -> householdId (edited by a household member with the fundraising permission)
+  // MINISTRY -> ministryId (edited by an authorized ministry/team leader)
+  memberId    String?
+  member      Member?    @relation("MemberFundraisers", fields: [memberId], references: [id])
+  ownerUserId String?
+  supporterId String?
+  supporter   Supporter? @relation("SupporterFundraisers", fields: [supporterId], references: [id])
+  householdId String?
+  household   Household? @relation("HouseholdFundraisers", fields: [householdId], references: [id])
+  ministryId  String?
+  ministry    Ministry?  @relation("MinistryFundraisers", fields: [ministryId], references: [id])
+
+  slug         String    @unique
   displayName  String
   title        String
   story        String?
-  personalGoal Int                 @default(0)
-  active       Boolean             @default(true)
-  createdAt    DateTime            @default(now())
-  donations    Donation[]
+  graphicUrl   String?
+  personalGoal Int       @default(0)
+  targetDate   DateTime?
 
-  @@index([campaignId])
+  /// Opaque token carried by this page's "Start Your Own Fundraiser" link so a fundraiser
+  /// started from it can be attributed back here (§4). Not a credential — it grants nothing.
+  referralToken          String       @unique
+  referredByFundraiserId String?
+  referredBy             Fundraiser?  @relation("FundraiserReferrals", fields: [referredByFundraiserId], references: [id])
+  referrals              Fundraiser[] @relation("FundraiserReferrals")
+
+  /// Admin note attached to CHANGES_REQUESTED / REJECTED. Shown to the owner.
+  reviewNote        String?
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  reviewedById      String?
+  approvedAt        DateTime?
+  closedAt          DateTime?
+  /// Highest goal milestone (25/50/75/100) already notified, so each fires exactly once.
+  milestoneNotified Int       @default(0)
+
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  donations Donation[]
+  handoffs  GivingHandoff[] @relation("HandoffFundraiser")
+
+  @@index([campaignId, status])
+  @@index([ownerUserId, status])
+  @@index([householdId, status])
+  @@index([ministryId, status])
+  @@index([supporterId, status])
+  @@index([referredByFundraiserId])
+}
+
+/// A visitor left for AdventistGiving through a fundraiser's giving link. This is the
+/// CANDIDATE attribution signal (§4): it deliberately carries no donor identity and no
+/// amount — only that a handoff happened — and never counts toward verified progress. The
+/// treasurer uses it during CSV reconciliation to attribute a confirmed gift to a fundraiser.
+model GivingHandoff {
+  id           String     @id @default(cuid())
+  fundraiserId String
+  fundraiser   Fundraiser @relation("HandoffFundraiser", fields: [fundraiserId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@index([fundraiserId, createdAt])
+}
+
+/// A non-member who runs a fundraiser for the Building Project (§15). Deliberately NOT a
+/// Member and NOT a User: a Supporter has no Member Portal access, no directory presence, no
+/// household, and no ministry data. It exists only to own a fundraiser and its public page,
+/// and is reached through a one-time emailed link scoped to a single fundraiser.
+model Supporter {
+  id              String    @id @default(cuid())
+  name            String
+  email           String
+  emailNormalized String    @unique
+  /// Set when an admin migrates this Supporter's fundraisers to a Member identity.
+  linkedMemberId  String?
+  deactivatedAt   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  fundraisers Fundraiser[]          @relation("SupporterFundraisers")
+  loginTokens SupporterLoginToken[] @relation("SupporterTokens")
+}
+
+/// Single-use, single-fundraiser magic-link token. Only the sha-256 digest is stored, exactly
+/// as Invite/PasswordResetToken do — the raw token exists only in the emailed URL.
+model SupporterLoginToken {
+  id           String    @id @default(cuid())
+  supporterId  String
+  supporter    Supporter @relation("SupporterTokens", fields: [supporterId], references: [id], onDelete: Cascade)
+  /// The one fundraiser this link may manage. A Supporter never gets a combined dashboard.
+  fundraiserId String
+  tokenDigest  String    @unique
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([supporterId])
+}
+
+/// Admin-curated share copy and campaign graphics offered to fundraiser owners in the Share
+/// tab (§16). Church-approved wording only — owners pick from this list rather than the app
+/// generating marketing copy for them.
+model FundraisingAsset {
+  id        String               @id @default(cuid())
+  kind      FundraisingAssetKind
+  title     String
+  /// Message text (kind = MESSAGE).
+  body      String?
+  /// Graphic URL (kind = GRAPHIC).
+  imageUrl  String?
+  active    Boolean              @default(true)
+  sortOrder Int                  @default(0)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@index([kind, active, sortOrder])
 }
 
 model Donation {

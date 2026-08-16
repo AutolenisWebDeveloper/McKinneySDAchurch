@@ -61,3 +61,182 @@ export function raiserBadge(total: number): string | null {
   for (const t of RAISER_TIERS) if (total >= t.min) return t.name;
   return null;
 }
+
+/* =====================================================================================
+ * Verified-amount semantics (spec §3). Every figure a fundraiser owner, a visitor, or the
+ * dashboard sees — raised, %, remaining, milestones, "this month" — comes from these
+ * helpers, and they read CONFIRMED donations only. A PENDING donation is a *candidate*
+ * attribution: it is never counted and never displayed as verified.
+ * ===================================================================================== */
+
+/** A donation as the verified-progress math needs to see it. No donor fields — by design. */
+export type VerifiedDonationLike = {
+  amount: number;
+  status: string;
+  confirmedAt?: Date | null;
+};
+
+/** Treasurer-verified dollars. The single input to every progress figure. */
+export function verifiedTotal(donations: VerifiedDonationLike[]): number {
+  return donations.filter((d) => d.status === "CONFIRMED").reduce((s, d) => s + d.amount, 0);
+}
+
+/** Candidate (unconfirmed) dollars — shown to admins only, never as verified progress. */
+export function candidateTotal(donations: VerifiedDonationLike[]): number {
+  return donations.filter((d) => d.status === "PENDING").reduce((s, d) => s + d.amount, 0);
+}
+
+export type Progress = {
+  /** Verified dollars raised. */
+  raised: number;
+  goal: number;
+  /** True percentage — may exceed 100 when a fundraiser goes over goal (§3). */
+  pct: number;
+  /** Percentage for the progress bar's fill, capped at 100 so the bar never overflows. */
+  barPct: number;
+  /** Dollars still to go; 0 once the goal is met. */
+  remaining: number;
+  goalReached: boolean;
+};
+
+/**
+ * Progress against a goal. Over-goal shows the true amount and percentage (e.g. "$11,200 of
+ * $10,000 — 112%") while the bar fill caps at 100%; giving continues after the goal is met.
+ */
+export function fundraiserProgress(raised: number, goal: number): Progress {
+  const safeGoal = Math.max(0, Math.round(goal));
+  const safeRaised = Math.max(0, Math.round(raised));
+  const pct = safeGoal > 0 ? Math.round((safeRaised / safeGoal) * 100) : 0;
+  return {
+    raised: safeRaised,
+    goal: safeGoal,
+    pct,
+    barPct: Math.min(100, Math.max(0, pct)),
+    remaining: Math.max(0, safeGoal - safeRaised),
+    goalReached: safeGoal > 0 && safeRaised >= safeGoal,
+  };
+}
+
+/** Verified dollars confirmed within the calendar month containing `now`. */
+export function verifiedThisMonth(donations: VerifiedDonationLike[], now: Date = new Date()): number {
+  const y = now.getFullYear(), m = now.getMonth();
+  return donations
+    .filter((d) => d.status === "CONFIRMED" && d.confirmedAt && d.confirmedAt.getFullYear() === y && d.confirmedAt.getMonth() === m)
+    .reduce((s, d) => s + d.amount, 0);
+}
+
+/**
+ * Supporter count, or null when the number would not be trustworthy (§3, §18). Only verified
+ * gifts are counted — a candidate attribution tells us nothing reliable — and zero is reported
+ * as null so the surface omits the figure rather than showing a hollow "0 supporters".
+ */
+export function supporterCount(donations: VerifiedDonationLike[]): number | null {
+  const n = donations.filter((d) => d.status === "CONFIRMED").length;
+  return n > 0 ? n : null;
+}
+
+/** Referral count, or null when there is nothing reliable to show (§3, §18). */
+export function referralCount(referrals: unknown[]): number | null {
+  return referrals.length > 0 ? referrals.length : null;
+}
+
+/** True once the target date has passed. The fundraiser stays open regardless (§18). */
+export function targetDatePassed(targetDate: Date | null | undefined, now: Date = new Date()): boolean {
+  return !!targetDate && targetDate.getTime() < now.getTime();
+}
+
+/* -------------------------------------------------------------- activity feed */
+
+export type ActivityEntry = {
+  at: Date;
+  kind: "approved" | "verified_progress" | "milestone" | "referral_start";
+  /** Already-composed, donor-free text. */
+  text: string;
+};
+
+/**
+ * The owner-facing Activity feed (§2). Derived entirely from the verified ledger — it shows
+ * verified-progress increments, milestone crossings, and referral starts, and it CANNOT leak
+ * donor information because no donor field is accepted as input.
+ *
+ * Milestones are replayed against the current goal, so an owner who raises their goal sees the
+ * milestone history recomputed against the goal they are actually working toward.
+ */
+export function buildActivity(input: {
+  approvedAt?: Date | null;
+  goal: number;
+  donations: VerifiedDonationLike[];
+  referrals?: { displayName: string; createdAt: Date }[];
+}): ActivityEntry[] {
+  const out: ActivityEntry[] = [];
+
+  if (input.approvedAt) {
+    out.push({ at: input.approvedAt, kind: "approved", text: "Approved and ready to share" });
+  }
+
+  const confirmed = input.donations
+    .filter((d) => d.status === "CONFIRMED" && d.confirmedAt)
+    .map((d) => ({ amount: d.amount, at: d.confirmedAt as Date }))
+    .sort((a, b) => a.at.getTime() - b.at.getTime());
+
+  let running = 0;
+  let lastMilestone = 0;
+  for (const d of confirmed) {
+    out.push({ at: d.at, kind: "verified_progress", text: `${formatUsd(d.amount)} added to your verified fundraising progress` });
+    running += d.amount;
+    if (input.goal > 0) {
+      const pct = Math.round((running / input.goal) * 100);
+      for (const m of [25, 50, 75, 100]) {
+        if (m > lastMilestone && pct >= m) {
+          lastMilestone = m;
+          out.push({
+            at: d.at,
+            kind: "milestone",
+            text: m === 100 ? "You reached your fundraising goal" : `You reached ${m}% of your goal`,
+          });
+        }
+      }
+    }
+  }
+
+  for (const r of input.referrals ?? []) {
+    out.push({ at: r.createdAt, kind: "referral_start", text: `${r.displayName} started a fundraiser after visiting your page` });
+  }
+
+  // Newest first. Entries are built in chronological order, so ties — which are normal, because
+  // a batch reconciliation confirms many gifts at the same instant — break on build order. That
+  // keeps a milestone directly under the gift that caused it instead of floating away from it.
+  return out
+    .map((e, i) => ({ e, i }))
+    .sort((a, b) => b.e.at.getTime() - a.e.at.getTime() || b.i - a.i)
+    .map(({ e }) => e);
+}
+
+/* ------------------------------------------------------------------- sharing */
+
+export type ShareTargets = {
+  url: string;
+  copy: string;
+  sms: string;
+  email: string;
+  whatsapp: string;
+  facebook: string;
+};
+
+/**
+ * The Share tab's outbound links (§2). Every one resolves to the fundraiser's own public page,
+ * which is also what the QR code encodes, so a gift arriving through any channel lands on the
+ * same handoff and attributes the same way.
+ */
+export function shareTargets(publicUrl: string, title: string, message: string): ShareTargets {
+  const text = message.trim() || `Help us build our future home — ${title}`;
+  const withUrl = `${text} ${publicUrl}`;
+  return {
+    url: publicUrl,
+    copy: publicUrl,
+    sms: `sms:?&body=${encodeURIComponent(withUrl)}`,
+    email: `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(withUrl)}`,
+    whatsapp: `https://wa.me/?text=${encodeURIComponent(withUrl)}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(publicUrl)}`,
+  };
+}

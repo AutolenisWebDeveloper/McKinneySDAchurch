@@ -4,6 +4,10 @@ import { env } from "@/env";
 import {
   PortalPage, StatGrid, StatCard, PortalSection, QuickActionGrid, QuickAction, TaskRow, EmptyState,
 } from "@/components/portal/home-ui";
+import { FundraiserWidget } from "@/components/portal/fundraiser-ui";
+import { loadFundraisersForActor, buildingCampaign } from "@/lib/fundraisers";
+import { pickPrimary } from "@/lib/fundraiser-workflow";
+import { canCreateFundraiser } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +15,21 @@ const OPEN = ["NEW", "TRIAGED", "ASSIGNED", "IN_PROGRESS", "FOLLOW_UP", "NEEDS_I
 
 export default async function MemberPortal() {
   const actor = await requirePortal("member");
+
+  // My Building Fundraiser is a module inside this dashboard, not a second dashboard (§1, §17).
+  const [fundraisers, campaign, memberRecord] = await Promise.all([
+    loadFundraisersForActor(actor),
+    buildingCampaign(),
+    actor.memberId
+      ? prisma.member.findUnique({ where: { id: actor.memberId }, select: { isMinor: true, deactivatedAt: true } })
+      : null,
+  ]);
+  const { primary, others } = pickPrimary(
+    fundraisers.map((f) => ({
+      id: f.id, type: f.type, status: f.status, isOwn: f.isOwn, canEdit: f.canEdit,
+      pct: f.progress.pct, lastActivityAt: f.updatedAt, createdAt: f.createdAt, summary: f,
+    })),
+  );
 
   const [openRequests, recent, householdCount, unread] = await Promise.all([
     prisma.workItem.count({ where: { requesterUserId: actor.userId, status: { in: [...OPEN] } } }),
@@ -38,6 +57,13 @@ export default async function MemberPortal() {
         <StatCard label="Unread notices" value={unread} tone={unread ? "accent" : "default"} />
         <StatCard label="Household" value={householdCount} hint="people" href="/dashboard/household" />
       </StatGrid>
+
+      <FundraiserWidget
+        primary={primary?.summary ?? null}
+        others={others.map((o) => o.summary)}
+        canStart={canCreateFundraiser(actor, memberRecord)}
+        campaignOpen={!!campaign?.allowMemberFundraisers}
+      />
 
       <PortalSection title="What would you like to do?">
         <QuickActionGrid>

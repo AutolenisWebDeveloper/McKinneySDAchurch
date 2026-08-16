@@ -38,6 +38,38 @@ export function parseGivingCsv(text: string): GiftRow[] {
   return rows;
 }
 
+/**
+ * A fundraiser as the reconciliation screen needs to see it, for suggesting which fundraiser an
+ * unmatched gift belongs to.
+ */
+export type AttributionCandidate = { id: string; slug: string; title: string; displayName: string };
+
+/**
+ * Suggest which fundraiser an AdventistGiving row belongs to, from its fund/designation field.
+ * The giving handoff sets `designation` to the fundraiser's slug, so an exact slug hit is the
+ * strong signal; a title or display-name mention is accepted as a weaker one.
+ *
+ * This is only ever a SUGGESTION. Nothing becomes verified until a treasurer confirms it — the
+ * suggestion exists to save typing, not to decide attribution.
+ */
+export function suggestFundraiser(gift: GiftRow, candidates: AttributionCandidate[]): string | null {
+  const fund = (gift.fund ?? "").trim().toLowerCase();
+  if (!fund) return null;
+
+  const exact = candidates.find((c) => c.slug.toLowerCase() === fund);
+  if (exact) return exact.id;
+
+  const contained = candidates.find((c) => c.slug.length >= 4 && fund.includes(c.slug.toLowerCase()));
+  if (contained) return contained.id;
+
+  const named = candidates.find((c) => {
+    const t = c.title.trim().toLowerCase();
+    const n = c.displayName.trim().toLowerCase();
+    return (t.length >= 4 && fund.includes(t)) || (n.length >= 4 && fund.includes(n));
+  });
+  return named?.id ?? null;
+}
+
 /** Match parsed gifts to PENDING donations by amount + (email or name). One-to-one. */
 export function matchGifts(pending: PendingDonation[], gifts: GiftRow[]): {
   matched: { donationId: string; donorName: string; amount: number }[];
