@@ -25,6 +25,11 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres@localhost:5432/mckinney
+      # Prisma migrate/validate use directUrl (a direct, non-pooled connection). The schema
+      # declares it, so `prisma migrate deploy` fails with P1012 when it is unset. In CI the
+      # ephemeral Postgres is already a direct connection, so DIRECT_URL == DATABASE_URL —
+      # matching the `ci` workflow.
+      DIRECT_URL: postgresql://postgres@localhost:5432/mckinney
       NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3100
       NEXTAUTH_URL: http://127.0.0.1:3100
       E2E_PORT: "3100"
