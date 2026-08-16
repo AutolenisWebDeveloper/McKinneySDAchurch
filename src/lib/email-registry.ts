@@ -152,6 +152,157 @@ export const EMAIL_REGISTRY: RegistryEntry[] = [
     subject: "This week's bulletin — please send your ministry's items",
     htmlBody: "<h2>Weekly communications for Sabbath {{sabbathDate}}</h2><p>Please submit your ministry's items or mark \"nothing this week\": <a href=\"{{submitUrl}}\">submit</a>.</p>",
   },
+
+  // ---- Building Project fundraisers (wired). Members receive these same events in the
+  // notification centre; these templates are how a Supporter — who has no portal — is told.
+  {
+    key: "fundraiser.approved",
+    name: "Fundraiser approved",
+    category: "Building Project",
+    channel: "TRANSACTIONAL",
+    wired: true,
+    variables: [
+      { name: "firstName", description: "Owner's first name" },
+      { name: "fundraiserTitle", description: "Fundraiser title" },
+      { name: "publicUrl", description: "Public fundraiser page" },
+      { name: "manageUrl", description: "One-time link to the manage view" },
+      ...COMMON,
+    ],
+    subject: "Your fundraiser is approved — {{churchName}}",
+    htmlBody:
+      "<h2>You're live, {{firstName}}</h2>" +
+      "<p>“{{fundraiserTitle}}” has been approved and is ready to share.</p>" +
+      '<p>Your page: <a href="{{publicUrl}}">{{publicUrl}}</a></p>' +
+      '<p><a href="{{manageUrl}}">Open your fundraiser</a> to share it and follow your progress. That link works once and expires in 24 hours — we\'ll send a fresh one whenever you need it.</p>',
+  },
+  {
+    key: "fundraiser.changes_requested",
+    name: "Fundraiser needs changes",
+    category: "Building Project",
+    channel: "TRANSACTIONAL",
+    wired: true,
+    variables: [
+      { name: "firstName", description: "Owner's first name" },
+      { name: "fundraiserTitle", description: "Fundraiser title" },
+      { name: "note", description: "What needs to change" },
+      ...COMMON,
+    ],
+    subject: "A change is needed before your fundraiser goes live — {{churchName}}",
+    htmlBody:
+      "<h2>Hello {{firstName}}</h2>" +
+      "<p>Before “{{fundraiserTitle}}” can go live, a church administrator has asked for this change:</p>" +
+      '<blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#444">{{note}}</blockquote>' +
+      "<p>Reply to this email and we'll send you a link to make the change and resubmit.</p>",
+  },
+  {
+    key: "fundraiser.rejected",
+    name: "Fundraiser not approved",
+    category: "Building Project",
+    channel: "TRANSACTIONAL",
+    wired: true,
+    variables: [
+      { name: "firstName", description: "Owner's first name" },
+      { name: "fundraiserTitle", description: "Fundraiser title" },
+      { name: "note", description: "Reason given" },
+      ...COMMON,
+    ],
+    subject: "About your fundraiser — {{churchName}}",
+    htmlBody:
+      "<h2>Hello {{firstName}}</h2>" +
+      "<p>We weren't able to approve “{{fundraiserTitle}}” for the Building Project.</p>" +
+      "<p>{{note}}</p>" +
+      "<p>You're still very welcome to give to the Building Project, and you can reply to this email if you'd like to talk it through.</p>",
+  },
+  {
+    key: "fundraiser.milestone",
+    name: "Fundraiser milestone reached",
+    category: "Building Project",
+    channel: "TRANSACTIONAL",
+    wired: true,
+    variables: [
+      { name: "firstName", description: "Owner's first name" },
+      { name: "fundraiserTitle", description: "Fundraiser title" },
+      { name: "milestone", description: "Milestone percentage reached" },
+      { name: "goal", description: "Fundraising goal" },
+      { name: "publicUrl", description: "Public fundraiser page" },
+      ...COMMON,
+    ],
+    subject: "You're {{milestone}}% of the way there — {{churchName}}",
+    htmlBody:
+      "<h2>{{milestone}}% of your goal, {{firstName}}</h2>" +
+      "<p>“{{fundraiserTitle}}” has reached {{milestone}}% of {{goal}}. Thank you for the work you're putting in.</p>" +
+      '<p>Keep sharing: <a href="{{publicUrl}}">{{publicUrl}}</a></p>',
+  },
+  {
+    key: "fundraiser.goal_reached",
+    name: "Fundraiser reached its goal",
+    category: "Building Project",
+    channel: "TRANSACTIONAL",
+    wired: true,
+    variables: [
+      { name: "firstName", description: "Owner's first name" },
+      { name: "fundraiserTitle", description: "Fundraiser title" },
+      { name: "goal", description: "Fundraising goal" },
+      { name: "publicUrl", description: "Public fundraiser page" },
+      ...COMMON,
+    ],
+    subject: "You reached your fundraising goal — {{churchName}}",
+    htmlBody:
+      "<h2>You did it, {{firstName}}</h2>" +
+      "<p>“{{fundraiserTitle}}” has reached its {{goal}} goal. Thank you for helping build our future home.</p>" +
+      '<p>Your page stays open, so anyone who still wants to give can: <a href="{{publicUrl}}">{{publicUrl}}</a></p>',
+  },
+  {
+    key: "fundraiser.referral_start",
+    name: "Someone started a fundraiser through your page",
+    category: "Building Project",
+    channel: "TRANSACTIONAL",
+    wired: true,
+    variables: [
+      { name: "firstName", description: "Owner's first name" },
+      { name: "fundraiserTitle", description: "Fundraiser title" },
+      { name: "referrerName", description: "Name shown on the new fundraiser" },
+      ...COMMON,
+    ],
+    subject: "Someone started a fundraiser through your page — {{churchName}}",
+    htmlBody:
+      "<h2>Your page is spreading, {{firstName}}</h2>" +
+      "<p>{{referrerName}} started their own Building Project fundraiser after visiting “{{fundraiserTitle}}”.</p>",
+  },
+  {
+    key: "fundraiser.manage_link",
+    name: "Fundraiser manage link",
+    category: "Building Project",
+    channel: "TRANSACTIONAL",
+    wired: true,
+    variables: [
+      { name: "firstName", description: "Owner's first name" },
+      { name: "fundraiserTitle", description: "Fundraiser title" },
+      { name: "manageUrl", description: "One-time link to the manage view" },
+      ...COMMON,
+    ],
+    subject: "Your link to manage your fundraiser — {{churchName}}",
+    htmlBody:
+      "<h2>Hello {{firstName}}</h2>" +
+      '<p><a href="{{manageUrl}}">Open “{{fundraiserTitle}}”</a>. This link works once and expires in 24 hours.</p>' +
+      "<p>If you didn't ask for this, you can ignore this email — nothing changes.</p>",
+  },
+  {
+    key: "fundraiser.submitted",
+    name: "Fundraiser submitted for review",
+    category: "Building Project",
+    channel: "TRANSACTIONAL",
+    wired: true,
+    variables: [
+      { name: "firstName", description: "Owner's first name" },
+      { name: "fundraiserTitle", description: "Fundraiser title" },
+      ...COMMON,
+    ],
+    subject: "We received your fundraiser — {{churchName}}",
+    htmlBody:
+      "<h2>Thanks, {{firstName}}</h2>" +
+      "<p>“{{fundraiserTitle}}” has been sent to {{churchName}} for review. We'll email you as soon as it's approved and ready to share.</p>",
+  },
 ];
 
 export const REGISTRY_BY_KEY: Record<string, RegistryEntry> = Object.fromEntries(
