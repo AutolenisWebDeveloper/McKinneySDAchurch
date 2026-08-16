@@ -63,14 +63,14 @@ export default async function Home() {
 
       {/* ================= HERO ================= */}
       <section data-dark-hero="true" className="hero-under-header relative overflow-hidden bg-hero-denim text-white">
-        {/* Building rendering backdrop (decorative; the headline carries the meaning).
-            Interim: the daytime approach shot until a front-elevation dusk render is added. */}
+        {/* Building rendering backdrop (decorative; the headline carries the meaning):
+            the enhanced front-elevation exterior of our future home. */}
         <img
-          src="/image/rendering-approach.jpg"
+          src="/image/exterior.jpg"
           alt=""
           aria-hidden="true"
           fetchPriority="high"
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[50%_35%]"
         />
         {/* Denim scrim: dark where the headline sits (left), clearing to reveal the building
             (right) — keeps white text at WCAG AA over the photo, and degrades to the denim
@@ -218,6 +218,15 @@ export default async function Home() {
 
       {/* ================= BUILDING CAMPAIGN (deep navy band) ================= */}
       <section className="relative overflow-hidden bg-hero-denim text-white">
+        {/* Interior vision backdrop — scrimmed to keep copy and the glass card at AA. */}
+        <img
+          src="/image/sanctuary.jpg"
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-20"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-denim-950 via-denim-950/90 to-denim-950/55" aria-hidden="true" />
         <div className="glow-denim absolute inset-0" aria-hidden="true" />
         <Container className="relative py-16 sm:py-24">
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">

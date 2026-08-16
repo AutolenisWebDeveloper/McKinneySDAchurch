@@ -4,12 +4,26 @@ import { GalleryLightbox, type GalleryImage } from "./GalleryLightbox";
 /**
  * "The Vision, Realized" — the architectural showcase. Large cinematic renderings
  * in a premium lightbox, framed by the chapters of the design story. Uses the
- * fixed church-supplied renderings in /public/image; as per-space renderings are
- * commissioned, add them to RENDERINGS with the matching `tag`.
+ * fixed church-supplied renderings in /public/image, ordered as a walk-through of
+ * the future home: exterior arrival → lobby → sanctuary → ministry spaces →
+ * grounds. As more per-space renderings are produced, add them to RENDERINGS in
+ * journey order with the matching `tag`.
  */
 const RENDERINGS: GalleryImage[] = [
-  { src: "/image/rendering-aerial.jpg", tag: "Exterior", caption: "The building & grounds", alt: "Aerial view of the future McKinney SDA Church building and grounds" },
-  { src: "/image/rendering-approach.jpg", tag: "Arrival", caption: "The approach", alt: "The approach to the McKinney SDA Church, with parking and landscaping" },
+  { src: "/image/exterior.jpg", tag: "Exterior", caption: "The church exterior", alt: "The future McKinney SDA Church exterior and signage under a bright sky" },
+  { src: "/image/exterior-arrival.jpg", tag: "Arrival", caption: "Arriving at the entrance", alt: "Guests arriving at the future McKinney SDA Church main entrance" },
+  { src: "/image/lobby.jpg", tag: "Welcome", caption: "The welcome lobby", alt: "The future church welcome lobby with reception desk and seating" },
+  { src: "/image/hallway.jpg", tag: "Connecting spaces", caption: "The corridors", alt: "A light-filled corridor connecting the future church's ministry spaces" },
+  { src: "/image/sanctuary.jpg", tag: "Sanctuary", caption: "The worship center", alt: "The future church sanctuary with worship seating facing the platform" },
+  { src: "/image/media-team.jpg", tag: "Media ministry", caption: "Behind worship", alt: "The audio-visual media ministry desk serving the future church sanctuary" },
+  { src: "/image/baptistry.jpg", tag: "Baptistry", caption: "Platform & baptistry", alt: "The future church platform and baptistry beneath the Adventist symbol" },
+  { src: "/image/fellowship-hall.jpg", tag: "Fellowship", caption: "The fellowship hall", alt: "The future church fellowship hall set with round tables" },
+  { src: "/image/fellowship-dining.jpg", tag: "Fellowship", caption: "Shared meals", alt: "The future church fellowship dining area set for a shared meal" },
+  { src: "/image/childrens-ministry.jpg", tag: "Children", caption: "Children's ministry", alt: "A bright children's ministry classroom in the future church" },
+  { src: "/image/classroom.jpg", tag: "Education", caption: "Sabbath School classrooms", alt: "A future Sabbath School classroom with study tables and a screen" },
+  { src: "/image/kitchen.jpg", tag: "Service", caption: "The kitchen", alt: "A full kitchen for the future church fellowship meals and outreach" },
+  { src: "/image/pastor-office.jpg", tag: "Ministry", caption: "Pastoral & ministry offices", alt: "A warm pastoral office in the future church administrative area" },
+  { src: "/image/rendering-aerial.jpg", tag: "Site & Grounds", caption: "The building & grounds", alt: "Aerial view of the future McKinney SDA Church building and grounds" },
   { src: "/image/rendering-aerial-2.jpg", tag: "Site & Grounds", caption: "Entrance & grounds", alt: "Aerial view of the McKinney SDA Church entrance and grounds" },
 ];
 

@@ -69,6 +69,7 @@ export default async function PlanAVisit() {
         title={t(locale, "visit.title")}
         lede={t(locale, "visit.lede")}
         tone="denim"
+        image={{ src: "/image/lobby.jpg" }}
         actions={<>
           <Link href="/visitor/new" className="btn btn-white">{t(locale, "visit.cta")}</Link>
           <a href={church.mapsHref} target="_blank" rel={EXT} className="btn btn-ghost-light">{t(locale, "common.get_directions")}</a>

@@ -65,7 +65,13 @@ export function SpaceExplorer({ initialSlug }: { initialSlug?: string }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [step, selected]);
 
-  const hotspots = BUILDING_SPACES.filter((s) => s.pin && s.viewpoint === viewpoint);
+  // When a space is selected we step *inside* it (its own rendering); with nothing
+  // selected we show the exterior orientation shot and its numbered hotspots.
+  const stageSrc = active ? active.image : viewpointSrc(viewpoint);
+  const stageAlt = active
+    ? active.imageAlt
+    : (VIEWPOINTS.find((v) => v.key === viewpoint)?.alt ?? "Rendering of the future McKinney SDA Church");
+  const hotspots = active ? [] : BUILDING_SPACES.filter((s) => s.pin && s.viewpoint === viewpoint);
 
   return (
     <div
@@ -75,9 +81,9 @@ export function SpaceExplorer({ initialSlug }: { initialSlug?: string }) {
       {/* Stage image */}
       <div className={`relative w-full ${fullscreen ? "h-screen" : "aspect-[16/10] sm:aspect-[16/9]"}`}>
         <img
-          key={viewpoint}
-          src={viewpointSrc(viewpoint)}
-          alt={VIEWPOINTS.find((v) => v.key === viewpoint)?.alt ?? "Rendering of the future McKinney SDA Church"}
+          key={stageSrc}
+          src={stageSrc}
+          alt={stageAlt}
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-denim-950/85 via-denim-950/10 to-denim-950/40" aria-hidden="true" />
@@ -186,21 +192,24 @@ export function SpaceExplorer({ initialSlug }: { initialSlug?: string }) {
         )}
       </div>
 
-      {/* Viewpoint switcher */}
+      {/* Viewpoint switcher — returns to the exterior orientation shots */}
       <div className="flex items-center gap-2 overflow-x-auto border-t border-white/10 bg-denim-950 p-3">
         <span className="shrink-0 pl-1 pr-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/50">Viewpoint</span>
-        {VIEWPOINTS.map((v) => (
+        {VIEWPOINTS.map((v) => {
+          const on = !selected && v.key === viewpoint;
+          return (
           <button
             key={v.key}
             type="button"
-            onClick={() => setViewpoint(v.key)}
-            aria-pressed={v.key === viewpoint}
-            className={`flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors ${v.key === viewpoint ? "border-accent bg-white/10 text-white" : "border-white/15 text-white/75 hover:bg-white/5"}`}
+            onClick={() => { setViewpoint(v.key); setSelected(null); }}
+            aria-pressed={on}
+            className={`flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors ${on ? "border-accent bg-white/10 text-white" : "border-white/15 text-white/75 hover:bg-white/5"}`}
           >
             <img src={v.src} alt="" aria-hidden="true" className="h-7 w-10 rounded object-cover" />
             {v.label}
           </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -35,6 +35,7 @@ export default async function Leadership() {
         title="The people who serve"
         lede="Our church is led by a team of pastors, elders, and officers who give their time to shepherd and serve this congregation."
         tone="denim"
+        image={{ src: "/image/pastor-office.jpg" }}
         actions={<>
           <Link href="/plan-a-visit" className="btn btn-white">Plan a visit</Link>
           <Link href="/contact" className="btn btn-ghost-light">Get in touch</Link>

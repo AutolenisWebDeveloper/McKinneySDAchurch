@@ -27,6 +27,7 @@ export default async function Baptism({ searchParams }: { searchParams: Promise<
         title="Baptism"
         lede="Baptism is a joyful public step of following Jesus. Whether you're ready or simply curious about what it means, we'd love to walk with you."
         tone="denim"
+        image={{ src: "/image/baptistry.jpg" }}
         actions={<Link href="/beliefs" className="btn btn-ghost-light">What we believe</Link>}
       />
       <Section container size="narrow">

@@ -111,7 +111,15 @@ export function InteractivePlan() {
 
           {/* Detail */}
           <div className="lg:col-span-2">
-            <div className="card sticky top-24 p-7">
+            <div className="card sticky top-24 overflow-hidden p-0">
+              <img
+                key={active.image}
+                src={active.image}
+                alt={active.imageAlt}
+                loading="lazy"
+                className="aspect-[16/10] w-full border-b border-line object-cover"
+              />
+              <div className="p-7">
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-accent-strong">Space {active.n}</p>
               <h3 className="mt-2 font-serif text-2xl font-semibold text-fg">{active.title}</h3>
               <p className="mt-4 leading-relaxed text-muted">{active.blurb}</p>
@@ -125,6 +133,7 @@ export function InteractivePlan() {
               <p className="mt-6 border-t border-line pt-5 text-xs text-muted">
                 Schematic overview for orientation. Dimensioned architect's drawings are in the plans below.
               </p>
+              </div>
             </div>
           </div>
         </div>

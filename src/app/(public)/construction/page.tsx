@@ -37,7 +37,7 @@ const EXT = "noopener noreferrer";
  */
 function resolveHeroMedia(): { videoSources: { src: string; type: string }[]; poster: string } {
   const posterFile = path.join(process.cwd(), "public", "video", "building-cinematic-poster.jpg");
-  const poster = fs.existsSync(posterFile) ? "/video/building-cinematic-poster.jpg" : "/image/rendering-approach.jpg";
+  const poster = fs.existsSync(posterFile) ? "/video/building-cinematic-poster.jpg" : "/image/exterior-arrival.jpg";
 
   if (env.BUILDING_CINEMATIC_URL) {
     const url = env.BUILDING_CINEMATIC_URL;

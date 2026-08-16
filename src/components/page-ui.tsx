@@ -7,7 +7,13 @@ export const fieldClass =
 
 export const labelClass = "block text-sm font-medium text-fg";
 
-/** Consistent page header for interior public pages. */
+/** Consistent page header for interior public pages.
+ *
+ * `image` stages a photographic backdrop (a church-supplied rendering) behind the
+ * copy, under denim scrims that hold the white text at WCAG AA and degrade to the
+ * flat denim band if the art is unavailable. Passing an image implies the denim
+ * treatment. The photo is decorative by default (the headline carries the meaning);
+ * pass `image.alt` only when the picture itself conveys information the text does not. */
 export function PageHeader({
   eyebrow,
   title,
@@ -15,6 +21,7 @@ export function PageHeader({
   actions,
   tone = "light",
   align = "left",
+  image,
 }: {
   eyebrow?: string;
   title: ReactNode;
@@ -22,13 +29,29 @@ export function PageHeader({
   actions?: ReactNode;
   tone?: "light" | "tint" | "denim";
   align?: "left" | "center";
+  image?: { src: string; position?: string; alt?: string };
 }) {
-  const denim = tone === "denim";
+  const denim = tone === "denim" || !!image;
   const bg = denim ? "bg-hero-denim text-white" : tone === "tint" ? "bg-tint" : "bg-surface";
   const border = denim ? "" : "border-b border-line";
   const centered = align === "center";
   return (
     <section data-dark-hero={denim ? "true" : undefined} className={`relative overflow-hidden ${bg} ${border} ${denim ? "hero-under-header" : ""}`}>
+      {image && (
+        <>
+          <img
+            src={image.src}
+            alt={image.alt ?? ""}
+            aria-hidden={image.alt ? undefined : true}
+            fetchPriority="high"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+            style={{ objectPosition: image.position ?? "center" }}
+          />
+          {/* Scrims: dark where the copy sits, clearing to reveal the photo — holds white text at AA. */}
+          <div className={`absolute inset-0 ${centered ? "bg-denim-950/80" : "bg-gradient-to-r from-denim-950/95 via-denim-950/80 to-denim-900/45"}`} aria-hidden="true" />
+          <div className="absolute inset-0 bg-gradient-to-t from-denim-950/75 via-transparent to-transparent" aria-hidden="true" />
+        </>
+      )}
       {denim && <div className="glow-denim absolute inset-0" aria-hidden="true" />}
       <Container className={`relative py-14 sm:py-20 ${centered ? "text-center" : ""}`}>
         <div className={centered ? "mx-auto max-w-2xl" : "max-w-3xl"}>
