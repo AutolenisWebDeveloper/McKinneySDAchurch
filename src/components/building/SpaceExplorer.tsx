@@ -17,7 +17,7 @@ import { BUILDING_SPACES, VIEWPOINTS, viewpointSrc, spaceBySlug, type Viewpoint 
  */
 export function SpaceExplorer({ initialSlug }: { initialSlug?: string }) {
   const initial = spaceBySlug(initialSlug);
-  const [viewpoint, setViewpoint] = useState<Viewpoint>(initial?.viewpoint ?? "aerial");
+  const [viewpoint, setViewpoint] = useState<Viewpoint>(initial?.viewpoint ?? "floorplan");
   const [selected, setSelected] = useState<string | null>(initial?.slug ?? null);
   const [tourOpen, setTourOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -66,7 +66,7 @@ export function SpaceExplorer({ initialSlug }: { initialSlug?: string }) {
   }, [step, selected]);
 
   // When a space is selected we step *inside* it (its own rendering); with nothing
-  // selected we show the exterior orientation shot and its numbered hotspots.
+  // selected we show the labeled floor plan (default) with its numbered room hotspots.
   const stageSrc = active ? active.image : viewpointSrc(viewpoint);
   const stageAlt = active
     ? active.imageAlt
@@ -186,13 +186,13 @@ export function SpaceExplorer({ initialSlug }: { initialSlug?: string }) {
         ) : (
           <div className="absolute inset-x-0 bottom-0 flex flex-col items-center p-5 text-center sm:p-8">
             <p className="max-w-md text-sm text-white/80">
-              Select a numbered point on the rendering, or open the guided tour, to explore each space.
+              Select a numbered room on the floor plan, or open the guided tour, to step inside each space.
             </p>
           </div>
         )}
       </div>
 
-      {/* Viewpoint switcher — returns to the exterior orientation shots */}
+      {/* Viewpoint switcher — floor plan (default), interior cutaways, and exterior approach */}
       <div className="flex items-center gap-2 overflow-x-auto border-t border-white/10 bg-denim-950 p-3">
         <span className="shrink-0 pl-1 pr-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/50">Viewpoint</span>
         {VIEWPOINTS.map((v) => {
