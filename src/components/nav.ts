@@ -9,6 +9,7 @@ export const navGroups: NavGroup[] = [
     label: "About",
     items: [
       { href: "/about", label: "Our Story", desc: "Who we are and what we hope for" },
+      { href: "/pastor-and-elders", label: "Pastor & Elders", desc: "Meet those who shepherd our church" },
       { href: "/leadership", label: "Leadership", desc: "Meet our pastor and team" },
       { href: "/beliefs", label: "What We Believe", desc: "The 28 Fundamental Beliefs" },
       { href: "/plan-a-visit", label: "Plan a Visit", desc: "What to expect on Sabbath" },
@@ -49,6 +50,7 @@ export const navGroups: NavGroup[] = [
 /** Flat list (kept for compatibility / sitemaps). */
 export const publicNav = [
   { href: "/about", label: "About" },
+  { href: "/pastor-and-elders", label: "Pastor & Elders" },
   { href: "/leadership", label: "Leadership" },
   { href: "/beliefs", label: "Beliefs" },
   { href: "/ministries", label: "Ministries" },
