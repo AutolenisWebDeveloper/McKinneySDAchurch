@@ -33,7 +33,7 @@ export const church = {
   // record is the ChurchOffice model). Update here to change the printed/online bulletin.
   officers: [
     { role: "Pastor", name: "Pr. Marlon Wallace", phone: "(480) 453-2235" },
-    { role: "Elder", name: "Classere Augustin", phone: "(770) 262-5373" },
+    { role: "First Elder", name: "Classere Augustin", phone: "(770) 262-5373" },
     { role: "Elder", name: "Adeola Agboola", phone: "(337) 326-9274" },
     { role: "Elder / Treasurer", name: "Anthony Wanyanga", phone: "(901) 216-2882" },
     { role: "Clerk", name: "Hernande Augustin", phone: "(770) 896-5420" },
