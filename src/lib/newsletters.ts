@@ -283,13 +283,10 @@ export async function sendDepartmentRequests(
       data: { status: "COLLECTING" },
     });
   }
-  await writeAudit(prisma, {
-    actorId: "system",
-    action: `newsletter.request.${kind.toLowerCase()}`,
-    entity: "NewsletterIssue",
-    entityId: issueId,
-    metadata: { considered, sent, skipped },
-  });
+  // No AuditLog is written here: this runs from the monthly cron with no acting user, and
+  // AuditLog.actorId is a hard FK to User (there is no "system" user). The NewsletterReminder
+  // ledger (one row per issue/kind/recipient) is the durable record of exactly who was contacted
+  // and when — matching the weekly BulletinReminder convention, which likewise writes no audit.
   return { considered, sent, skipped };
 }
 
@@ -981,7 +978,11 @@ async function runDeliver(issueId: string, actorId: string): Promise<{ ok: boole
     });
     await prisma.newsletterIssue.update({ where: { id: issueId }, data: { status: "PUBLISHED", publishedAt: now, webPublishedAt: now, scheduledSendAt: null } });
 
-    await writeAudit(prisma, { actorId, action: "newsletter.issue.published", entity: "NewsletterIssue", entityId: issueId, metadata: { recipients: recipients.length, sent, suppressed } });
+    // Audit only an admin-initiated send (a real User). A scheduler (system) send has no acting
+    // user and AuditLog.actorId is a hard FK; the NewsletterDistribution ledger is its record.
+    if (actorId !== "system") {
+      await writeAudit(prisma, { actorId, action: "newsletter.issue.published", entity: "NewsletterIssue", entityId: issueId, metadata: { recipients: recipients.length, sent, suppressed } });
+    }
     await notifyRoles(["ADMIN", "PASTOR"], { category: "newsletter", title: `Newsletter sent — ${model.monthLabel}`, deepLink: `${ADMIN_BASE}/${issueId}` });
     return { ok: true, sent, suppressed, recipients: recipients.length };
   } catch (e) {
