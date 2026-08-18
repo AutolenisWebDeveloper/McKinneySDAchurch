@@ -282,6 +282,28 @@ export async function sendDepartmentRequests(
   return { considered, sent, skipped };
 }
 
+/** Cron: send the monthly content request once the request date has arrived (§6/§10). Idempotent. */
+export async function runMonthlyContentRequest(now: Date = new Date()): Promise<{ issueId?: string; skipped?: string; considered?: number; sent?: number; skippedCount?: number }> {
+  const issueId = await getOrCreateIssue(upcomingIssueMonth(now));
+  const issue = await prisma.newsletterIssue.findUniqueOrThrow({ where: { id: issueId }, select: { requestAt: true, status: true } });
+  if (issue.requestAt && issue.requestAt > now) return { issueId, skipped: "not-yet" };
+  if (issue.status === "PUBLISHED" || issue.status === "ARCHIVED") return { issueId, skipped: "closed" };
+  const r = await sendDepartmentRequests(issueId, "REQUEST");
+  return { issueId, considered: r.considered, sent: r.sent, skippedCount: r.skipped };
+}
+
+/** Cron: remind non-submitting departments once the reminder date has arrived (§10). Idempotent. */
+export async function runMonthlyReminder(now: Date = new Date()): Promise<{ issueId?: string; skipped?: string; considered?: number; sent?: number; skippedCount?: number }> {
+  const issue = await prisma.newsletterIssue.findFirst({
+    where: { status: "COLLECTING", reminderAt: { lte: now } },
+    orderBy: { monthStart: "desc" },
+    select: { id: true },
+  });
+  if (!issue) return { skipped: "none-due" };
+  const r = await sendDepartmentRequests(issue.id, "REMINDER");
+  return { issueId: issue.id, considered: r.considered, sent: r.sent, skippedCount: r.skipped };
+}
+
 /* ============================ Department submissions ============================ */
 
 export type SubmissionInput = {

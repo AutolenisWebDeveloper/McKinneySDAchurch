@@ -5,6 +5,9 @@
     { "path": "/api/cron/bulletin-wednesday-reminder", "schedule": "0 14 * * 3" },
     { "path": "/api/cron/bulletin-friday-distribution", "schedule": "0 22 * * 5" },
     { "path": "/api/cron/bulletin-friday-distribution", "schedule": "0 23 * * 5" },
-    { "path": "/api/cron/care-scan", "schedule": "0 6 * * 1" }
+    { "path": "/api/cron/care-scan", "schedule": "0 6 * * 1" },
+    { "path": "/api/cron/newsletter-content-request", "schedule": "0 14 15 * *" },
+    { "path": "/api/cron/newsletter-reminder", "schedule": "0 14 20 * *" },
+    { "path": "/api/cron/newsletter-send", "schedule": "0 * * * *" }
   ]
 }
