@@ -6,7 +6,7 @@ import type { NewsletterIssueStatus, NewsletterSectionType } from "@prisma/clien
 import { getActor } from "@/auth/actor";
 import { requireRole } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
-import { uploadPublic } from "@/lib/storage";
+import { uploadPublic, storageConfigured } from "@/lib/storage";
 import type { Segment } from "@/lib/segments";
 import {
   getOrCreateIssue,
@@ -159,6 +159,7 @@ export async function uploadCoverAction(formData: FormData) {
   const id = String(formData.get("issueId"));
   const file = formData.get("file") as File | null;
   const alt = String(formData.get("coverImageAlt") ?? "");
+  if (!storageConfigured()) back(id, { err: "Image upload isn't configured in this environment — paste an image URL instead." });
   if (!file || file.size === 0) back(id, { err: "Choose an image file to upload." });
   const url = await uploadPublic(file as File, `newsletter/${id}`);
   const res = await updateIssueMeta(a, id, { coverImageUrl: url, coverImageAlt: alt });
