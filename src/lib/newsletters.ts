@@ -970,6 +970,86 @@ export async function sendTestEmail(admin: Actor, issueId: string, toEmail: stri
   return res.sent ? { ok: true } : { ok: false, error: res.reason === "no-resend-key" ? "Email is not configured in this environment." : "The test could not be sent to that address." };
 }
 
+/** Render the email edition HTML for preview (§26). Uses a placeholder unsubscribe link. */
+export async function getEmailPreviewHtml(issueId: string): Promise<{ subject: string; html: string }> {
+  const model = await getRenderModel(issueId);
+  return renderModelToEmail(model, `${SITE()}/api/email/unsubscribe/preview`);
+}
+
+/* ============================ Admin dashboard read ============================ */
+
+export type IssueDashboard = Awaited<ReturnType<typeof getIssueDashboard>>;
+
+/** Read-only assembly for the admin command center (§11). Computes readiness for display WITHOUT
+ *  persisting (no writes on GET); the persisted score is kept fresh by every mutation path. */
+export async function getIssueDashboard(issueId: string) {
+  const issue = await prisma.newsletterIssue.findUniqueOrThrow({ where: { id: issueId } });
+
+  const [submissions, sectionContent, sectionsRaw, ministries, headRoles] = await Promise.all([
+    prisma.newsletterSubmission.findMany({
+      where: { issueId },
+      orderBy: [{ status: "asc" }, { createdAt: "asc" }],
+      include: { ministry: { select: { name: true } }, _count: { select: { images: true } } },
+    }),
+    loadSectionContent(issueId),
+    prisma.newsletterSection.findMany({ where: { issueId }, orderBy: { sortOrder: "asc" }, include: { _count: { select: { images: true } } } }),
+    prisma.ministry.findMany({ select: { id: true, name: true } }),
+    prisma.userRole.findMany({ where: { active: true, role: "MINISTRY_HEAD", ministryId: { not: null } }, select: { ministryId: true } }),
+  ]);
+
+  const invitedIds = [...new Set(headRoles.map((h) => h.ministryId as string))];
+  const nameById = new Map(ministries.map((m) => [m.id, m.name]));
+  const readiness = computeNewsletterReadiness({
+    departmentIds: invitedIds,
+    submissions: submissions.map((s) => ({ ministryId: s.ministryId, status: s.status })),
+    sections: sectionContent.map((s) => ({ type: s.type, hidden: s.hidden, hasContent: s.hasContent })),
+    hasCoverImage: !!issue.coverImageUrl,
+    hasPastorMessage: !!issue.pastorMessageHtml?.trim(),
+  });
+
+  const validation = await getPublishValidation(issueId);
+  const contentById = new Map(sectionContent.map((s) => [s.id, s.hasContent]));
+
+  return {
+    issue,
+    readiness,
+    validation,
+    audienceSize: validation.audienceSize,
+    submissions: submissions.map((s) => ({
+      id: s.id,
+      title: s.title,
+      contentType: s.contentType,
+      status: s.status,
+      ministryName: s.ministry?.name ?? "—",
+      createdAt: s.createdAt,
+      reviewNote: s.reviewNote,
+      imageCount: s._count.images,
+      open: isSubmissionOpen(s.status),
+      usable: isSubmissionUsable(s.status),
+    })),
+    sections: sectionsRaw.map((s) => ({
+      id: s.id,
+      type: s.type,
+      title: s.title,
+      subtitle: s.subtitle,
+      bodyHtml: s.bodyHtml,
+      imageUrl: s.imageUrl,
+      imageAlt: s.imageAlt,
+      ctaLabel: s.ctaLabel,
+      ctaUrl: s.ctaUrl,
+      hidden: s.hidden,
+      sortOrder: s.sortOrder,
+      imageCount: s._count.images,
+      hasContent: contentById.get(s.id) ?? false,
+    })),
+    departments: {
+      total: readiness.totalDepartments,
+      responded: readiness.respondedDepartments,
+      missing: readiness.missingDepartmentIds.map((id) => ({ id, name: nameById.get(id) ?? "Unknown" })),
+    },
+  };
+}
+
 /* ============================ Public reads ============================ */
 
 /** Published issues for the public archive, newest first (§23). */

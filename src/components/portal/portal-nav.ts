@@ -161,6 +161,7 @@ export function portalNav(portal: PortalKey, _actor: Actor): NavGroup[] {
           items: [
             { href: "/dashboard/admin/weekly", label: "Weekly Bulletin", icon: "bulletin" },
             { href: "/dashboard/admin/bulletin", label: "Bulletins", icon: "bulletins" },
+            { href: "/dashboard/admin/newsletter", label: "Monthly Newsletter", icon: "newsletter" },
             { href: "/dashboard/admin/email", label: "Member Email", icon: "email" },
             { href: "/dashboard/admin/email/templates", label: "Email Templates", icon: "email-template" },
           ],

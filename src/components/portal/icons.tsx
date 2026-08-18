@@ -18,6 +18,7 @@ export type IconName =
   | "accounts"
   | "bulletin"
   | "bulletins"
+  | "newsletter"
   | "email"
   | "email-template"
   | "care"
@@ -71,6 +72,7 @@ const GLYPHS: Record<IconName, string> = {
   accounts: "M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6zM12 9.5a1.8 1.8 0 1 0 0 .01ZM12 11.3V15",
   bulletin: "M3.5 5h17v14h-17zM6.5 9h7M6.5 12h7M6.5 15h5M15.5 9.5h2.5v5.5h-2.5z",
   bulletins: "M12 3 3 8l9 5 9-5zM3 12l9 5 9-5M3 16l9 5 9-5",
+  newsletter: "M4 5h13v14H6a2 2 0 0 1-2-2zM17 8h3v9a2 2 0 0 1-3 0zM7 8h7M7 11h7M7 14h4",
   email: "M3.5 5.5h17v13h-17zM4 7l8 6 8-6",
   "email-template": "M4 4h12v16H4zM8 8h4M8 11h4M8 14h2M16.5 13.5l3.2 3.2-4.2 1 1-4.2z",
   care: "M12 20s-7-4.5-7-9.6A3.9 3.9 0 0 1 12 7a3.9 3.9 0 0 1 7 3.4C19 15.5 12 20 12 20z",
