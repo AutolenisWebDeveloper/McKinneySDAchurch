@@ -70,6 +70,18 @@ describe("newsletter submission status machine", () => {
     expect(isSubmissionUsable("ADDED_TO_ISSUE")).toBe(true);
     expect(isSubmissionUsable("DECLINED")).toBe(false);
   });
+
+  // Contract behind the review-gate: a non-admin department head may only edit an OPEN submission.
+  // Once reviewed (APPROVED/ADDED_TO_ISSUE) or terminal (DECLINED), the content is locked so it
+  // cannot be swapped after approval and reach the published edition unreviewed.
+  it("only treats DRAFT and CHANGES_REQUESTED as editable-by-owner", () => {
+    expect(isSubmissionOpen("DRAFT")).toBe(true);
+    expect(isSubmissionOpen("CHANGES_REQUESTED")).toBe(true);
+    expect(isSubmissionOpen("UNDER_REVIEW")).toBe(true);
+    expect(isSubmissionOpen("APPROVED")).toBe(false);
+    expect(isSubmissionOpen("ADDED_TO_ISSUE")).toBe(false);
+    expect(isSubmissionOpen("DECLINED")).toBe(false);
+  });
 });
 
 describe("content types", () => {

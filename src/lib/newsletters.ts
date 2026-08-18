@@ -68,20 +68,31 @@ export async function getOrCreateIssue(monthStart?: Date): Promise<string> {
   if (existing) return existing.id;
 
   const cadence = defaultCadence(month);
-  const created = await prisma.newsletterIssue.create({
-    data: {
-      monthStart: month,
-      slug: monthSlug(month),
-      status: "DRAFT",
-      title: `${monthLabel(month)} Newsletter`,
-      requestAt: cadence.requestAt,
-      reminderAt: cadence.reminderAt,
-      submissionDeadlineAt: cadence.submissionDeadlineAt,
-    },
-    select: { id: true },
-  });
-  await ensureDefaultSections(created.id);
-  return created.id;
+  try {
+    const created = await prisma.newsletterIssue.create({
+      data: {
+        monthStart: month,
+        slug: monthSlug(month),
+        status: "DRAFT",
+        title: `${monthLabel(month)} Newsletter`,
+        requestAt: cadence.requestAt,
+        reminderAt: cadence.reminderAt,
+        submissionDeadlineAt: cadence.submissionDeadlineAt,
+      },
+      select: { id: true },
+    });
+    await ensureDefaultSections(created.id);
+    return created.id;
+  } catch (e) {
+    // Concurrent create (e.g. the content-request cron firing while an admin clicks "Create") —
+    // the monthStart unique index rejected the second insert. Re-read the winner.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      const winner = await prisma.newsletterIssue.findUniqueOrThrow({ where: { monthStart: month }, select: { id: true } });
+      await ensureDefaultSections(winner.id);
+      return winner.id;
+    }
+    throw e;
+  }
 }
 
 /** Seed the controlled default running order once, if the issue has no sections yet (§13/§14). */
@@ -356,11 +367,19 @@ export async function saveSubmission(
     internalNotes: input.internalNotes?.trim() || null,
   };
 
+  const isAdmin = hasRole(actor, "ADMIN", "PASTOR");
   let id = opts.submissionId;
   if (id) {
-    // Update existing (must be the same ministry + still open, unless admin).
-    const existing = await prisma.newsletterSubmission.findUniqueOrThrow({ where: { id }, select: { ministryId: true, status: true, version: true } });
+    // Update existing. Must belong to the same issue + ministry, and — for a non-admin editor —
+    // must still be OPEN (DRAFT / CHANGES_REQUESTED). This is the enforcement boundary that keeps
+    // a department head from rewriting content after it has been reviewed/approved (which would
+    // otherwise flow, unre-reviewed, into the published email and web edition).
+    const existing = await prisma.newsletterSubmission.findUniqueOrThrow({ where: { id }, select: { issueId: true, ministryId: true, status: true, version: true } });
+    if (existing.issueId !== input.issueId) return { ok: false, error: "That submission belongs to a different issue." };
     if (existing.ministryId) assertCanSubmitForMinistry(actor, existing.ministryId);
+    if (!isAdmin && !isSubmissionOpen(existing.status)) {
+      return { ok: false, error: "This submission has already been reviewed and can no longer be edited. Contact Communications if it needs a change." };
+    }
     const nextStatus = opts.submit
       ? "SUBMITTED"
       : existing.status === "CHANGES_REQUESTED"
@@ -417,13 +436,17 @@ export async function reviewSubmission(
     return { ok: false, error: "Please include a note describing the requested changes." };
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.newsletterSubmission.update({
-      where: { id: submissionId },
-      data: { status: target, reviewNote: note?.trim() || null, reviewedById: admin.userId, version: { increment: 1 } },
+  const applied = await prisma.$transaction(async (tx) => {
+    // Version-guarded so two admins reviewing the same submission concurrently can't clobber each other.
+    const res = await tx.newsletterSubmission.updateMany({
+      where: { id: submissionId, version: sub.version },
+      data: { status: target, reviewNote: note?.trim() || null, reviewedById: admin.userId, version: sub.version + 1 },
     });
+    if (res.count === 0) return false;
     await writeAudit(tx, { actorId: admin.userId, action: `newsletter.submission.${decision}`, entity: "NewsletterSubmission", entityId: submissionId });
+    return true;
   });
+  if (!applied) return { ok: false, error: "This submission changed since you loaded it — refresh and try again." };
   await recomputeReadiness(sub.issueId);
 
   if (sub.submittedById && (decision === "approve" || decision === "request_changes" || decision === "decline")) {
@@ -458,10 +481,11 @@ export async function reviewSubmission(
 /** Add an approved submission to the issue / remove it (§12). Toggles APPROVED ↔ ADDED_TO_ISSUE. */
 export async function setSubmissionInIssue(admin: Actor, submissionId: string, included: boolean): Promise<{ ok: boolean; error?: string }> {
   requireAdmin(admin);
-  const sub = await prisma.newsletterSubmission.findUniqueOrThrow({ where: { id: submissionId }, select: { id: true, issueId: true, status: true } });
+  const sub = await prisma.newsletterSubmission.findUniqueOrThrow({ where: { id: submissionId }, select: { id: true, issueId: true, status: true, version: true } });
   const to = included ? "ADDED_TO_ISSUE" : "APPROVED";
   if (!canSubmissionTransition(sub.status, to)) return { ok: false, error: "That change isn't allowed from the current status." };
-  await prisma.newsletterSubmission.update({ where: { id: submissionId }, data: { status: to, version: { increment: 1 } } });
+  const res = await prisma.newsletterSubmission.updateMany({ where: { id: submissionId, version: sub.version }, data: { status: to, version: sub.version + 1 } });
+  if (res.count === 0) return { ok: false, error: "This submission changed since you loaded it — refresh and try again." };
   await writeAudit(prisma, { actorId: admin.userId, action: included ? "newsletter.submission.add_to_issue" : "newsletter.submission.remove_from_issue", entity: "NewsletterSubmission", entityId: submissionId });
   await recomputeReadiness(sub.issueId);
   return { ok: true };
@@ -495,7 +519,18 @@ export async function updateSection(admin: Actor, sectionId: string, patch: Sect
   if (patch.ctaUrl !== undefined) data.ctaUrl = patch.ctaUrl ? (cleanUrl(patch.ctaUrl) ?? null) : null;
   if (patch.submissionId !== undefined) data.submissionId = patch.submissionId || null;
   if (patch.eventId !== undefined) data.eventId = patch.eventId?.trim() || null;
-  if (patch.config !== undefined) data.config = patch.config === null ? Prisma.DbNull : patch.config;
+  if (patch.config !== undefined) {
+    if (patch.config === null) {
+      data.config = Prisma.DbNull;
+    } else {
+      // Defense-in-depth: any Stay-Connected links carried in config must be safe http(s) URLs.
+      const cfg = patch.config as { links?: { url?: string }[] };
+      for (const l of cfg.links ?? []) {
+        if (l.url && !isSafeUrl(l.url)) return { ok: false, error: "One of the links is not a valid http(s) URL." };
+      }
+      data.config = patch.config;
+    }
+  }
 
   await prisma.newsletterSection.update({ where: { id: sectionId }, data });
   await writeAudit(prisma, { actorId: admin.userId, action: "newsletter.section.update", entity: "NewsletterSection", entityId: sectionId });
@@ -558,6 +593,10 @@ export async function updateIssueMeta(
   },
 ): Promise<{ ok: boolean; error?: string }> {
   requireAdmin(admin);
+  const VALID_SEGMENTS: Segment[] = ["ALL_MEMBERS", "ACTIVE_MEMBERS", "DIRECTORY"];
+  if (patch.audienceSegment !== undefined && !VALID_SEGMENTS.includes(patch.audienceSegment)) {
+    return { ok: false, error: "Unknown audience segment." };
+  }
   const data: Prisma.NewsletterIssueUpdateInput = {};
   if (patch.title !== undefined) data.title = patch.title.trim() || null;
   if (patch.coverHeadline !== undefined) data.coverHeadline = patch.coverHeadline.trim() || null;
@@ -862,72 +901,98 @@ export async function cancelSchedule(admin: Actor, issueId: string, expectedVers
  * edition live. Returns counts. Callable by an admin ("send now") or the scheduler cron.
  */
 async function runDeliver(issueId: string, actorId: string): Promise<{ ok: boolean; error?: string; sent?: number; suppressed?: number; recipients?: number }> {
-  // Idempotency lock.
+  // Idempotency + recovery lock. Only a SENT distribution truly blocks a resend. A PENDING/FAILED
+  // row is from a prior attempt that crashed or timed out mid-send — claim it atomically (guarded on
+  // its current status so two concurrent runners can't both take it) and retry. A first-ever send
+  // uses create-as-lock; concurrent first sends collide on the unique (issueId, channel) index and
+  // the loser falls through to the "in progress" bail below.
+  const created = await prisma.newsletterDistribution
+    .create({ data: { issueId, channel: "EMAIL", status: "PENDING" } })
+    .then(() => true)
+    .catch(() => false);
+  if (!created) {
+    const existing = await prisma.newsletterDistribution.findUnique({ where: { issueId_channel: { issueId, channel: "EMAIL" } }, select: { status: true } });
+    if (existing?.status === "SENT") return { ok: false, error: "This issue has already been sent." };
+    // Re-take a stale/failed claim; whoever wins the guarded update proceeds, the other bails.
+    const retaken = await prisma.newsletterDistribution.updateMany({
+      where: { issueId, channel: "EMAIL", status: { in: ["PENDING", "FAILED"] } },
+      data: { status: "PENDING", startedAt: new Date(), completedAt: null, error: null },
+    });
+    if (retaken.count === 0) return { ok: false, error: "A send for this issue is already in progress." };
+  }
+
   try {
-    await prisma.newsletterDistribution.create({ data: { issueId, channel: "EMAIL", status: "PENDING" } });
-  } catch {
-    return { ok: false, error: "This issue has already been sent." };
-  }
+    const issue = await prisma.newsletterIssue.findUniqueOrThrow({ where: { id: issueId }, select: { audienceSegment: true } });
+    const segment = (issue.audienceSegment as Segment) ?? "ACTIVE_MEMBERS";
+    const recipients = await resolveAudience(segment);
+    const model = await getRenderModel(issueId);
 
-  const issue = await prisma.newsletterIssue.findUniqueOrThrow({ where: { id: issueId }, select: { audienceSegment: true } });
-  const segment = (issue.audienceSegment as Segment) ?? "ACTIVE_MEMBERS";
-  const recipients = await resolveAudience(segment);
-  const model = await getRenderModel(issueId);
+    // Create a reporting campaign only for an admin-initiated send (a real user owns it). Scheduled
+    // cron sends have no user and rely on the NewsletterDistribution ledger for reporting. The
+    // idempotencyKey is unique per issue, so a retry reuses the existing campaign (upsert).
+    const campaign = actorId !== "system"
+      ? await prisma.emailCampaign.upsert({
+          where: { idempotencyKey: `newsletter:${issueId}` },
+          update: { status: "SENDING" },
+          create: {
+            subject: `The McKinney SDA Newsletter — ${model.monthLabel}`,
+            type: "MARKETING",
+            audience: segment,
+            fromIdentity: env.MAIL_FROM,
+            status: "SENDING",
+            idempotencyKey: `newsletter:${issueId}`,
+            bodyHtml: "", // per-recipient personalized (unsubscribe link); not a single stored body
+            createdById: actorId,
+          },
+          select: { id: true },
+        }).catch(() => null)
+      : null;
 
-  // Create a reporting campaign only for an admin-initiated send (a real user owns it). Scheduled
-  // cron sends have no user and rely on the NewsletterDistribution ledger for reporting.
-  const campaign = actorId !== "system"
-    ? await prisma.emailCampaign.create({
-        data: {
-          subject: `The McKinney SDA Newsletter — ${model.monthLabel}`,
-          type: "MARKETING",
-          audience: segment,
-          fromIdentity: env.MAIL_FROM,
-          status: "SENDING",
-          idempotencyKey: `newsletter:${issueId}`,
-          bodyHtml: "", // per-recipient personalized (unsubscribe link); not a single stored body
-          createdById: actorId,
-        },
-        select: { id: true },
-      }).catch(() => null)
-    : null;
-
-  let sent = 0;
-  let suppressed = 0;
-  for (const email of recipients) {
-    const unsubscribeUrl = `${SITE()}/api/email/unsubscribe/${unsubscribeToken(email, "NEWSLETTER")}`;
-    const { subject, html } = renderModelToEmail(model, unsubscribeUrl);
-    try {
-      const identity = await prisma.emailIdentity.upsert({
-        where: { emailNormalized: email },
-        update: {},
-        create: { emailNormalized: email },
-        select: { id: true },
-      });
-      const message = campaign
-        ? await prisma.emailMessage.create({ data: { identityId: identity.id, campaignId: campaign.id, type: "MARKETING", status: "QUEUED" }, select: { id: true } })
-        : null;
-      const res = await sendEmail({ to: email, subject, html, type: "MARKETING", listType: "NEWSLETTER" });
-      if (message) {
-        await prisma.emailMessage.update({ where: { id: message.id }, data: { status: res.sent ? "ACCEPTED" : "SUPPRESSED" } });
+    let sent = 0;
+    let suppressed = 0;
+    for (const email of recipients) {
+      const unsubscribeUrl = `${SITE()}/api/email/unsubscribe/${unsubscribeToken(email, "NEWSLETTER")}`;
+      const { subject, html } = renderModelToEmail(model, unsubscribeUrl);
+      try {
+        const identity = await prisma.emailIdentity.upsert({
+          where: { emailNormalized: email },
+          update: {},
+          create: { emailNormalized: email },
+          select: { id: true },
+        });
+        const message = campaign
+          ? await prisma.emailMessage.create({ data: { identityId: identity.id, campaignId: campaign.id, type: "MARKETING", status: "QUEUED" }, select: { id: true } })
+          : null;
+        const res = await sendEmail({ to: email, subject, html, type: "MARKETING", listType: "NEWSLETTER" });
+        if (message) {
+          await prisma.emailMessage.update({ where: { id: message.id }, data: { status: res.sent ? "ACCEPTED" : "SUPPRESSED" } });
+        }
+        if (res.sent) sent++; else suppressed++;
+      } catch {
+        suppressed++;
       }
-      if (res.sent) sent++; else suppressed++;
-    } catch {
-      suppressed++;
     }
+
+    const now = new Date();
+    if (campaign) await prisma.emailCampaign.update({ where: { id: campaign.id }, data: { status: "SENT", sentAt: now } });
+    await prisma.newsletterDistribution.update({
+      where: { issueId_channel: { issueId, channel: "EMAIL" } },
+      data: { status: "SENT", recipientCount: recipients.length, sentCount: sent, suppressedCount: suppressed, completedAt: now },
+    });
+    await prisma.newsletterIssue.update({ where: { id: issueId }, data: { status: "PUBLISHED", publishedAt: now, webPublishedAt: now, scheduledSendAt: null } });
+
+    await writeAudit(prisma, { actorId, action: "newsletter.issue.published", entity: "NewsletterIssue", entityId: issueId, metadata: { recipients: recipients.length, sent, suppressed } });
+    await notifyRoles(["ADMIN", "PASTOR"], { category: "newsletter", title: `Newsletter sent — ${model.monthLabel}`, deepLink: `${ADMIN_BASE}/${issueId}` });
+    return { ok: true, sent, suppressed, recipients: recipients.length };
+  } catch (e) {
+    // Release the claim as FAILED so the issue stays deliverable (a later admin retry or the next
+    // scheduler run can re-take it) instead of being permanently wedged in PENDING.
+    await prisma.newsletterDistribution.updateMany({
+      where: { issueId, channel: "EMAIL", status: "PENDING" },
+      data: { status: "FAILED", completedAt: new Date(), error: e instanceof Error ? e.message.slice(0, 500) : "send failed" },
+    }).catch(() => {});
+    return { ok: false, error: "The send did not complete and has been marked failed — you can retry it." };
   }
-
-  const now = new Date();
-  if (campaign) await prisma.emailCampaign.update({ where: { id: campaign.id }, data: { status: "SENT", sentAt: now } });
-  await prisma.newsletterDistribution.update({
-    where: { issueId_channel: { issueId, channel: "EMAIL" } },
-    data: { status: "SENT", recipientCount: recipients.length, sentCount: sent, suppressedCount: suppressed, completedAt: now },
-  });
-  await prisma.newsletterIssue.update({ where: { id: issueId }, data: { status: "PUBLISHED", publishedAt: now, webPublishedAt: now, scheduledSendAt: null } });
-
-  await writeAudit(prisma, { actorId, action: "newsletter.issue.published", entity: "NewsletterIssue", entityId: issueId, metadata: { recipients: recipients.length, sent, suppressed } });
-  await notifyRoles(["ADMIN", "PASTOR"], { category: "newsletter", title: `Newsletter sent — ${model.monthLabel}`, deepLink: `${ADMIN_BASE}/${issueId}` });
-  return { ok: true, sent, suppressed, recipients: recipients.length };
 }
 
 /** Admin "send now" (§27). Validates, version-guards APPROVED→PUBLISHED (via runDeliver's ledger). */
