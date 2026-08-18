@@ -330,7 +330,6 @@ export default async function NewsletterDetail({
             {idField}
             <h2 className="text-lg font-semibold text-fg">Upload cover image</h2>
             {issue.coverImageUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
               <img src={issue.coverImageUrl} alt={issue.coverImageAlt ?? "Cover preview"} className="max-h-40 w-full rounded-md object-cover" />
             )}
             <input type="file" name="file" accept="image/*" className="block w-full text-sm" />

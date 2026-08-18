@@ -12,7 +12,6 @@ function ItemCard({ item }: { item: RenderItem }) {
   return (
     <div className="card overflow-hidden">
       {item.imageUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
         <img src={item.imageUrl} alt={item.imageAlt ?? item.title ?? ""} className="h-44 w-full object-cover" loading="lazy" />
       )}
       <div className="p-5">
@@ -50,7 +49,6 @@ function EditorialSection({ section }: { section: RenderSection }) {
       <Eyebrow>{section.heading}</Eyebrow>
       {section.subtitle && <p className="mt-2 max-w-2xl text-lg text-muted">{section.subtitle}</p>}
       {section.imageUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
         <img src={section.imageUrl} alt={section.imageAlt ?? section.heading} className="mt-5 max-h-[26rem] w-full rounded-xl object-cover" />
       )}
       {section.bodyHtml && (
@@ -79,7 +77,6 @@ export function NewsletterEdition({ model }: { model: NewsletterRenderModel }) {
           {model.coverHeadline && <p className="mt-4 max-w-2xl text-lg text-white/90">{model.coverHeadline}</p>}
         </Container>
         {model.coverImageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={model.coverImageUrl} alt={model.coverImageAlt ?? `${model.monthLabel} cover`} className="h-64 w-full object-cover sm:h-96" />
         )}
       </header>

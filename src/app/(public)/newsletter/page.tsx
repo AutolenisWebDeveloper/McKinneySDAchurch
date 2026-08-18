@@ -30,7 +30,6 @@ export default async function NewsletterArchive() {
             {issues.map((i) => (
               <Link key={i.slug} href={`/newsletter/${i.slug}`} className="card overflow-hidden transition-shadow hover:shadow-md">
                 {i.coverImageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={i.coverImageUrl} alt={`${i.monthLabel} newsletter cover`} className="h-44 w-full object-cover" loading="lazy" />
                 ) : (
                   <div className="flex h-44 w-full items-center justify-center bg-hero-denim text-white">
