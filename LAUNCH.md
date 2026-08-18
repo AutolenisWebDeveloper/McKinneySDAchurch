@@ -47,6 +47,14 @@ Generate secrets: `openssl rand -base64 32` (run once each; never reuse across e
    hits until this exists.
 3. **[verify]** Seed reference content: `npm run db:seed` (loads the 28 belief titles + source URLs;
    the church supplies the licensed body text).
+   - **Bootstrap the first administrator** (no other path can create it — the public flow only
+     makes MEMBER accounts, and invites need an existing admin):
+     ```
+     ADMIN_EMAIL="admin@yourchurch.org" ADMIN_PASSWORD="a-strong-password" \
+       [ADMIN_NAME="Church Administrator"] npm run db:seed:admin
+     ```
+     Idempotent — re-run it to reset a locked-out admin's password (this also revokes the
+     admin's existing sessions). Sign in at `/auth/login`, then enable MFA (see §138).
 4. **Backups:** enable your provider's automated backups / point-in-time recovery (Neon, Supabase,
    RDS all support this). Target: daily full + PITR. **Test a restore before launch.**
 5. Encrypted fields (prayer, pastoral notes, board minutes) are only as recoverable as
