@@ -257,6 +257,8 @@ model Ministry {
   workItems         WorkItem[]         @relation("WorkItemMinistry")
   packetSubmissions PacketSubmission[] @relation("PacketSubmissionMinistry")
   fundraisers       Fundraiser[]       @relation("MinistryFundraisers")
+
+  newsletterSubmissions NewsletterSubmission[] @relation("NewsletterSubmissionMinistry")
 }
 
 model Household {
@@ -2028,4 +2030,234 @@ model MemberInfoInvite {
   createdAt       DateTime  @default(now())
 
   @@index([emailNormalized])
+}
+
+// ===== Monthly Newsletter (church-wide editorial publication) =====
+// A separate product from the Weekly Bulletin (WeeklyPacket). One issue per calendar month,
+// department-contributed, Admin/Communications-controlled, rendered to both a member email and a
+// premium public web edition from one content model, then archived. Mirrors the WeeklyPacket
+// architecture (dated publication + submissions + readiness + reminders + distribution ledger +
+// optimistic `version` concurrency); it does NOT fork or replace it.
+
+/// Issue lifecycle (§5). Reconciles the directive's model: COLLECTING_CONTENT→COLLECTING,
+/// CONTENT_REVIEW+DESIGN_REVIEW→IN_REVIEW, READY_FOR_APPROVAL→READY. Transitions only per the
+/// pure ALLOWED graph in lib/newsletter.ts; several edges may step back one stage.
+enum NewsletterIssueStatus {
+  DRAFT
+  COLLECTING
+  IN_REVIEW
+  READY
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+/// Department submission lifecycle (§9). NOT_STARTED is derived (no row exists). Canonical flow:
+///   DRAFT → SUBMITTED → UNDER_REVIEW → APPROVED → ADDED_TO_ISSUE
+///   SUBMITTED/UNDER_REVIEW → CHANGES_REQUESTED → (resubmit) SUBMITTED
+///   SUBMITTED/UNDER_REVIEW → DECLINED (terminal)
+enum NewsletterSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  ADDED_TO_ISSUE
+  DECLINED
+}
+
+/// Editorial content type of a department submission (§8).
+enum NewsletterContentType {
+  NEWS
+  EVENT
+  ANNOUNCEMENT
+  MINISTRY_STORY
+  ACCOMPLISHMENT
+  VOLUNTEER
+  TESTIMONY
+  OUTREACH
+  OTHER
+}
+
+/// Controlled modular section types for the editorial builder (§13/§14). The layout is
+/// system-owned; editors add/remove/reorder/hide/edit content, not layout fundamentals.
+enum NewsletterSectionType {
+  HERO
+  PASTOR_MESSAGE
+  FEATURED_STORY
+  CHURCH_LIFE
+  MINISTRY_SPOTLIGHT
+  MEMBER_HIGHLIGHT
+  COMMUNITY_MISSION
+  UPCOMING_EVENTS
+  PHOTO_STORY
+  BUILDING_UPDATE
+  SERVE_INVOLVED
+  CTA
+  STAY_CONNECTED
+  FOOTER
+}
+
+/// One newsletter issue per calendar month (`monthStart` = first-of-month at UTC midnight, unique).
+/// Readiness is a pure calculation persisted for display; `version` guards concurrent review/publish.
+model NewsletterIssue {
+  id                String                @id @default(cuid())
+  monthStart        DateTime              @unique
+  slug              String                @unique // YYYY-MM
+  status            NewsletterIssueStatus @default(DRAFT)
+  title             String? // internal issue name
+  coverHeadline     String? // editorial cover headline
+  theme             String?
+  coverImageUrl     String?
+  coverImageAlt     String?
+  pastorMessageHtml String? // sanitized before store
+  pastorMessageBy   String?
+
+  // Configurable monthly cadence (§6). Defaulted to the 15th/20th/22nd on create.
+  requestAt            DateTime?
+  reminderAt           DateTime?
+  submissionDeadlineAt DateTime?
+
+  audienceSegment String    @default("ACTIVE_MEMBERS") // resolved via lib/segments
+  scheduledSendAt DateTime?
+  testEmailSentAt DateTime?
+  approvedById    String?
+  approvedAt      DateTime?
+  publishedAt     DateTime? // email sent + web live
+  webPublishedAt  DateTime?
+  archivedAt      DateTime?
+
+  readinessScore Int      @default(0)
+  version        Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  submissions   NewsletterSubmission[]
+  sections      NewsletterSection[]
+  reminders     NewsletterReminder[]
+  distributions NewsletterDistribution[]
+
+  @@index([status, monthStart])
+}
+
+/// A single department contribution to an issue. Submitter/reviewer are scalar ids for audit/display
+/// (no FK, matching the PacketSubmission/AccountRequest pattern). `eventId` links a canonical Calendar
+/// event by id (resolved in queries; not a FK) so event data is never duplicated (§16).
+model NewsletterSubmission {
+  id            String                     @id @default(cuid())
+  issueId       String
+  issue         NewsletterIssue            @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  ministryId    String?
+  ministry      Ministry?                  @relation("NewsletterSubmissionMinistry", fields: [ministryId], references: [id])
+  submittedById String?
+  status        NewsletterSubmissionStatus @default(DRAFT)
+  version       Int                        @default(0)
+
+  contentType     NewsletterContentType @default(NEWS)
+  title           String
+  body            String? // what the department wants to share (plain text)
+  summary         String? // short editorial summary
+  fullContentHtml String? // sanitized rich detail (optional)
+
+  eventStartAt DateTime?
+  eventId      String? // canonical Calendar Event id (plain reference)
+  location     String?
+
+  ctaLabel    String?
+  ctaUrl      String?
+  externalUrl String?
+
+  internalNotes String? // note to Communications; never rendered publicly
+  reviewNote    String? // feedback shown to the department head
+  reviewedById  String?
+
+  featured  Boolean @default(false)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  images    NewsletterImage[]
+
+  @@index([issueId, status])
+  @@index([ministryId])
+  @@index([submittedById])
+}
+
+/// A controlled builder block on an issue (§13). `submissionId` may feature an approved submission;
+/// `eventId` may reference a canonical event; `config` holds flexible per-type data (e.g. event id list).
+model NewsletterSection {
+  id           String                @id @default(cuid())
+  issueId      String
+  issue        NewsletterIssue       @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  type         NewsletterSectionType
+  title        String?
+  subtitle     String?
+  bodyHtml     String? // sanitized before store
+  imageUrl     String?
+  imageAlt     String?
+  ctaLabel     String?
+  ctaUrl       String?
+  submissionId String?
+  eventId      String?
+  config       Json?
+  sortOrder    Int                   @default(0)
+  hidden       Boolean               @default(false)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  images       NewsletterImage[]
+
+  @@index([issueId, sortOrder])
+}
+
+/// Multiple images for a submission or section (§8/§32). Belongs to exactly one parent.
+model NewsletterImage {
+  id           String                @id @default(cuid())
+  submissionId String?
+  submission   NewsletterSubmission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  sectionId    String?
+  section      NewsletterSection?    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  url          String
+  alt          String?
+  caption      String?
+  sortOrder    Int                   @default(0)
+  createdAt    DateTime              @default(now())
+
+  @@index([submissionId])
+  @@index([sectionId])
+}
+
+/// Idempotency + audit ledger for the monthly content-request/reminder crons (§10). One row per
+/// (issue, kind, recipient) guarantees a cron re-run never double-sends. kind = REQUEST | REMINDER.
+model NewsletterReminder {
+  id         String          @id @default(cuid())
+  issueId    String
+  issue      NewsletterIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  kind       String // REQUEST | REMINDER
+  userId     String
+  ministryId String?
+  sentAt     DateTime        @default(now())
+
+  @@unique([issueId, kind, userId])
+  @@index([issueId, kind])
+}
+
+/// Member-distribution ledger (§20/§27). Unique per (issue, channel) so the send is idempotent: a
+/// retry/duplicate run finds the existing record and no-ops. channel = EMAIL.
+model NewsletterDistribution {
+  id              String          @id @default(cuid())
+  issueId         String
+  issue           NewsletterIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  channel         String // EMAIL
+  status          String          @default("PENDING") // PENDING | SENT | FAILED
+  recipientCount  Int             @default(0)
+  sentCount       Int             @default(0)
+  suppressedCount Int             @default(0)
+  scheduledFor    DateTime?
+  startedAt       DateTime        @default(now())
+  completedAt     DateTime?
+  error           String?
+
+  @@unique([issueId, channel])
+  @@index([issueId])
 }

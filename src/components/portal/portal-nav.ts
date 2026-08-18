@@ -58,6 +58,7 @@ export function portalNav(portal: PortalKey, _actor: Actor): NavGroup[] {
           label: "My ministry",
           items: [
             { href: "/dashboard/ministry/bulletin", label: "Weekly Bulletin", icon: "bulletin" },
+            { href: "/dashboard/ministry/newsletter", label: "Monthly Newsletter", icon: "newsletter" },
             { href: "/dashboard/ministry/submit", label: "Program & Events", icon: "bulletins" },
             { href: "/dashboard/ministry/announcements", label: "My Announcements", icon: "content" },
             { href: "/dashboard/ministry/events", label: "My Events", icon: "calendar" },
@@ -161,6 +162,7 @@ export function portalNav(portal: PortalKey, _actor: Actor): NavGroup[] {
           items: [
             { href: "/dashboard/admin/weekly", label: "Weekly Bulletin", icon: "bulletin" },
             { href: "/dashboard/admin/bulletin", label: "Bulletins", icon: "bulletins" },
+            { href: "/dashboard/admin/newsletter", label: "Monthly Newsletter", icon: "newsletter" },
             { href: "/dashboard/admin/email", label: "Member Email", icon: "email" },
             { href: "/dashboard/admin/email/templates", label: "Email Templates", icon: "email-template" },
           ],
