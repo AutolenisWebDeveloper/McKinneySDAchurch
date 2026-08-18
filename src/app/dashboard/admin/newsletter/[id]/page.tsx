@@ -58,7 +58,7 @@ export default async function NewsletterDetail({
   } catch {
     notFound();
   }
-  const { issue, readiness, validation, audienceSize, submissions, sections, departments } = data;
+  const { issue, readiness, validation, audienceSize, submissions, sections, departments, usableSubmissions, upcomingEvents } = data;
   const v = issue.version;
   const idField = <input type="hidden" name="issueId" value={id} />;
   const verField = <input type="hidden" name="version" value={v} />;
@@ -392,6 +392,30 @@ export default async function NewsletterDetail({
                       <input name="ctaLabel" defaultValue={s.ctaLabel ?? ""} placeholder="Button label" className="rounded-md border border-line bg-surface px-3 py-2 text-sm" />
                       <input name="ctaUrl" type="url" defaultValue={s.ctaUrl ?? ""} placeholder="Button URL" className="rounded-md border border-line bg-surface px-3 py-2 text-sm" />
                     </div>
+                    {s.type === "UPCOMING_EVENTS" ? (
+                      <fieldset className="rounded-md border border-line p-2">
+                        <legend className="px-1 text-xs font-medium text-muted">Attach upcoming events (from the Calendar)</legend>
+                        {upcomingEvents.length === 0 ? (
+                          <p className="text-xs text-muted">No upcoming published events.</p>
+                        ) : (
+                          <div className="max-h-40 space-y-1 overflow-y-auto">
+                            {upcomingEvents.map((e) => (
+                              <label key={e.id} className="flex items-center gap-2 text-sm">
+                                <input type="checkbox" name="eventIds" value={e.id} defaultChecked={s.eventIds.includes(e.id)} />
+                                <span>{e.title} <span className="text-muted">· {e.startAt.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Chicago" })}</span></span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </fieldset>
+                    ) : (
+                      <label className="block text-sm text-fg">Feature an approved submission
+                        <select name="submissionId" defaultValue={s.submissionId ?? ""} className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm">
+                          <option value="">None</option>
+                          {usableSubmissions.map((u) => <option key={u.id} value={u.id}>{u.ministryName}: {u.title}</option>)}
+                        </select>
+                      </label>
+                    )}
                     <button className="btn btn-outline px-3 py-1 text-sm">Save section</button>
                   </form>
                 </details>

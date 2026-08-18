@@ -985,7 +985,7 @@ export type IssueDashboard = Awaited<ReturnType<typeof getIssueDashboard>>;
 export async function getIssueDashboard(issueId: string) {
   const issue = await prisma.newsletterIssue.findUniqueOrThrow({ where: { id: issueId } });
 
-  const [submissions, sectionContent, sectionsRaw, ministries, headRoles] = await Promise.all([
+  const [submissions, sectionContent, sectionsRaw, ministries, headRoles, upcomingEvents] = await Promise.all([
     prisma.newsletterSubmission.findMany({
       where: { issueId },
       orderBy: [{ status: "asc" }, { createdAt: "asc" }],
@@ -995,6 +995,12 @@ export async function getIssueDashboard(issueId: string) {
     prisma.newsletterSection.findMany({ where: { issueId }, orderBy: { sortOrder: "asc" }, include: { _count: { select: { images: true } } } }),
     prisma.ministry.findMany({ select: { id: true, name: true } }),
     prisma.userRole.findMany({ where: { active: true, role: "MINISTRY_HEAD", ministryId: { not: null } }, select: { ministryId: true } }),
+    prisma.event.findMany({
+      where: { status: "PUBLISHED", visibility: "PUBLIC", startAt: { gte: new Date() } },
+      orderBy: { startAt: "asc" },
+      take: 30,
+      select: { id: true, title: true, startAt: true },
+    }),
   ]);
 
   const invitedIds = [...new Set(headRoles.map((h) => h.ministryId as string))];
@@ -1041,7 +1047,13 @@ export async function getIssueDashboard(issueId: string) {
       sortOrder: s.sortOrder,
       imageCount: s._count.images,
       hasContent: contentById.get(s.id) ?? false,
+      submissionId: s.submissionId,
+      eventIds: ((s.config ?? {}) as { eventIds?: string[] }).eventIds ?? [],
     })),
+    usableSubmissions: submissions
+      .filter((s) => s.status === "APPROVED" || s.status === "ADDED_TO_ISSUE")
+      .map((s) => ({ id: s.id, title: s.title, ministryName: s.ministry?.name ?? "—" })),
+    upcomingEvents: upcomingEvents.map((e) => ({ id: e.id, title: e.title, startAt: e.startAt })),
     departments: {
       total: readiness.totalDepartments,
       responded: readiness.respondedDepartments,

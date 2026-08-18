@@ -180,6 +180,10 @@ export async function updateSectionAction(formData: FormData) {
   const id = String(formData.get("issueId"));
   const sectionId = String(formData.get("sectionId"));
   const get = (k: string) => { const v = formData.get(k); return v === null ? undefined : String(v); };
+  // Optional linkage: feature an approved submission, or attach calendar events (UPCOMING_EVENTS).
+  const hasSubmission = formData.has("submissionId");
+  const hasEvents = formData.has("eventIds");
+  const eventIds = formData.getAll("eventIds").map(String).filter(Boolean);
   const res = await updateSection(a, sectionId, {
     title: get("title"),
     subtitle: get("subtitle"),
@@ -188,6 +192,8 @@ export async function updateSectionAction(formData: FormData) {
     imageAlt: get("imageAlt"),
     ctaLabel: get("ctaLabel"),
     ctaUrl: get("ctaUrl"),
+    ...(hasSubmission ? { submissionId: get("submissionId") || null } : {}),
+    ...(hasEvents ? { config: eventIds.length ? { eventIds } : null } : {}),
   });
   back(id, res.ok ? { msg: "Section saved." } : { err: res.error ?? "Could not save section." }, "#builder");
 }
