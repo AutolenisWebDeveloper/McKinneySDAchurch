@@ -111,19 +111,23 @@ the only one that actually enforces anything.**
    McKinney SDA Skills. Govern **what** must be preserved.
 3. **Superpowers** — engineering execution layer (repo exploration, requirements analysis,
    planning, TDD, systematic debugging, root-cause analysis, implementation, verification/
-   independent review). Governs **how** engineering work is executed. **Not installed in this
-   environment as of 2026-08-11** — a session must **re-verify** (search `~/.claude/skills`,
-   project `.claude/skills`, `~/.claude/plugins`) and use it only if actually present, per its
-   own instructions. Never invent its Skill names or claim to have used it when absent.
+   independent review). Governs **how** engineering work is executed. **Installed in this
+   environment as of 2026-08-16** at `.claude/plugins/superpowers/` (skills under
+   `.claude/plugins/superpowers/skills/`). Still **re-verify each session** (search
+   `~/.claude/skills`, project `.claude/skills`, `~/.claude/plugins`, project `.claude/plugins`)
+   since the environment can change — but the default expectation is now *present*, not absent.
+   Never invent its Skill names or claim to have used it when absent.
 4. **Impeccable** — frontend/UX/design-quality layer (information architecture, visual
    hierarchy, layout, typography, spacing, responsive, navigation, forms, tables, dialogs,
    states, a11y, critique). Governs **frontend/UX execution quality**, working **inside** the
-   McKinney SDA design system and tokens. **Not installed in this environment as of
-   2026-08-11** — re-verify each session; use only if present. It may raise implementation
-   quality but must never change brand tokens, portal architecture, navigation
-   responsibilities, RBAC, workflows, communication architecture, safeguarding, the
-   AdventistGiving boundary, or approved terminology — and must not change business logic for
-   visual convenience.
+   McKinney SDA design system and tokens. **Installed in this environment as of 2026-08-16** at
+   `.claude/plugins/impeccable/` (the `impeccable` skill lives at
+   `.claude/plugins/impeccable/skills/impeccable/`; run its `scripts/context.mjs` once per
+   session and `scripts/detect.mjs` over changed web UI). Re-verify each session, but expect it
+   *present*. It may raise implementation quality but must never change brand tokens, portal
+   architecture, navigation responsibilities, RBAC, workflows, communication architecture,
+   safeguarding, the AdventistGiving boundary, or approved terminology — and must not change
+   business logic for visual convenience.
 5. **McKinney SDA project Skills** (`.claude/skills/`) — repository-specific architecture,
    RBAC, privacy, safeguarding, workflows, communications, governance, database, testing, and
    production rules.
