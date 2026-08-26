@@ -31,14 +31,19 @@ Generate secrets: `openssl rand -base64 32` (run once each; never reuse across e
 
 ## 2. Database
 
-0. **Migrations apply automatically on deploy.** Set the Vercel **Build Command** to
-   `prisma generate && prisma migrate deploy && next build` so every deploy applies committed
-   migrations before building. This requires `DIRECT_URL` to be set (the pooled `DATABASE_URL`
-   cannot run migrations). Prisma's build-time client generation reads `DATABASE_URL`; the
-   migrate step reads `DIRECT_URL`. Without this step the schema drifts behind the code —
-   pages that query new columns then error in production.
-   - The production database has been **baselined**: `_prisma_migrations` records all migrations
-     through `20260812140000_calendar_governed_events` as applied, so `migrate deploy` is a no-op
+0. **Migrations apply automatically on deploy.** The `vercel-build` script in `package.json`
+   runs `prisma migrate deploy` **only for production deployments** (`VERCEL_ENV=production`)
+   before building, so committed migrations are applied on every production deploy — no manual
+   dashboard configuration required. Preview/branch deployments skip the migrate step (they build
+   with `prisma generate && next build`) so they never touch the production database. (A Vercel
+   **Build Command** override, if set, takes precedence over the script; keep it blank so the
+   script is used.) The production migrate step requires `DIRECT_URL` to be set in the
+   Production environment (the pooled `DATABASE_URL` cannot run migrations). Prisma's build-time
+   client generation reads `DATABASE_URL`; the migrate step reads `DIRECT_URL`. Without this step
+   the schema drifts behind the code — pages that query new columns then error in production
+   (this is what broke sign-in when `User.disabledAt` was missing).
+   - The production database is synced through `20260818000000_monthly_newsletter`; earlier
+     migrations are recorded in `_prisma_migrations` as applied, so `migrate deploy` is a no-op
      against current prod and only *future* migrations run.
 1. **[verify]** Run migrations manually if not on the automated build: `npx prisma migrate deploy`
    (needs `DIRECT_URL`).
