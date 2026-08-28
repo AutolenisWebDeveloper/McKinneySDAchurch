@@ -232,3 +232,58 @@ describe("share targets (§2)", () => {
     expect(decodeURIComponent(fallback.sms)).toContain("Help us build our future home — Team Ada");
   });
 });
+
+/**
+ * The figures the PUBLIC fundraiser page (/f/[slug]) is allowed to compose. That page's query
+ * selects amount, status and confirmedAt and NO donor field, which is what these cases pin: the
+ * numbers have to stay correct and honest when read from donor-free rows.
+ */
+describe("public fundraiser page figures (/f/[slug])", () => {
+  it("offers no percentage, no bar fill and no remainder when no goal is set", () => {
+    const p = fundraiserProgress(3750, 0);
+    expect(p).toMatchObject({ raised: 3750, goal: 0, pct: 0, barPct: 0, remaining: 0, goalReached: false });
+    // Nothing here can be composed into "$3,750 of $0" or a 0%-complete claim — the page has
+    // to fall back to the raised amount alone.
+    expect(p.goal).toBe(0);
+  });
+
+  it("still reports a true over-goal percentage while the bar fill stops at 100", () => {
+    const p = fundraiserProgress(12_500, 10_000);
+    expect(p.pct).toBe(125);
+    expect(p.pct).toBeGreaterThan(100);
+    expect(p.barPct).toBe(100);
+    expect(p.remaining).toBe(0);
+    expect(p.goalReached).toBe(true);
+  });
+
+  it("counts gifts, not people, when the rows carry no donor field", () => {
+    // Two gifts from one person are indistinguishable in this shape — which is precisely why
+    // the public page labels the figure "gifts" instead of "supporters".
+    const publicRows = [
+      { amount: 2500, status: "CONFIRMED", confirmedAt: at("2026-08-10T12:00:00Z") },
+      { amount: 1250, status: "CONFIRMED", confirmedAt: at("2026-08-10T12:00:00Z") },
+    ];
+    expect(supporterCount(publicRows)).toBe(2);
+    expect(verifiedTotal(publicRows)).toBe(3750);
+  });
+
+  it("omits the gift count rather than showing zero when nothing is confirmed", () => {
+    expect(supporterCount([{ amount: 4000, status: "PENDING", confirmedAt: null }])).toBeNull();
+    expect(supporterCount([{ amount: 4000, status: "CANCELLED", confirmedAt: null }])).toBeNull();
+    expect(supporterCount([])).toBeNull();
+  });
+
+  it("encodes a story containing & and # into every share channel that carries it", () => {
+    const story = "A home of our own — & we would love your help. #PossessTheLand";
+    const t = shareTargets("https://mckinneysda.org/f/hope-rising", "Hope Rising", story);
+    for (const link of [t.sms, t.email, t.whatsapp]) {
+      // Unencoded, "&" would start a new query parameter and "#" would turn the rest of the
+      // message into a fragment — the share would arrive truncated.
+      expect(link).toContain("%26");
+      expect(link).toContain("%23");
+      expect(decodeURIComponent(link)).toContain(story);
+      expect(decodeURIComponent(link)).toContain("https://mckinneysda.org/f/hope-rising");
+    }
+    expect(t.facebook).toContain(encodeURIComponent("https://mckinneysda.org/f/hope-rising"));
+  });
+});
