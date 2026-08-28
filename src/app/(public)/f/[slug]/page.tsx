@@ -1,3 +1,4 @@
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -51,13 +52,17 @@ const HERO_SENTINEL = "fundraiser-hero-cta";
  */
 const SPACES = ["welcome-lobby", "sanctuary", "childrens-ministry", "classrooms", "fellowship-hall", "kitchen"];
 
-async function loadPublic(slug: string) {
+/**
+ * Deduplicated per request: generateMetadata and the page component both need this row, and
+ * React's cache() lets them share one query instead of issuing the same one twice.
+ */
+const loadPublic = cache(async (slug: string) => {
   return safe(
     prisma.fundraiser.findFirst({
       where: { slug, status: "ACTIVE" },
       select: {
         id: true, slug: true, title: true, displayName: true, story: true, graphicUrl: true,
-        type: true, personalGoal: true, targetDate: true, referralToken: true, approvedAt: true,
+        type: true, personalGoal: true, targetDate: true, referralToken: true,
         household: { select: { familyName: true } },
         ministry: { select: { name: true } },
         campaign: { select: { title: true, status: true } },
@@ -67,7 +72,7 @@ async function loadPublic(slug: string) {
     }),
     null,
   );
-}
+});
 
 /** The active building project, for the church-wide framing. Never blocks the page. */
 async function loadProject() {
@@ -99,7 +104,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const f = await loadPublic(slug);
   // The same two gates the page applies. Without the campaign check the browser tab would name
   // a fundraiser whose page 404s.
-  if (!f || f.campaign.status !== "ACTIVE") return { title: "Fundraiser not found" };
+  //
+  // notFound() on this route serves the not-found UI with a 200 (the (public) segment's
+  // loading.tsx opens a Suspense boundary, so the shell flushes before the page resolves), which
+  // means a crawler sees a real response where a 404 belongs. noindex/nofollow is what keeps a
+  // draft, rejected or paused-campaign slug out of the index despite that status.
+  if (!f || f.campaign.status !== "ACTIVE") {
+    return { title: "Fundraiser not found", robots: { index: false, follow: false } };
+  }
   const progress = fundraiserProgress(verifiedTotal(f.donations), f.personalGoal);
   const standing =
     progress.goal > 0

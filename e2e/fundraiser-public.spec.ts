@@ -90,6 +90,45 @@ test("a DRAFT fundraiser is not public", async ({ page }) => {
   await expectNotPublic(page, "Draft Page");
 });
 
+/**
+ * notFound() on this route serves the not-found UI with a 200 status — the (public) segment's
+ * loading.tsx opens a Suspense boundary, so the shell flushes before the page resolves and the
+ * status is already committed. A crawler therefore sees a real response where a 404 belongs, and
+ * the robots directive from generateMetadata is what keeps the slug out of the index anyway.
+ *
+ * Asserted against the RAW HTTP body, not the hydrated DOM: a tag that only appears after React
+ * hoists it client-side would be invisible to the crawlers this is meant for.
+ *
+ * Next injects its own `content="noindex"` on any not-found render, so a test that merely looked
+ * for "noindex" would pass with our metadata deleted. The assertion is pinned to the exact
+ * `noindex, nofollow` that only generateMetadata produces, and the positive control below proves
+ * a reachable fundraiser carries no robots tag at all.
+ */
+for (const { label, path } of [
+  { label: "a DRAFT slug", path: `/f/${E2E_FUNDRAISER.draft.slug}` },
+  { label: "an unknown slug", path: "/f/no-such-fundraiser-anywhere" },
+  { label: "a non-ACTIVE campaign's slug", path: `/f/${E2E_FUNDRAISER.orphan.slug}` },
+]) {
+  test(`${label} is served with a robots noindex directive`, async ({ request }) => {
+    const html = await (await request.get(path)).text();
+
+    expect(html).toContain('<meta name="robots" content="noindex, nofollow"/>');
+
+    // It has to be inside <head> in the bytes the server sent, or a crawler that does not run
+    // scripts will never apply it.
+    const headEnd = html.indexOf("</head>");
+    expect(headEnd).toBeGreaterThan(-1);
+    expect(html.indexOf('content="noindex, nofollow"')).toBeLessThan(headEnd);
+  });
+}
+
+test("a reachable fundraiser is NOT marked noindex", async ({ request }) => {
+  // The control for the three tests above: without it they would still pass if the page were
+  // globally noindexed, which would quietly de-list every live fundraiser.
+  const html = await (await request.get(FULL)).text();
+  expect(html).not.toContain('name="robots"');
+});
+
 test("an unknown slug is not public", async ({ page }) => {
   await page.goto("/f/no-such-fundraiser-anywhere");
   await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
