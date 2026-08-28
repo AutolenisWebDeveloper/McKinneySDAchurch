@@ -28,6 +28,9 @@ const serverEnv: Record<string, string> = {
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY ?? "0123456789abcdef0123456789abcdef",
   TOKEN_HMAC_SECRET: process.env.TOKEN_HMAC_SECRET ?? "e2e-hmac-secret-please-rotate",
   CRON_SECRET: process.env.CRON_SECRET ?? "e2e-cron-secret-please-rotate",
+  // The giving handoff redirects here; pinned so the fundraiser suite can assert the target
+  // host and the designation it carries instead of skipping when the var is unset.
+  ADVENTIST_GIVING_URL: process.env.ADVENTIST_GIVING_URL ?? "https://adventistgiving.org/donate/ANWFMK",
 };
 
 export default defineConfig({

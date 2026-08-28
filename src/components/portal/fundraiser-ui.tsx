@@ -122,11 +122,18 @@ export function ProgressMeter({
  * Secondary figures. A fact whose value is null is dropped entirely rather than rendered as a
  * placeholder — the spec is explicit that an unreliable number must be omitted (§3, §18).
  */
-export function FactList({ facts }: { facts: { label: string; value: ReactNode | null }[] }) {
+export function FactList({
+  facts,
+  columns = 3,
+}: {
+  facts: { label: string; value: ReactNode | null }[];
+  /** Three across by default. Pass 2 in a narrow column, where a third would wrap the values. */
+  columns?: 2 | 3;
+}) {
   const shown = facts.filter((f) => f.value !== null && f.value !== undefined);
   if (!shown.length) return null;
   return (
-    <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+    <dl className={`grid gap-x-4 gap-y-3 ${columns === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
       {shown.map((f) => (
         <div key={f.label}>
           <dt className="text-xs font-semibold uppercase tracking-widest text-muted">{f.label}</dt>
