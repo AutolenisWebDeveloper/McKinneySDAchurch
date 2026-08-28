@@ -10,7 +10,9 @@ import { Container, Eyebrow } from "@/components/ui";
  * Nothing here makes a claim about construction timing or what a given amount buys — there is
  * no data behind those, so they are not asserted.
  */
-const FAQ: { q: string; a: string }[] = [
+type Faq = { q: string; a: string };
+
+const SHARED: Faq[] = [
   {
     q: "Where does my gift actually go?",
     a: "To the church, through AdventistGiving — the Seventh-day Adventist Church's official online giving platform. The Give button hands you off to AdventistGiving, and your gift is received there.",
@@ -19,10 +21,25 @@ const FAQ: { q: string; a: string }[] = [
     q: "Does the church store my card details?",
     a: "No. This website has no payment page and no card processing of any kind. Everything to do with your payment happens on AdventistGiving, and none of it is stored here.",
   },
-  {
+];
+
+/**
+ * Attribution works differently on the two surfaces, and the answer has to say which one the
+ * reader is on: a fundraiser's Give link carries a designation naming that page, while the
+ * campaign's does not — a gift there simply counts toward the campaign.
+ */
+const ATTRIBUTION: Record<"fundraiser" | "campaign", Faq> = {
+  fundraiser: {
     q: "How does my gift get credited to this fundraiser?",
     a: "The Give button carries a designation naming this page. Our treasurer reconciles the AdventistGiving record against it, which is what ties a gift to this fundraiser rather than to the campaign at large.",
   },
+  campaign: {
+    q: "How does my gift get counted toward this campaign?",
+    a: "Our treasurer reconciles the AdventistGiving record against the campaign. If you are giving in support of a particular member's fundraiser, give from their page instead — that link carries a designation naming it, which is what credits their goal.",
+  },
+};
+
+const REST: Faq[] = [
   {
     q: "Why hasn't my gift appeared here yet?",
     a: "Only gifts our treasurer has reconciled count toward the progress shown on this page, and reconciliation happens periodically rather than the moment you give. A gift you have just made is safely received even though the figure above has not moved yet.",
@@ -37,7 +54,8 @@ const FAQ: { q: string; a: string }[] = [
   },
 ];
 
-export function GivingFaq() {
+export function GivingFaq({ context = "fundraiser" }: { context?: "fundraiser" | "campaign" }) {
+  const FAQ = [...SHARED, ATTRIBUTION[context], ...REST];
   return (
     <section className="bg-canvas">
       <Container size="narrow" className="py-16 sm:py-20">
