@@ -2,13 +2,30 @@ import { env } from "@/env";
 import { donate } from "@/app/(public)/fundraising/actions";
 import { fieldClass, Honeypot } from "./page-ui";
 
-export function DonateForm({ campaignId, fundraiserId, backTo }: { campaignId: string; fundraiserId?: string; backTo: string }) {
+export function DonateForm({
+  campaignId,
+  fundraiserId,
+  backTo,
+  showExternalGive = true,
+}: {
+  campaignId: string;
+  fundraiserId?: string;
+  backTo: string;
+  /**
+   * Pass false where the surrounding page already frames the giving handoff. Suppresses both
+   * this form's intro paragraph and its AdventistGiving button, so the page does not say the
+   * same thing twice or offer the same link twice.
+   */
+  showExternalGive?: boolean;
+}) {
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted">
-        Record your gift below so it counts toward the goal{fundraiserId ? " and this fundraiser" : ""}. Then give
-        securely on AdventistGiving — we never handle card details.
-      </p>
+      {showExternalGive && (
+        <p className="text-sm text-muted">
+          Record your gift below so it counts toward the goal{fundraiserId ? " and this fundraiser" : ""}. Then give
+          securely on AdventistGiving — we never handle card details.
+        </p>
+      )}
       <form action={donate} className="space-y-3">
         <input type="hidden" name="campaignId" value={campaignId} />
         {fundraiserId ? <input type="hidden" name="fundraiserId" value={fundraiserId} /> : null}
@@ -27,7 +44,7 @@ export function DonateForm({ campaignId, fundraiserId, backTo }: { campaignId: s
         <Honeypot />
         <button className="btn btn-primary">Record my gift</button>
       </form>
-      {env.ADVENTIST_GIVING_URL ? (
+      {showExternalGive && env.ADVENTIST_GIVING_URL ? (
         <a href={env.ADVENTIST_GIVING_URL} target="_blank" rel="noopener noreferrer" className="btn btn-accent">
           Give now on AdventistGiving →
         </a>
